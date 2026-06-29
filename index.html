@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cadence">
+<meta name="theme-color" content="#FFF1CC">
+<title>Cadence</title>
+<style>
+  :root{
+    --bg:#FFF1CC; --card:#FFFDF6; --ink:#33271A; --muted:#8C7A60; --faint:#B6A079;
+    --line:#EAD7A8; --line2:#E2C988;
+    --orange:#F0741E; --red:#E1442E; --mustard:#F4B41A; --green:#6E9A38; --teal:#1FA39A;
+    --accent-ink:#ffffff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+       -webkit-user-select:none;user-select:none;display:flex;flex-direction:column}
+  .hidden{display:none!important}
+  button{font:inherit;color:var(--ink);background:#fff;border:2px solid var(--line2);border-radius:10px;
+         padding:8px 13px;cursor:pointer;font-weight:600;transition:background .1s,border-color .1s,color .1s,transform .05s}
+  button:hover{border-color:var(--orange)} button:active{transform:scale(.97)}
+  button.on{background:var(--mustard);border-color:var(--mustard);color:#3a2c10}
+  button.primary{background:var(--orange);border-color:var(--orange);color:var(--accent-ink)}
+  button.primary:hover{background:#d9650f}
+  button.danger{color:var(--red);border-color:var(--red);background:#fff}
+  button.danger:hover{background:var(--red);color:#fff}
+  button.small{padding:6px 11px;font-size:13px}
+  input{font:inherit;color:var(--ink);background:#fff;border:2px solid var(--line2);border-radius:10px;padding:9px 11px;outline:none}
+  input::placeholder{color:var(--faint)} input:focus{border-color:var(--orange)}
+  input[type=number]{width:74px} input[type=time]{width:118px}
+
+  /* login */
+  #login{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+  .loginbox{width:100%;max-width:320px;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:22px}
+  .loginbox h1{color:var(--orange);font-size:22px;margin:0 0 4px;letter-spacing:.5px}
+  .loginbox p{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .loginbox input{width:100%;margin-bottom:10px}
+  .loginbox button{width:100%}
+  .err{color:var(--red);font-size:12px;min-height:16px;margin-top:8px}
+
+  /* app */
+  header{display:flex;align-items:baseline;justify-content:space-between;padding:14px 18px 2px}
+  .brand{font-size:16px;font-weight:700;letter-spacing:.3px;color:var(--orange)}
+  .head-right{display:flex;align-items:center;gap:12px}
+  .date{font-size:12px;color:var(--muted)}
+  .logout{font-size:12px;color:var(--muted);background:none;border:none;padding:0;cursor:pointer;font-weight:600}
+  .hero{position:relative;width:208px;height:208px;margin:10px auto 2px}
+  .hero svg{position:absolute;inset:0}
+  .heroctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .clock{font-size:52px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:1px;color:var(--ink)}
+  .clock.pulse{animation:pulse 1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .state{font-size:11px;color:var(--muted);margin-top:7px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+  .subplan{text-align:center;font-size:15px;min-height:20px;margin:4px 18px 6px;font-weight:500}
+  main{flex:1;overflow:auto;padding:2px 16px 24px}
+  .card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:11px 13px;margin:10px 0}
+  .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--orange);font-weight:700;margin-bottom:8px}
+  .seg{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .startrow{display:flex;gap:8px}.startrow input{flex:1}
+  .runbtns{display:flex;gap:8px}.runbtns button{flex:1}
+  .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.inline #brkLabel{flex:1;min-width:120px}
+  .breakactive{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .breakactive .lab{font-weight:700;color:var(--teal)}
+  .retrow{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}.retrow input#reDesc{flex:1;min-width:150px}
+  .sep{color:var(--muted);font-size:13px}
+  .todayhead{display:flex;align-items:center;justify-content:space-between;margin:16px 2px 6px}
+  .todayhead h2{font-size:16px;margin:0;font-weight:700}
+  .stats{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:middle;margin-right:3px}
+  .timeline{max-height:264px;overflow:auto;border:2px solid var(--line);border-radius:14px;background:var(--card)}
+  .hour{display:flex;gap:8px;border-top:1px dashed var(--line);padding:3px 9px;min-height:38px}.hour:first-child{border-top:none}
+  .hlabel{width:48px;flex:0 0 48px;color:var(--muted);font-size:12px;padding-top:7px;font-variant-numeric:tabular-nums;font-weight:600}
+  .hslot{flex:1;display:flex;flex-direction:column;gap:5px;padding:3px 0;min-width:0}.hempty{height:12px}
+  .ev{background:var(--bg);border:1.5px solid var(--line);border-left-width:5px;border-radius:9px;padding:6px 9px}
+  .evtop{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .evtitle{font-size:13px;color:var(--ink);margin-top:1px;word-break:break-word;font-weight:500}
+  .evactual{font-size:12px;color:var(--muted);word-break:break-word}
+  .ev .tag{display:inline-block;margin-top:4px;font-size:11px;color:var(--muted);background:#fff;border:1px solid var(--line2);border-radius:6px;padding:1px 7px}
+  .ev.brk .evtitle{color:var(--teal)}
+
+  /* capture sheet */
+  #sheet{position:fixed;inset:0;background:rgba(40,30,15,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+  .sheetbox{width:100%;max-width:340px;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:16px}
+  .sheetbox h3{margin:0 0 4px;font-size:16px}
+  .sheetbox .planned{color:var(--muted);font-size:13px;margin:0 0 12px}
+  .sheetbox input{width:100%;margin-bottom:10px}
+  .sheetbtns{display:flex;gap:8px}.sheetbtns button{flex:1}
+  .didit{background:var(--green);border-color:var(--green);color:#fff}
+  .didnt{background:var(--red);border-color:var(--red);color:#fff}
+  .sheetcancel{display:block;margin:10px auto 0;background:none;border:none;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+
+  <div id="login">
+    <div class="loginbox">
+      <h1>CADENCE</h1>
+      <p>Sign in to your timer.</p>
+      <input type="email" id="email" placeholder="email" autocapitalize="off" autocorrect="off">
+      <input type="password" id="password" placeholder="password">
+      <button class="primary" id="loginBtn">Log in</button>
+      <div class="err" id="loginErr"></div>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header>
+      <div class="brand">CADENCE</div>
+      <div class="head-right">
+        <span class="date" id="date"></span>
+        <button class="logout" id="logoutBtn">Sign out</button>
+      </div>
+    </header>
+
+    <div class="hero">
+      <svg width="208" height="208" viewBox="0 0 208 208">
+        <circle cx="104" cy="104" r="90" fill="none" stroke="#F0E2BC" stroke-width="14"></circle>
+        <circle id="ring" cx="104" cy="104" r="90" fill="none" stroke="#F0741E" stroke-width="14"
+                stroke-linecap="round" stroke-dasharray="565" stroke-dashoffset="0" transform="rotate(-90 104 104)"></circle>
+      </svg>
+      <div class="heroctr">
+        <div class="clock" id="clock">--:--</div>
+        <div class="state" id="stateline">Idle</div>
+      </div>
+    </div>
+    <div class="subplan" id="subplan"></div>
+
+    <main>
+      <div class="card">
+        <div class="lbl">Session length</div>
+        <div class="seg" id="ivseg">
+          <button data-min="10">10</button>
+          <button data-min="20" class="on">20</button>
+          <button data-min="30">30</button>
+          <input type="number" id="ivcustom" min="1" max="180" placeholder="custom">
+          <span class="sep">min</span>
+        </div>
+      </div>
+
+      <div class="card" id="startBox">
+        <div class="lbl">Start a session</div>
+        <div class="startrow">
+          <input type="text" id="plan" placeholder="What will you focus on this block?">
+          <button class="primary" id="startBtn">Start</button>
+        </div>
+      </div>
+
+      <div class="card hidden" id="runBox">
+        <div class="lbl">This session</div>
+        <div class="runbtns">
+          <button id="pauseBtn">Pause</button>
+          <button id="logBtn">Log now</button>
+          <button class="danger" id="stopBtn">Stop</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="lbl">Block off time</div>
+        <div id="breakIdle" class="inline">
+          <input type="text" id="brkLabel" placeholder="Label (e.g. Lunch, Call, Walk)">
+          <input type="number" id="brkMin" min="1" max="240" placeholder="min">
+          <button class="primary" id="brkBtn">Start</button>
+        </div>
+        <div class="breakactive hidden" id="breakActive">
+          <span class="lab" id="breakActiveLabel"></span>
+          <button class="danger" id="endBreakBtn">End break</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="lbl">Log a past entry</div>
+        <div class="retrow"><input type="text" id="reDesc" placeholder="What was it?"></div>
+        <div class="retrow">
+          <input type="time" id="reStart" title="Start time">
+          <span class="sep">to</span>
+          <input type="time" id="reEnd" title="End time">
+        </div>
+        <div class="retrow">
+          <div class="seg" id="reMet">
+            <button data-met="Did it" class="small">Did it</button>
+            <button data-met="Didn't" class="small">Didn't</button>
+          </div>
+          <input type="text" id="reTag" placeholder="tag (optional)" style="flex:1;min-width:90px;">
+        </div>
+        <div style="display:flex;justify-content:flex-end;"><button class="primary small" id="reAddBtn">Add entry</button></div>
+      </div>
+
+      <div class="todayhead"><h2>Today</h2><div class="stats" id="stats"></div></div>
+      <div class="timeline" id="timeline"></div>
+    </main>
+  </div>
+
+  <div id="sheet" class="hidden">
+    <div class="sheetbox">
+      <h3 id="sheetTitle">Did you do what you intended?</h3>
+      <p class="planned" id="sheetPlanned"></p>
+      <input type="text" id="sheetActual" placeholder="What did you actually do? (optional)">
+      <input type="text" id="sheetNext" placeholder="Plan for the next block? (optional)">
+      <div class="sheetbtns">
+        <button class="didit" id="sheetDidIt">Did it</button>
+        <button class="didnt" id="sheetDidnt">Didn't</button>
+      </div>
+      <button class="sheetcancel" id="sheetCancel">cancel</button>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  var SUPABASE_URL = "https://snglqwfngmkhxtsvxuvp.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_HHHnwWx1BJ8l4uMbxt1XjQ_Mfwekcod";
+  var SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  var RING_CIRC = 565;
+  var RATING_COLOR = {"Did it":"#6E9A38", "Didn't":"#E1442E", "":"#C9B98F"};
+  var UID = null, st = null, TODAY = [], retroMet = "", busy = false;
+  var sheetIsStop = false, _lastDataKey = "", tickTimer = null, refreshTimer = null;
+
+  function $(id){ return document.getElementById(id); }
+  function el(tag,cls,txt){ var e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+  function fmt(sec){ if(sec===null||sec===undefined) return "--:--"; sec=Math.max(0,Math.round(sec)); var m=Math.floor(sec/60),s=sec%60; return (m<10?"0":"")+m+":"+(s<10?"0":"")+s; }
+  function hm(ts){ var d=new Date(ts); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+  function hourOf(ts){ return new Date(ts).getHours(); }
+  function hourLabel(h){ var ap=h<12?"AM":"PM"; var hr=h%12; if(hr===0)hr=12; return hr+" "+ap; }
+  function todayStartISO(){ var d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
+  function parseToday(hhmm){ if(!hhmm) return null; var p=hhmm.split(":"); if(p.length<2) return null; var d=new Date(); d.setHours(parseInt(p[0],10), parseInt(p[1],10), 0, 0); return d; }
+
+  // ---- auth ----
+  async function init(){
+    var res = await SB.auth.getSession();
+    if(res.data && res.data.session){ onLogin(res.data.session); } else { showLogin(); }
+    SB.auth.onAuthStateChange(function(_e, session){ if(session) onLogin(session); else showLogin(); });
+  }
+  function showLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); }
+  async function onLogin(session){
+    UID = session.user.id;
+    $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+    await ensureState(); await refresh();
+    if(!tickTimer) tickTimer = setInterval(tick, 1000);
+    if(!refreshTimer) refreshTimer = setInterval(function(){ refresh(); }, 5000);
+  }
+  async function doLogin(){
+    $("loginErr").textContent = "";
+    var email=$("email").value.trim(), pw=$("password").value;
+    var r = await SB.auth.signInWithPassword({ email:email, password:pw });
+    if(r.error) $("loginErr").textContent = r.error.message;
+  }
+
+  async function ensureState(){
+    var r = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
+    if(!r.data){
+      await SB.from("state").insert({ user_id: UID, interval_min: 20 });
+      r = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
+    }
+    st = r.data || { interval_min:20, block_index:0 };
+  }
+
+  // ---- read ----
+  async function refresh(){
+    if(busy) return;
+    var sr = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
+    if(sr.data) st = sr.data;
+    var iso = todayStartISO();
+    var b = await SB.from("blocks").select("*").eq("status","logged").gte("planned_at", iso).order("id");
+    var k = await SB.from("breaks").select("*").gte("started_at", iso).order("id");
+    TODAY = buildItems(b.data||[], k.data||[]);
+    render();
+  }
+  function buildItems(blocks, brks){
+    var items=[];
+    blocks.forEach(function(b){
+      var s=b.planned_at, e=b.logged_at||b.planned_at;
+      items.push({sort:s, startHM:hm(s), endHM:hm(e), startHour:hourOf(s), kind:"work",
+        planned:(b.planned||"").trim(), actual:(b.actual||"").trim(), tag:(b.tag||"").trim(),
+        rating:(b.rating||"").trim(), minutes:b.interval_min||0});
+    });
+    brks.forEach(function(r){
+      var s=r.started_at;
+      items.push({sort:s, startHM:hm(s), endHM:hm(r.ended_at||s), startHour:hourOf(s), kind:"break",
+        planned:(r.label||"").trim(), actual:"", tag:(r.tag||"").trim(), rating:"", minutes:r.minutes||0});
+    });
+    items.sort(function(a,b){ return a.sort<b.sort?-1:(a.sort>b.sort?1:0); });
+    return items;
+  }
+
+  // ---- derived status ----
+  function status(){
+    var now=Date.now();
+    if(st && st.break_due){
+      var bt=Math.max(1,(st.break_min||0)*60);
+      return {mode:"break", paused:false, breakLabel:st.break_label||"", subPlan:st.break_label||"", stateText:"On break",
+              remainingSec:Math.max(0,Math.round((new Date(st.break_due).getTime()-now)/1000)), totalSec:bt};
+    }
+    if(st && st.active_session_id){
+      var tot=Math.max(1, st.block_total||((st.interval_min||20)*60));
+      if(st.paused){ return {mode:"work", paused:true, remainingSec:st.pause_remaining||0, totalSec:tot, stateText:"Paused", subPlan:st.block_plan||""}; }
+      return {mode:"work", paused:false, totalSec:tot, stateText:"Block "+(st.block_index||1), subPlan:st.block_plan||"",
+              remainingSec:Math.max(0,Math.round((new Date(st.due_at).getTime()-now)/1000))};
+    }
+    var iv=(st&&st.interval_min)||20;
+    return {mode:"idle", paused:false, remainingSec:iv*60, totalSec:iv*60, stateText:"Idle — ready when you are", subPlan:""};
+  }
+
+  // ---- render ----
+  function ringColor(mode, frac){
+    if(mode==="break") return "#1FA39A";
+    if(mode==="idle") return "#F0741E";
+    if(frac<=0.0001) return "#E1442E";
+    if(frac<0.2) return "#F4B41A";
+    return "#F0741E";
+  }
+  function updateStatus(s){
+    var total=s.totalSec||1, rem=s.remainingSec, frac=Math.max(0,Math.min(1,(rem||0)/total));
+    var ring=$("ring"); ring.style.strokeDashoffset=(RING_CIRC*(1-frac)).toFixed(1);
+    ring.setAttribute("stroke", ringColor(s.mode, frac)); ring.style.opacity=s.paused?0.4:1;
+    var clock=$("clock"); clock.textContent=fmt(rem);
+    clock.classList.toggle("pulse", s.mode==="work" && !s.paused && frac<=0.0001);
+    $("stateline").textContent=s.stateText||"Idle"; $("subplan").textContent=s.subPlan||"";
+    var mode=s.mode||"idle";
+    $("startBox").classList.toggle("hidden", mode!=="idle");
+    $("runBox").classList.toggle("hidden", mode!=="work");
+    $("pauseBtn").textContent=s.paused?"Resume":"Pause";
+    var onBreak=(mode==="break");
+    $("breakIdle").classList.toggle("hidden", onBreak);
+    $("breakActive").classList.toggle("hidden", !onBreak);
+    if(onBreak) $("breakActiveLabel").textContent="On break · "+(s.breakLabel||"");
+  }
+  function renderTimeline(items){
+    var tl=$("timeline"); tl.innerHTML="";
+    var byHour={};
+    (items||[]).forEach(function(it){ var h=(typeof it.startHour==="number")?it.startHour:8; if(h<8)h=8; if(h>20)h=20; (byHour[h]=byHour[h]||[]).push(it); });
+    for(var h=8;h<=20;h++){
+      var row=el("div","hour"); row.appendChild(el("div","hlabel", hourLabel(h)));
+      var slot=el("div","hslot"); var list=byHour[h]||[];
+      if(!list.length){ slot.appendChild(el("div","hempty","")); }
+      list.forEach(function(it){
+        var card=el("div","ev"+(it.kind==="break"?" brk":""));
+        card.style.borderLeftColor = it.kind==="break" ? "#1FA39A" : (RATING_COLOR[it.rating]||RATING_COLOR[""]);
+        var top=el("div","evtop");
+        top.appendChild(el("span",null, it.startHM+((it.endHM&&it.endHM!==it.startHM)?("–"+it.endHM):"")));
+        top.appendChild(el("span",null,(it.minutes||0)+"m"));
+        card.appendChild(top);
+        card.appendChild(el("div","evtitle", it.kind==="break" ? ("☕ "+(it.planned||"Break")) : (it.planned||"—")));
+        if(it.kind==="work" && it.actual) card.appendChild(el("div","evactual","→ "+it.actual));
+        if(it.tag && it.kind==="work") card.appendChild(el("span","tag", it.tag));
+        slot.appendChild(card);
+      });
+      row.appendChild(slot); tl.appendChild(row);
+    }
+  }
+  function renderStats(items){
+    var box=$("stats"); box.innerHTML="";
+    var work=items.filter(function(i){return i.kind==="work";});
+    var workMin=work.reduce(function(a,i){return a+(i.minutes||0);},0);
+    var breakMin=items.filter(function(i){return i.kind==="break";}).reduce(function(a,i){return a+(i.minutes||0);},0);
+    var did=work.filter(function(i){return i.rating==="Did it";}).length;
+    var didnt=work.filter(function(i){return i.rating==="Didn't";}).length;
+    box.appendChild(el("span",null, work.length+" block"+(work.length===1?"":"s")));
+    box.appendChild(el("span",null, workMin+" min"));
+    if(breakMin) box.appendChild(el("span",null, breakMin+" off"));
+    if(did){ var a=el("span",null); var d=el("span","dot"); d.style.background=RATING_COLOR["Did it"]; a.appendChild(d); a.appendChild(document.createTextNode(did)); box.appendChild(a); }
+    if(didnt){ var b=el("span",null); var e=el("span","dot"); e.style.background=RATING_COLOR["Didn't"]; b.appendChild(e); b.appendChild(document.createTextNode(didnt)); box.appendChild(b); }
+  }
+  function setIntervalSel(min){
+    var matched=false;
+    document.querySelectorAll("#ivseg button").forEach(function(b){ var on=(parseInt(b.dataset.min,10)===min); b.classList.toggle("on",on); if(on)matched=true; });
+    var cust=$("ivcustom"); if(!matched){ cust.value=min; } else if(document.activeElement!==cust){ cust.value=""; }
+  }
+  function render(){
+    if(!st) return;
+    $("date").textContent = new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+    updateStatus(status());
+    setIntervalSel(st.interval_min||20);
+    var key=JSON.stringify(TODAY);
+    if(key!==_lastDataKey){ _lastDataKey=key; renderStats(TODAY); renderTimeline(TODAY); }
+  }
+
+  // ---- tick ----
+  function tick(){
+    if(!st) return;
+    var s=status(); updateStatus(s);
+    if(s.mode==="work" && !s.paused && s.remainingSec<=0 && $("sheet").classList.contains("hidden") && !busy){ openSheet(false); }
+    if(s.mode==="break" && s.remainingSec<=0 && !busy){ endBreak(); }
+  }
+
+  // ---- actions ----
+  async function run(fn){ if(busy) return; busy=true; try{ await fn(); }catch(e){ console.log(e); } busy=false; await refresh(); }
+
+  function startSession(plan){ run(async function(){
+    var iv=st.interval_min||20, now=new Date(), due=new Date(now.getTime()+iv*60000);
+    var s=await SB.from("sessions").insert({ interval_min:iv, started_at:now.toISOString() }).select("id").single();
+    var b=await SB.from("blocks").insert({ session_id:s.data.id, block_index:1, planned:plan, status:"open",
+      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv }).select("id").single();
+    await SB.from("state").update({ active_session_id:s.data.id, active_block_id:b.data.id, block_index:1,
+      block_plan:plan, block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0,
+      break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 }).eq("user_id", UID);
+  }); }
+
+  function logBlock(rating, actual, nextPlan){ run(async function(){
+    var iv=st.interval_min||20, now=new Date(), due=new Date(now.getTime()+iv*60000), idx=(st.block_index||1)+1;
+    await SB.from("blocks").update({ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString() }).eq("id", st.active_block_id);
+    var nb=await SB.from("blocks").insert({ session_id:st.active_session_id, block_index:idx, planned:nextPlan, status:"open",
+      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv }).select("id").single();
+    await SB.from("state").update({ active_block_id:nb.data.id, block_index:idx, block_plan:nextPlan,
+      block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0 }).eq("user_id", UID);
+  }); }
+
+  function stopSession(rating, actual){ run(async function(){
+    var now=new Date();
+    await SB.from("blocks").update({ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString() }).eq("id", st.active_block_id);
+    await SB.from("sessions").update({ ended_at:now.toISOString() }).eq("id", st.active_session_id);
+    await SB.from("state").update({ active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
+      block_total:0, due_at:null, paused:false, pause_remaining:0 }).eq("user_id", UID);
+  }); }
+
+  function togglePause(){ run(async function(){
+    var now=Date.now();
+    if(st.paused){
+      var due=new Date(now+(st.pause_remaining||0)*1000);
+      await SB.from("state").update({ paused:false, due_at:due.toISOString() }).eq("user_id", UID);
+    } else {
+      var rem=Math.max(0, Math.round((new Date(st.due_at).getTime()-now)/1000));
+      await SB.from("state").update({ paused:true, pause_remaining:rem }).eq("user_id", UID);
+    }
+  }); }
+
+  function setIntervalMin(m){ run(async function(){ await SB.from("state").update({ interval_min:m }).eq("user_id", UID); }); }
+
+  function startBreak(label, tag, minutes){ run(async function(){
+    var now=new Date(), due=new Date(now.getTime()+minutes*60000);
+    var upd={ break_due:due.toISOString(), break_label:label, break_tag:tag, break_start:now.toISOString(), break_min:minutes };
+    if(st.active_session_id && !st.paused){
+      upd.paused=true; upd.pause_remaining=Math.max(0, Math.round((new Date(st.due_at).getTime()-now.getTime())/1000));
+    }
+    await SB.from("state").update(upd).eq("user_id", UID);
+  }); }
+
+  function endBreak(){ run(async function(){
+    if(!st.break_due) return;
+    var now=new Date(), start=new Date(st.break_start);
+    var mins=Math.max(1, Math.round((now.getTime()-start.getTime())/60000));
+    await SB.from("breaks").insert({ label:st.break_label, tag:st.break_tag, started_at:st.break_start, ended_at:now.toISOString(), minutes:mins });
+    var upd={ break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 };
+    if(st.active_session_id){ upd.paused=false; upd.due_at=new Date(now.getTime()+(st.pause_remaining||0)*1000).toISOString(); }
+    await SB.from("state").update(upd).eq("user_id", UID);
+  }); }
+
+  function addPast(desc, startHM, endHM, met, tag){ run(async function(){
+    var start=parseToday(startHM), end=parseToday(endHM);
+    if(!start||!end||end<=start) return;
+    var minutes=Math.max(1, Math.round((end.getTime()-start.getTime())/60000));
+    var s=await SB.from("sessions").insert({ started_at:start.toISOString(), ended_at:end.toISOString(), interval_min:minutes }).select("id").single();
+    await SB.from("blocks").insert({ session_id:s.data.id, block_index:1, planned:desc||"(past entry)", actual:"",
+      tag:tag, rating:met, status:"logged", planned_at:start.toISOString(), due_at:end.toISOString(),
+      logged_at:end.toISOString(), interval_min:minutes });
+  }); }
+
+  // ---- capture sheet ----
+  function openSheet(isStop){
+    sheetIsStop=isStop;
+    $("sheetTitle").textContent = isStop ? "Stopping — did you do what you intended?" : ("Block "+(st.block_index||1)+" — did you do what you intended?");
+    $("sheetPlanned").textContent = "You planned: " + (st.block_plan || "(no plan set)");
+    $("sheetActual").value=""; $("sheetNext").value="";
+    $("sheetNext").classList.toggle("hidden", isStop);
+    $("sheet").classList.remove("hidden");
+  }
+  function closeSheet(){ $("sheet").classList.add("hidden"); }
+  function submitSheet(rating){
+    var actual=$("sheetActual").value, next=$("sheetNext").value;
+    closeSheet();
+    if(sheetIsStop) stopSession(rating, actual); else logBlock(rating, actual, next);
+  }
+
+  // ---- wiring ----
+  $("loginBtn").addEventListener("click", doLogin);
+  $("password").addEventListener("keydown", function(e){ if(e.key==="Enter") doLogin(); });
+  $("logoutBtn").addEventListener("click", function(){ SB.auth.signOut(); });
+  document.querySelectorAll("#ivseg button").forEach(function(b){ b.addEventListener("click", function(){ setIntervalMin(parseInt(b.dataset.min,10)); }); });
+  $("ivcustom").addEventListener("change", function(){ var v=parseInt(this.value,10); if(v>0) setIntervalMin(v); });
+  $("startBtn").addEventListener("click", function(){ var p=$("plan").value; $("plan").value=""; startSession(p); });
+  $("plan").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
+  $("pauseBtn").addEventListener("click", togglePause);
+  $("logBtn").addEventListener("click", function(){ openSheet(false); });
+  $("stopBtn").addEventListener("click", function(){ openSheet(true); });
+  $("brkBtn").addEventListener("click", function(){ var l=$("brkLabel").value||"Break"; var m=parseInt($("brkMin").value,10); if(m>0){ $("brkLabel").value=""; $("brkMin").value=""; startBreak(l,"Custom",m); } });
+  $("endBreakBtn").addEventListener("click", endBreak);
+  document.querySelectorAll("#reMet button").forEach(function(b){ b.addEventListener("click", function(){ retroMet=(retroMet===b.dataset.met)?"":b.dataset.met; document.querySelectorAll("#reMet button").forEach(function(x){ x.classList.toggle("on", x.dataset.met===retroMet); }); }); });
+  $("reAddBtn").addEventListener("click", function(){ var s=$("reStart").value, e=$("reEnd").value; if(!s||!e) return; addPast($("reDesc").value, s, e, retroMet, $("reTag").value); $("reDesc").value=""; $("reStart").value=""; $("reEnd").value=""; $("reTag").value=""; retroMet=""; document.querySelectorAll("#reMet button").forEach(function(x){ x.classList.remove("on"); }); });
+  $("sheetDidIt").addEventListener("click", function(){ submitSheet("Did it"); });
+  $("sheetDidnt").addEventListener("click", function(){ submitSheet("Didn't"); });
+  $("sheetCancel").addEventListener("click", closeSheet);
+
+  init();
+</script>
+</body>
+</html>
