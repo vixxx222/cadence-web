@@ -13,19 +13,32 @@
     --bg:#0B0D12; --panel:#141821; --card:rgba(255,255,255,.035); --field:rgba(255,255,255,.05);
     --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.16);
     --ink:#E9ECF4; --muted:#98A0B3; --faint:#5C6577;
-    --accent:#35E0C6; --accent-ink:#062B26;
+    --accent:#35E0C6; --accent-ink:#062B26; --accent-soft:rgba(53,224,198,.16);
     --warn:#FFB224; --danger:#FF5C6A; --ok:#3DDC97; --break:#54A9FF;
-    --track:rgba(255,255,255,.07); --scrim:rgba(4,6,10,.62);
-    --halo:radial-gradient(1100px 520px at 50% -12%, rgba(53,224,198,.07), transparent 60%);
+    --track:rgba(255,255,255,.07); --scrim:rgba(4,6,10,.66);
+    --glow:0 0 14px rgba(53,224,198,.35);
+    --halo:radial-gradient(1100px 520px at 50% -12%, rgba(53,224,198,.08), transparent 60%);
   }
   [data-theme="light"]{
-    --bg:#F2F4F9; --panel:#FFFFFF; --card:#FFFFFF; --field:#FFFFFF;
-    --line:#E2E6EE; --line2:#CBD2DE;
-    --ink:#161B26; --muted:#5E6878; --faint:#9AA3B5;
-    --accent:#0CA895; --accent-ink:#FFFFFF;
-    --warn:#C77800; --danger:#DC2637; --ok:#0E9F6E; --break:#2570C8;
-    --track:#E4E9F1; --scrim:rgba(20,26,38,.45);
-    --halo:none;
+    --bg:#EFF2F8; --panel:#FFFFFF; --card:#FFFFFF; --field:#F7F9FC;
+    --line:#DFE4EE; --line2:#C7CFDD;
+    --ink:#131826; --muted:#5A6478; --faint:#98A1B4;
+    --accent:#0A9E8C; --accent-ink:#FFFFFF; --accent-soft:rgba(10,158,140,.12);
+    --warn:#B26E00; --danger:#D91F33; --ok:#0B8F63; --break:#1F67C0;
+    --track:#E2E8F2; --scrim:rgba(18,24,38,.45);
+    --glow:0 0 16px rgba(10,158,140,.25);
+    --halo:radial-gradient(1100px 520px at 50% -12%, rgba(10,158,140,.07), transparent 60%);
+  }
+  [data-theme="sarah"]{
+    --bg:#101711; --panel:#18231A; --card:rgba(139,212,138,.07); --field:rgba(255,255,255,.05);
+    --line:rgba(139,212,138,.16); --line2:rgba(139,212,138,.3);
+    --ink:#F2F7EF; --muted:#A8BCA6; --faint:#6E8570;
+    --accent:#FF7DB8; --accent-ink:#2B0F1E; --accent-soft:rgba(255,125,184,.18);
+    --warn:#FFC86B; --danger:#FF6B8A; --ok:#8BD48A; --break:#7FC8FF;
+    --track:rgba(255,255,255,.08); --scrim:rgba(8,14,9,.68);
+    --glow:0 0 16px rgba(255,125,184,.4);
+    --halo:radial-gradient(900px 480px at 12% -10%, rgba(255,125,184,.16), transparent 60%),
+           radial-gradient(900px 480px at 88% -10%, rgba(139,212,138,.14), transparent 60%);
   }
   *{box-sizing:border-box}
   html{background:var(--bg)}
@@ -33,58 +46,60 @@
   body{background:var(--halo),var(--bg);color:var(--ink);
        font:14px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
        -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
-       padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+       padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+       transition:background .7s ease,color .5s ease}
   .hidden{display:none!important}
   .off{display:none!important}
   .shell{max-width:440px;margin:0 auto;width:100%}
 
   button{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line2);
          border-radius:10px;padding:9px 14px;cursor:pointer;font-weight:500;
-         transition:border-color .15s,background .15s,color .15s,transform .06s}
-  button:active{transform:scale(.97)}
+         transition:border-color .22s,background .3s,color .3s,transform .12s,box-shadow .3s}
+  button:active{transform:scale(.96)}
   button:hover{border-color:var(--accent)}
-  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;box-shadow:var(--glow)}
   button.ghost-danger{color:var(--danger);border-color:var(--line2)}
   button.ghost-danger:hover{border-color:var(--danger)}
   button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
   button.sm{padding:7px 11px;font-size:13px;border-radius:9px}
-  input{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line2);
-        border-radius:10px;padding:9px 11px;outline:none;transition:border-color .15s}
-  input::placeholder{color:var(--faint)}
-  input:focus{border-color:var(--accent)}
+  button.xs{padding:4px 9px;font-size:12px;border-radius:8px}
+  input,textarea{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line2);
+        border-radius:10px;padding:9px 11px;outline:none;transition:border-color .22s,background .3s}
+  input::placeholder,textarea::placeholder{color:var(--faint)}
+  input:focus,textarea:focus{border-color:var(--accent)}
   input[type=number]{width:72px}
   input[type=time]{width:118px}
+  textarea{width:100%;min-height:64px;resize:vertical}
 
-  /* ---------- login ---------- */
+  /* login */
   #login{min-height:92vh;display:flex;align-items:center;justify-content:center;padding:24px}
   .loginbox{width:100%;max-width:320px;background:var(--panel);border:1px solid var(--line);
-            border-radius:16px;padding:26px 22px}
+            border-radius:16px;padding:26px 22px;animation:rise .45s ease both}
   .wordmark{font-size:13px;font-weight:600;letter-spacing:.38em;color:var(--ink)}
   .wordmark i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);
-              margin-right:9px;vertical-align:6%;font-style:normal}
+              margin-right:9px;vertical-align:6%;font-style:normal;box-shadow:var(--glow)}
   .loginbox p{color:var(--muted);font-size:13px;margin:10px 0 18px}
   .loginbox input{width:100%;margin-bottom:10px}
   .loginbox button{width:100%;margin-top:2px}
   .err{color:var(--danger);font-size:12px;min-height:16px;margin-top:10px}
 
-  /* ---------- header ---------- */
   header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 4px}
   .hright{display:flex;align-items:center;gap:12px}
   .date{font-size:12px;color:var(--muted)}
   .iconbtn{border:none;padding:6px;border-radius:8px;color:var(--muted);line-height:0}
   .iconbtn:hover{color:var(--ink);border:none;background:var(--card)}
 
-  /* ---------- hero ---------- */
-  .hero{position:relative;width:210px;height:210px;margin:14px auto 0}
+  .hero{position:relative;width:210px;height:210px;margin:14px auto 0;animation:rise .5s ease both}
   .hero svg{position:absolute;inset:0}
   #ring{fill:none;stroke-width:10;stroke-linecap:round;
-        transition:stroke-dashoffset .5s linear,stroke .3s;
+        transition:stroke-dashoffset .5s linear,stroke .4s;
         stroke-dasharray:565;stroke-dashoffset:0}
   .ring-focus{stroke:var(--accent);color:var(--accent)}
   .ring-warn{stroke:var(--warn);color:var(--warn)}
   .ring-over{stroke:var(--danger);color:var(--danger)}
   .ring-break{stroke:var(--break);color:var(--break)}
-  [data-theme="dark"] #ring{filter:drop-shadow(0 0 6px currentColor)}
+  #ring{filter:drop-shadow(0 0 7px currentColor)}
+  [data-theme="light"] #ring{filter:drop-shadow(0 0 5px currentColor)}
   .heroctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
   .clock{font-size:52px;font-weight:300;font-variant-numeric:tabular-nums;line-height:1;letter-spacing:.5px}
   .clock.pulse{animation:pulse 1s ease-in-out infinite}
@@ -92,26 +107,40 @@
   .state{font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:.22em;text-transform:uppercase;font-weight:600}
   .subplan{text-align:center;font-size:15px;font-weight:500;min-height:21px;margin:10px 24px 2px}
 
-  main{padding:4px 16px 28px}
+  main{padding:4px 16px 30px}
+  main > *{animation:rise .45s ease both}
+  main > *:nth-child(2){animation-delay:.04s} main > *:nth-child(3){animation-delay:.08s}
+  main > *:nth-child(4){animation-delay:.12s} main > *:nth-child(5){animation-delay:.16s}
+  main > *:nth-child(n+6){animation-delay:.2s}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
-  /* ---------- stats ---------- */
   .stats-row{display:flex;gap:8px;margin:12px 0 2px;overflow-x:auto;scrollbar-width:none}
   .stats-row::-webkit-scrollbar{display:none}
-  .stat{flex:1;min-width:64px;background:var(--card);border:1px solid var(--line);border-radius:11px;
-        padding:8px 10px;text-align:center}
+  .stat{flex:1;min-width:62px;background:var(--card);border:1px solid var(--line);border-radius:11px;
+        padding:8px 10px;text-align:center;transition:border-color .3s,background .4s}
   .stat .v{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
   .stat .v.acc{color:var(--accent)} .stat .v.okc{color:var(--ok)} .stat .v.dgc{color:var(--danger)}
   .stat .k{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+  .goalwrap{margin:8px 2px 0}
+  .goalbar{height:7px;border-radius:999px;background:var(--track);overflow:hidden}
+  .goalfill{height:100%;width:0%;border-radius:999px;background:var(--accent);box-shadow:var(--glow);
+            transition:width .8s cubic-bezier(.2,.8,.2,1)}
+  .goaltxt{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);margin-top:4px}
 
-  /* ---------- cards ---------- */
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin:10px 0}
-  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);font-weight:600;margin-bottom:9px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin:10px 0;
+        transition:border-color .3s,background .4s}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);font-weight:600;margin-bottom:9px;
+       display:flex;justify-content:space-between;align-items:center}
+  .lbl .mini{letter-spacing:0;text-transform:none;font-weight:500;color:var(--faint)}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .startrow{display:flex;gap:8px}.startrow input{flex:1}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
   .chip{font-size:12px;color:var(--muted);background:transparent;border:1px solid var(--line);
         border-radius:999px;padding:5px 11px}
   .chip:hover{color:var(--ink);border-color:var(--accent)}
+  .chip.cont{color:var(--accent);border-color:var(--accent);font-weight:600}
+  .suggs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .suggs:empty{display:none}
   .runbtns{display:flex;gap:8px}.runbtns button{flex:1}
   .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .inline #brkLabel{flex:1;min-width:120px}
@@ -120,8 +149,27 @@
   .retrow{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
   .retrow input#reDesc{flex:1;min-width:150px}
   .sep{color:var(--faint);font-size:13px}
+  .linky{background:none;border:none;color:var(--faint);font-size:12px;padding:2px 0;text-decoration:underline}
+  .linky:hover{color:var(--accent);border:none}
 
-  /* ---------- timeline ---------- */
+  /* routine */
+  .rrow{display:flex;align-items:center;gap:8px;margin:7px 0;flex-wrap:wrap}
+  .rrow .ic{width:20px;text-align:center}
+  .rrow .opts{display:flex;gap:5px;flex-wrap:wrap;flex:1}
+  .streak{font-size:12px;color:var(--muted)}
+  .streak b{color:var(--warn)}
+
+  /* tasks + missions */
+  .trow{display:flex;align-items:center;gap:9px;padding:7px 2px;border-top:1px solid var(--line)}
+  .trow:first-of-type{border-top:none}
+  .trow .nm{flex:1;font-size:13.5px;min-width:0;word-break:break-word}
+  .trow .nm.done{text-decoration:line-through;color:var(--faint)}
+  .trow .mins{font-size:11.5px;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .trow .area{font-size:10.5px;color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:1px 6px;white-space:nowrap}
+  .addrow{display:flex;gap:8px;margin-top:9px}
+  .addrow input{flex:1}
+  .empty{color:var(--faint);font-size:12.5px;padding:6px 2px}
+
   .todayhead{display:flex;align-items:baseline;justify-content:space-between;margin:16px 2px 8px}
   .todayhead h2{font-size:15px;margin:0;font-weight:600;letter-spacing:.02em}
   .todayhead .sub{font-size:11px;color:var(--faint)}
@@ -134,57 +182,93 @@
   .hslot{flex:1;display:flex;flex-direction:column;gap:5px;padding:4px 0;min-width:0}
   .hempty{height:10px}
   .ev{background:var(--field);border:1px solid var(--line);border-left:3px solid var(--faint);
-      border-radius:9px;padding:6px 10px;cursor:pointer}
+      border-radius:9px;padding:6px 10px;cursor:pointer;transition:border-color .25s,transform .15s}
+  .ev:active{transform:scale(.985)}
   .ev.r-did{border-left-color:var(--ok)}
   .ev.r-didnt{border-left-color:var(--danger)}
   .ev.r-un{border-left-color:var(--faint)}
   .ev.brk{border-left-color:var(--break)}
   .ev.brk .evtitle{color:var(--break)}
+  .ev.ghost{border-style:dashed;opacity:.65;cursor:default}
   .evtop{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);font-variant-numeric:tabular-nums}
   .evtitle{font-size:13px;margin-top:1px;word-break:break-word;font-weight:500}
   .evactual{font-size:12px;color:var(--muted);word-break:break-word}
   .ev .tag{display:inline-block;margin-top:4px;font-size:10.5px;color:var(--muted);
-           border:1px solid var(--line);border-radius:6px;padding:1px 7px}
+           border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-right:4px}
 
-  /* ---------- capture sheet ---------- */
-  #sheet{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
+  /* sheet */
+  #sheet,#gate{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
          justify-content:center;padding:0;z-index:40}
   .sheetbox{width:100%;max-width:440px;background:var(--panel);border:1px solid var(--line);
             border-bottom:none;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));
-            animation:up .22s ease-out}
-  @keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+            animation:up .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
   .sheetbox h3{margin:0 0 4px;font-size:16px;font-weight:600}
   .sheetbox .planned{color:var(--muted);font-size:13px;margin:0 0 13px}
   .sheetbox input{width:100%;margin-bottom:10px}
+  .sheetseg{display:flex;gap:8px;margin:2px 0 10px}
+  .sheetseg button{flex:1}
   .sheetbtns{display:flex;gap:8px;margin-top:2px}.sheetbtns button{flex:1;padding:12px}
   .didit{background:var(--ok);border-color:var(--ok);color:#04140D;font-weight:700}
   .didnt{background:var(--danger);border-color:var(--danger);color:#fff;font-weight:700}
   .sheetcancel{display:block;margin:12px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
+  .gnote{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5}
+  .gnote b{color:var(--ink)}
+  .skiplink{display:block;margin:14px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
+  .skiplink:disabled{opacity:.4}
 
-  /* ---------- settings drawer ---------- */
+  /* drawer */
   #drawerWrap{position:fixed;inset:0;z-index:50}
   .scrim{position:absolute;inset:0;background:var(--scrim)}
-  .drawer{position:absolute;top:0;right:0;bottom:0;width:min(320px,88vw);background:var(--panel);
+  .drawer{position:absolute;top:0;right:0;bottom:0;width:min(330px,88vw);background:var(--panel);
           border-left:1px solid var(--line);padding:18px 16px calc(18px + env(safe-area-inset-bottom));
-          overflow:auto;animation:slide .2s ease-out}
-  @keyframes slide{from{transform:translateX(30px);opacity:.5}to{transform:none;opacity:1}}
+          overflow:auto;animation:slide .26s cubic-bezier(.2,.8,.2,1)}
+  @keyframes slide{from{transform:translateX(40px);opacity:.5}to{transform:none;opacity:1}}
   .dhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
   .dhead h2{font-size:15px;margin:0;font-weight:600}
   .dsec{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--faint);
         font-weight:600;margin:18px 0 8px}
   .opt{display:flex;align-items:center;justify-content:space-between;padding:9px 2px;gap:10px}
   .opt span{font-size:13.5px}
+  .opt .hintx{display:block;font-size:11px;color:var(--faint)}
   .themeseg{display:flex;gap:6px}
   .sw{position:relative;width:42px;height:25px;flex:0 0 42px}
   .sw input{opacity:0;width:0;height:0}
   .sw i{position:absolute;inset:0;background:var(--track);border:1px solid var(--line2);
-        border-radius:999px;transition:background .15s;font-style:normal}
+        border-radius:999px;transition:background .2s;font-style:normal}
   .sw i:before{content:"";position:absolute;width:19px;height:19px;left:2px;top:2px;border-radius:50%;
-        background:var(--muted);transition:transform .15s,background .15s}
-  .sw input:checked + i{background:var(--accent);border-color:var(--accent)}
+        background:var(--muted);transition:transform .2s,background .2s}
+  .sw input:checked + i{background:var(--accent);border-color:var(--accent);box-shadow:var(--glow)}
   .sw input:checked + i:before{transform:translateX(17px);background:var(--accent-ink)}
   .acct{font-size:12px;color:var(--muted);margin:4px 0 10px;word-break:break-all}
   .dfoot{font-size:11px;color:var(--faint);margin-top:22px;text-align:center}
+
+  /* toast */
+  #toast{position:fixed;top:calc(14px + env(safe-area-inset-top));left:50%;transform:translate(-50%,-80px);
+         max-width:min(400px,92vw);background:var(--panel);border:1px solid var(--accent);color:var(--ink);
+         border-radius:999px;padding:10px 18px;font-size:13.5px;z-index:70;box-shadow:var(--glow);
+         transition:transform .45s cubic-bezier(.2,.8,.2,1);text-align:center}
+  #toast.show{transform:translate(-50%,0)}
+
+  /* sarah intro + bloom */
+  #sarahIntro,#bloom{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+        background:var(--scrim);overflow:hidden}
+  .blob{position:absolute;width:70vmax;height:70vmax;border-radius:50%;filter:blur(60px);opacity:0;
+        animation:seep 2.2s ease forwards}
+  .blob.g{background:rgba(139,212,138,.5);left:-25vmax;bottom:-25vmax}
+  .blob.p{background:rgba(255,125,184,.5);right:-25vmax;top:-25vmax;animation-delay:.25s}
+  @keyframes seep{from{opacity:0;transform:scale(.4)}to{opacity:.85;transform:scale(1.15)}}
+  .introbox{position:relative;text-align:center;padding:28px;max-width:360px}
+  .introbox h1{font-size:30px;font-weight:600;letter-spacing:.04em;min-height:40px;margin:0 0 12px;color:#fff;
+               text-shadow:0 0 24px rgba(255,125,184,.8)}
+  .introbox p{color:#F2F7EF;font-size:14px;line-height:1.65;opacity:0;animation:rise 1s ease 2.4s forwards}
+  .introbox button{opacity:0;animation:rise .8s ease 3.2s forwards;margin-top:14px;
+                   background:#FF7DB8;border-color:#FF7DB8;color:#2B0F1E;font-weight:700}
+  .bloombox{position:relative;text-align:center;padding:24px;max-width:380px;background:var(--panel);
+            border:1px solid var(--accent);border-radius:20px;box-shadow:var(--glow);animation:up .4s ease}
+  .flowers{line-height:1.15;margin:8px 0 12px;animation:pulse 2.4s ease-in-out infinite}
+  .bloombox h3{margin:0;font-size:17px}
+  .bloombox p{color:var(--muted);font-size:13px;margin:8px 0 14px}
 
   body.compact header{padding:10px 16px 0}
   body.compact .hero{margin-top:6px;width:186px;height:186px}
@@ -212,7 +296,7 @@
   <div id="app" class="hidden">
     <div class="shell">
       <header>
-        <div class="wordmark"><i></i>CADENCE</div>
+        <div class="wordmark"><i></i><span id="brandTxt">CADENCE</span></div>
         <div class="hright">
           <span class="date" id="date"></span>
           <button class="iconbtn" id="settingsBtn" aria-label="Settings">
@@ -234,14 +318,21 @@
       <div class="subplan" id="subplan"></div>
 
       <main>
-        <div class="stats-row" id="card-stats"></div>
+        <div id="statsWrap">
+          <div class="stats-row" id="card-stats"></div>
+          <div class="goalwrap" id="goalWrap">
+            <div class="goalbar"><div class="goalfill" id="goalFill"></div></div>
+            <div class="goaltxt"><span id="goalTxt"></span><span id="goalPct"></span></div>
+          </div>
+        </div>
 
         <div class="card" id="startBox">
           <div class="lbl">Start a session</div>
           <div class="startrow">
-            <input type="text" id="plan" placeholder="What will you focus on?">
+            <input type="text" id="plan" placeholder="What will you focus on?" autocomplete="off">
             <button class="primary" id="startBtn">Start</button>
           </div>
+          <div class="suggs" id="planSuggs"></div>
           <div class="chips" id="chips"></div>
         </div>
 
@@ -251,6 +342,26 @@
             <button id="pauseBtn">Pause</button>
             <button id="logBtn">Log now</button>
             <button class="ghost-danger" id="stopBtn">Stop</button>
+          </div>
+        </div>
+
+        <div class="card" id="card-routine">
+          <div class="lbl"><span>Morning routine</span><span class="streak" id="routineStreak"></span></div>
+          <div class="rrow"><span class="ic">🏃</span>
+            <div class="opts" id="rMove">
+              <button class="xs" data-v="Pushups">Pushups</button>
+              <button class="xs" data-v="Core">Core</button>
+              <button class="xs" data-v="Run">Run</button>
+              <button class="xs" data-v="Swim">Swim</button>
+            </div>
+            <label class="sw"><input type="checkbox" id="rMoveDone"><i></i></label>
+          </div>
+          <div class="rrow"><span class="ic">🧘</span>
+            <div class="opts" id="rMind">
+              <button class="xs" data-v="Meditate">Meditate</button>
+              <button class="xs" data-v="Journal">Journal</button>
+            </div>
+            <label class="sw"><input type="checkbox" id="rMindDone"><i></i></label>
           </div>
         </div>
 
@@ -296,6 +407,20 @@
           <div style="display:flex;justify-content:flex-end;"><button class="primary sm" id="reAddBtn">Add entry</button></div>
         </div>
 
+        <div class="card" id="card-tasks">
+          <div class="lbl"><span>Ongoing tasks</span><span class="mini">tap to continue · ✓ to finish</span></div>
+          <div id="taskList"></div>
+        </div>
+
+        <div class="card" id="card-missions">
+          <div class="lbl"><span>Missions · roadmap</span><span class="mini">fed by open-day / close-day</span></div>
+          <div id="missionList"></div>
+          <div class="addrow">
+            <input type="text" id="mAdd" placeholder="Add a mission or deliverable…">
+            <button class="sm" id="mAddBtn">Add</button>
+          </div>
+        </div>
+
         <div class="todayhead" id="todayHead">
           <h2>Today</h2><span class="sub">tap an entry to delete</span>
         </div>
@@ -309,12 +434,32 @@
       <h3 id="sheetTitle">Did you do what you intended?</h3>
       <p class="planned" id="sheetPlanned"></p>
       <input type="text" id="sheetActual" placeholder="What did you actually do? (optional)">
-      <input type="text" id="sheetNext" placeholder="Plan for the next block? (optional)">
+      <div class="sheetseg" id="sheetDone">
+        <button class="sm" data-v="done">Task finished ✓</button>
+        <button class="sm" data-v="cont">Continuing →</button>
+      </div>
+      <input type="text" id="sheetNext" placeholder="Plan for the next block? (optional)" autocomplete="off">
+      <div class="suggs" id="nextSuggs"></div>
+      <button class="linky" id="notesToggle">+ add context (for open-day / close-day)</button>
+      <textarea id="sheetNotes" class="hidden" placeholder="Context, details, links — kept out of the way, used for daily wrap-ups."></textarea>
       <div class="sheetbtns">
         <button class="didit" id="sheetDidIt">Did it</button>
         <button class="didnt" id="sheetDidnt">Didn't</button>
       </div>
       <button class="sheetcancel" id="sheetCancel">cancel</button>
+    </div>
+  </div>
+
+  <div id="gate" class="hidden">
+    <div class="sheetbox">
+      <h3>Start the day right</h3>
+      <p class="gnote">First session of the day. Before you dive in:<br>
+        <b>1.</b> Run <b>/open-day</b> with Claude on your Mac — it sets today's priorities.<br>
+        <b>2.</b> Knock out the morning routine (or schedule it on the timeline).</p>
+      <div class="sheetbtns">
+        <button class="primary" id="gateDone">Open-day is done — let's go</button>
+      </div>
+      <button class="skiplink" id="gateSkip" disabled>skip today (available in 6s)</button>
     </div>
   </div>
 
@@ -342,14 +487,28 @@
       <div class="opt"><span>Sound when a block ends</span>
         <label class="sw"><input type="checkbox" id="swSound"><i></i></label>
       </div>
+      <div class="opt"><span>Daily focus goal (hours)</span>
+        <input type="number" id="goalHrs" min="0.5" max="16" step="0.5" style="width:70px">
+      </div>
+      <div class="opt"><span>Morning routine slot</span>
+        <input type="time" id="routineTime" style="width:110px">
+      </div>
 
       <div class="dsec">Modules — show or hide</div>
-      <div class="opt"><span>Focus stats</span><label class="sw"><input type="checkbox" data-mod="stats"><i></i></label></div>
+      <div class="opt"><span>Focus stats + goal</span><label class="sw"><input type="checkbox" data-mod="stats"><i></i></label></div>
       <div class="opt"><span>Quick plan chips</span><label class="sw"><input type="checkbox" data-mod="chips"><i></i></label></div>
+      <div class="opt"><span>Morning routine</span><label class="sw"><input type="checkbox" data-mod="routine"><i></i></label></div>
       <div class="opt"><span>Session length</span><label class="sw"><input type="checkbox" data-mod="length"><i></i></label></div>
       <div class="opt"><span>Block off time</span><label class="sw"><input type="checkbox" data-mod="breaks"><i></i></label></div>
       <div class="opt"><span>Log a past entry</span><label class="sw"><input type="checkbox" data-mod="past"><i></i></label></div>
+      <div class="opt"><span>Ongoing tasks</span><label class="sw"><input type="checkbox" data-mod="tasks"><i></i></label></div>
+      <div class="opt"><span>Missions / roadmap</span><label class="sw"><input type="checkbox" data-mod="missions"><i></i></label></div>
       <div class="opt"><span>Today timeline</span><label class="sw"><input type="checkbox" data-mod="timeline"><i></i></label></div>
+
+      <div class="dsec">Sarah mode 💚</div>
+      <div class="opt"><span>Sarah mode<span class="hintx">gorp-core colors, encouragement, flowers</span></span>
+        <label class="sw"><input type="checkbox" id="swSarah"><i></i></label>
+      </div>
 
       <div class="dsec">Account</div>
       <div class="acct" id="acctEmail"></div>
@@ -357,6 +516,26 @@
 
       <div class="dfoot">Cadence · settings saved on this device</div>
     </aside>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="sarahIntro" class="hidden">
+    <div class="blob g"></div><div class="blob p"></div>
+    <div class="introbox">
+      <h1 id="introTitle"></h1>
+      <p>You've entered <b>Sarah Mode</b> 🌸 Softer colors, gorpier vibes, and one extra feature: this app now reminds you — often — that you're doing amazing. Victor knows you don't exactly <i>need</i> a focus timer. This is just his way of sneaking encouragement, affirmation, and the L-word into your day. Expect compliments at random intervals. Finish things, earn flowers. Resistance is futile. 💚</p>
+      <button id="introGo">Let's go 💐</button>
+    </div>
+  </div>
+
+  <div id="bloom" class="hidden">
+    <div class="bloombox">
+      <h3 id="bloomTitle">A bouquet for you</h3>
+      <div class="flowers" id="bloomFlowers">💐</div>
+      <p id="bloomMsg"></p>
+      <button class="primary sm" id="bloomClose">Aww. Continue 💚</button>
+    </div>
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -367,60 +546,75 @@
 
   var RING_CIRC = 565;
   var RATING_CLASS = {"Did it":"r-did", "Didn't":"r-didnt", "":"r-un"};
-  var UID = null, EMAIL = "", st = null, TODAY = [], retroMet = "", busy = false;
-  var sheetIsStop = false, _lastDataKey = "", tickTimer = null, refreshTimer = null;
+  var UID = null, EMAIL = "", st = null, TODAY = [], busy = false;
+  var retroMet = "", sheetIsStop = false, sheetDoneSel = "";
+  var _lastDataKey = "", tickTimer = null, refreshTimer = null, extTimer = null;
   var _scrolledOnce = false, audioCtx = null;
+  var EXT = false;                 // true once the upgrade SQL tables exist
+  var TASKS = [], TASK_MIN = {}, MISSIONS = [], ROUTINE = null, ROUTINE_STREAK = 0;
+  var gateShownThisLoad = false, pendingPlan = null;
 
-  // ---------- prefs ----------
-  var DEFAULT_PREFS = {theme:"dark", sound:true, compact:false,
-    show:{stats:true, chips:true, length:true, breaks:true, past:true, timeline:true}};
+  // ---------------- prefs ----------------
+  var DEFAULT_PREFS = {theme:"dark", sound:true, compact:false, sarah:false,
+    goalHrs:4, routineTime:"08:00",
+    show:{stats:true, chips:true, routine:true, length:true, breaks:true, past:true, tasks:true, missions:true, timeline:true}};
   var prefs = loadPrefs();
   function loadPrefs(){
     try{
-      var raw = localStorage.getItem("cadence_prefs");
-      if(!raw) return JSON.parse(JSON.stringify(DEFAULT_PREFS));
-      var p = JSON.parse(raw);
       var out = JSON.parse(JSON.stringify(DEFAULT_PREFS));
+      var p = JSON.parse(localStorage.getItem("cadence_prefs") || "{}");
       if(p.theme==="light") out.theme="light";
       if(typeof p.sound==="boolean") out.sound=p.sound;
       if(typeof p.compact==="boolean") out.compact=p.compact;
+      if(typeof p.sarah==="boolean") out.sarah=p.sarah;
+      if(typeof p.goalHrs==="number" && p.goalHrs>0) out.goalHrs=p.goalHrs;
+      if(typeof p.routineTime==="string" && /^\d\d:\d\d$/.test(p.routineTime)) out.routineTime=p.routineTime;
       if(p.show){ for(var k in out.show){ if(typeof p.show[k]==="boolean") out.show[k]=p.show[k]; } }
       return out;
     }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_PREFS)); }
   }
   function savePrefs(){ try{ localStorage.setItem("cadence_prefs", JSON.stringify(prefs)); }catch(e){} }
   function applyPrefs(){
-    document.documentElement.setAttribute("data-theme", prefs.theme);
+    var theme = prefs.sarah ? "sarah" : prefs.theme;
+    document.documentElement.setAttribute("data-theme", theme);
     var tc = document.querySelector('meta[name="theme-color"]');
-    if(tc) tc.setAttribute("content", prefs.theme==="dark" ? "#0B0D12" : "#F2F4F9");
+    if(tc) tc.setAttribute("content", theme==="sarah" ? "#101711" : (theme==="dark" ? "#0B0D12" : "#EFF2F8"));
     document.body.classList.toggle("compact", prefs.compact);
+    $("brandTxt").textContent = prefs.sarah ? "CADENCE · S" : "CADENCE";
     $("thDark").classList.toggle("on", prefs.theme==="dark");
     $("thLight").classList.toggle("on", prefs.theme==="light");
     $("swCompact").checked = prefs.compact;
     $("swSound").checked = prefs.sound;
+    $("swSarah").checked = prefs.sarah;
+    $("goalHrs").value = prefs.goalHrs;
+    $("routineTime").value = prefs.routineTime;
     document.querySelectorAll("[data-mod]").forEach(function(cb){ cb.checked = !!prefs.show[cb.dataset.mod]; });
-    $("card-stats").classList.toggle("off", !prefs.show.stats);
+    $("statsWrap").classList.toggle("off", !prefs.show.stats);
     $("chips").classList.toggle("off", !prefs.show.chips);
     $("card-length").classList.toggle("off", !prefs.show.length);
     $("card-past").classList.toggle("off", !prefs.show.past);
     $("todayHead").classList.toggle("off", !prefs.show.timeline);
     $("timeline").classList.toggle("off", !prefs.show.timeline);
+    $("card-routine").classList.toggle("off", !prefs.show.routine || !EXT);
+    $("card-tasks").classList.toggle("off", !prefs.show.tasks || !EXT);
+    $("card-missions").classList.toggle("off", !prefs.show.missions || !EXT);
     syncBreaksCard();
   }
   function syncBreaksCard(){
-    // Keep the breaks card reachable while a break is running even if hidden.
     var onBreak = !!(st && st.break_due);
     $("card-breaks").classList.toggle("off", !prefs.show.breaks && !onBreak);
   }
 
-  // ---------- utils ----------
+  // ---------------- utils ----------------
   function $(id){ return document.getElementById(id); }
   function el(tag,cls,txt){ var e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
   function fmt(sec){ if(sec===null||sec===undefined) return "--:--"; sec=Math.max(0,Math.round(sec)); var m=Math.floor(sec/60),s=sec%60; return (m<10?"0":"")+m+":"+(s<10?"0":"")+s; }
+  function hmin(min){ min=Math.round(min||0); var h=Math.floor(min/60), m=min%60; return h>0 ? (h+"h "+(m<10?"0":"")+m+"m") : (m+"m"); }
   function hm(ts){ var d=new Date(ts); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
   function hourOf(ts){ return new Date(ts).getHours(); }
   function hourLabel(h){ var ap=h<12?"AM":"PM"; var hr=h%12; if(hr===0)hr=12; return hr+" "+ap; }
   function todayStartISO(){ var d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
+  function dayKey(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
   function parseToday(hhmm){ if(!hhmm) return null; var p=hhmm.split(":"); if(p.length<2) return null; var d=new Date(); d.setHours(parseInt(p[0],10), parseInt(p[1],10), 0, 0); return d; }
 
   function unlockAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
@@ -440,7 +634,80 @@
     }catch(e){}
   }
 
-  // ---------- auth ----------
+  var toastTimer=null;
+  function toast(msg, ms){
+    var t=$("toast"); t.textContent=msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(function(){ t.classList.remove("show"); }, ms||3600);
+  }
+
+  // ---------------- Sarah mode ----------------
+  var PRAISE = [
+    "Per my last block: you crushed it. 📈",
+    "Quarterly review: 10/10, would L-word again.",
+    "Stakeholder update: everyone agrees you're doing amazing. (The stakeholder is Victor.)",
+    "Block closed like it owed you money. Respect. 💪",
+    "Synergy achieved: your brain × this block = excellence.",
+    "Please see attached: 💚 (formal delivery of the L-word)",
+    "Meeting notes: you showed up, you did the thing, you're wonderful.",
+    "New policy: every block you finish, a flower somewhere blooms. You're basically a garden. 🌷"
+  ];
+  var RANDOM_REMARKS = [
+    "Random check-in: still brilliant. Carry on. ✨",
+    "This is your recurring reminder that Victor L-words you enormously.",
+    "KPI check — Kindness, Poise, Incredible-ness: all exceeding targets.",
+    "Fun fact: you make everything around you better. Documented. Filed. Official.",
+    "Status update: gorgeous AND productive. Unrelated, but worth logging.",
+    "The committee met (Victor) and voted (unanimously): you're the best.",
+    "Gentle memo: hydrate, stretch, and remember you're extraordinary. 💚",
+    "Breaking news: local woman absolutely killing it. More at 11."
+  ];
+  var BOUQUET_TIERS = [
+    {n:3,   f:"💐", size:44, msg:"First bouquet unlocked. Small, like the beginning of something great — just like this. L-word, always."},
+    {n:10,  f:"🌷🌸💐🌸🌷", size:40, msg:"Ten wins. The garden grows. Victor says: proud of you doesn't cover it."},
+    {n:25,  f:"🌷🌸🌹💐🌹🌸🌷", size:44, msg:"Twenty-five! An actual armful of flowers. You're unstoppable and deeply L-worded."},
+    {n:50,  f:"🌹🌷🌸🌺🌻💐🌻🌺🌸🌷🌹", size:46, msg:"FIFTY. This bouquet barely fits through the door. Neither does Victor's pride."},
+    {n:100, f:"🌹🌷🌸🌺🌻🏵️💮🌼💐🌼💮🏵️🌻🌺🌸🌷🌹", size:50, msg:"One hundred. A whole flower shop. There is no bouquet big enough for how L-worded you are. 💚"}
+  ];
+  function sarahProg(){ try{ return JSON.parse(localStorage.getItem("sarah_prog")||'{"n":0,"seen":[],"clicks":0,"nextAt":12}'); }catch(e){ return {n:0,seen:[],clicks:0,nextAt:12}; } }
+  function saveSarahProg(p){ try{ localStorage.setItem("sarah_prog", JSON.stringify(p)); }catch(e){} }
+  function sarahPraise(){
+    if(!prefs.sarah) return;
+    toast(PRAISE[Math.floor(Math.random()*PRAISE.length)]);
+    var p=sarahProg(); p.n++;
+    for(var i=0;i<BOUQUET_TIERS.length;i++){
+      var t=BOUQUET_TIERS[i];
+      if(p.n>=t.n && p.seen.indexOf(t.n)<0){ p.seen.push(t.n); saveSarahProg(p); showBloom(t, p.n); return; }
+    }
+    saveSarahProg(p);
+  }
+  function sarahClick(){
+    if(!prefs.sarah) return;
+    var p=sarahProg(); p.clicks++;
+    if(p.clicks>=p.nextAt){
+      p.clicks=0; p.nextAt=12+Math.floor(Math.random()*12);
+      toast(RANDOM_REMARKS[Math.floor(Math.random()*RANDOM_REMARKS.length)]);
+    }
+    saveSarahProg(p);
+  }
+  function showBloom(tier, n){
+    $("bloomFlowers").textContent=tier.f;
+    $("bloomFlowers").style.fontSize=tier.size+"px";
+    $("bloomTitle").textContent="Bouquet unlocked — "+n+" wins 🎉";
+    $("bloomMsg").textContent=tier.msg;
+    $("bloom").classList.remove("hidden");
+  }
+  function playSarahIntro(){
+    $("sarahIntro").classList.remove("hidden");
+    var title="Welcome, Sarah 💚", elT=$("introTitle"), i=0;
+    elT.textContent="";
+    var iv=setInterval(function(){
+      i++; elT.textContent=title.slice(0,i);
+      if(i>=title.length) clearInterval(iv);
+    }, 90);
+  }
+
+  // ---------------- auth ----------------
   async function init(){
     applyPrefs();
     var res = await SB.auth.getSession();
@@ -452,9 +719,15 @@
     UID = session.user.id; EMAIL = session.user.email || "";
     $("acctEmail").textContent = EMAIL;
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
-    await ensureState(); await refresh();
+    await ensureState();
+    await probeExt();
+    await refresh();
+    await refreshExt();
+    applyPrefs();
+    maybeGateOnOpen();
     if(!tickTimer) tickTimer = setInterval(tick, 1000);
     if(!refreshTimer) refreshTimer = setInterval(function(){ refresh(); }, 5000);
+    if(!extTimer) extTimer = setInterval(function(){ refreshExt(); }, 60000);
   }
   async function doLogin(){
     $("loginErr").textContent = "";
@@ -469,8 +742,12 @@
     }
     st = r.data || { interval_min:20, block_index:0 };
   }
+  async function probeExt(){
+    try{ var r = await SB.from("tasks").select("id").limit(1); EXT = !r.error; }
+    catch(e){ EXT = false; }
+  }
 
-  // ---------- read ----------
+  // ---------------- read ----------------
   async function refresh(){
     if(busy) return;
     var sr = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
@@ -481,24 +758,57 @@
     TODAY = buildItems(b.data||[], k.data||[]);
     render();
   }
+  async function refreshExt(){
+    if(!EXT) return;
+    try{
+      var t = await SB.from("tasks").select("*").order("id", {ascending:false}).limit(60);
+      TASKS = (t.data||[]);
+      var ids = TASKS.filter(function(x){return x.status==="open";}).map(function(x){return x.id;});
+      TASK_MIN = {};
+      if(ids.length){
+        var bm = await SB.from("blocks").select("task_id, interval_min").in("task_id", ids).eq("status","logged");
+        (bm.data||[]).forEach(function(r){ TASK_MIN[r.task_id]=(TASK_MIN[r.task_id]||0)+(r.interval_min||0); });
+      }
+      var m = await SB.from("roadmap_items").select("*").neq("status","done").order("id");
+      MISSIONS = (m.data||[]);
+      var today = dayKey();
+      var rl = await SB.from("routine_log").select("*").gte("day", new Date(Date.now()-40*864e5).toISOString().slice(0,10)).order("day", {ascending:false});
+      var rows = rl.data||[];
+      ROUTINE = null;
+      rows.forEach(function(r){ if(r.day===today) ROUTINE=r; });
+      ROUTINE_STREAK = calcStreak(rows);
+      renderExt();
+    }catch(e){ console.log("ext", e); }
+  }
+  function calcStreak(rows){
+    var done={}; rows.forEach(function(r){ if(r.done_movement && r.done_mind) done[r.day]=1; });
+    var streak=0, d=new Date();
+    if(!done[dayKey()]) d.setDate(d.getDate()-1); // allow "today not done yet" without breaking streak
+    for(;;){
+      var k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+      if(done[k]){ streak++; d.setDate(d.getDate()-1); } else break;
+    }
+    if(done[dayKey()] && streak===0) streak=1;
+    return streak;
+  }
   function buildItems(blocks, brks){
     var items=[];
     blocks.forEach(function(b){
       var s=b.planned_at, e=b.logged_at||b.planned_at;
       items.push({id:b.id, sort:s, startHM:hm(s), endHM:hm(e), startHour:hourOf(s), kind:"work",
         planned:(b.planned||"").trim(), actual:(b.actual||"").trim(), tag:(b.tag||"").trim(),
-        rating:(b.rating||"").trim(), minutes:b.interval_min||0});
+        rating:(b.rating||"").trim(), minutes:b.interval_min||0, notes:(b.notes||"").trim()});
     });
     brks.forEach(function(r){
       var s=r.started_at;
       items.push({id:r.id, sort:s, startHM:hm(s), endHM:hm(r.ended_at||s), startHour:hourOf(s), kind:"break",
-        planned:(r.label||"").trim(), actual:"", tag:(r.tag||"").trim(), rating:"", minutes:r.minutes||0});
+        planned:(r.label||"").trim(), actual:"", tag:(r.tag||"").trim(), rating:"", minutes:r.minutes||0, notes:""});
     });
     items.sort(function(a,b){ return a.sort<b.sort?-1:(a.sort>b.sort?1:0); });
     return items;
   }
 
-  // ---------- derived status ----------
+  // ---------------- derived status ----------------
   function status(){
     var now=Date.now();
     if(st && st.break_due){
@@ -516,7 +826,7 @@
     return {mode:"idle", paused:false, remainingSec:iv*60, totalSec:iv*60, stateText:"Ready", subPlan:""};
   }
 
-  // ---------- render ----------
+  // ---------------- render ----------------
   function ringClass(mode, frac){
     if(mode==="break") return "ring-break";
     if(mode==="idle") return "ring-focus";
@@ -558,23 +868,38 @@
     var rate = rated ? Math.round(100*did/rated) : null;
     var streak=0;
     for(var i=work.length-1;i>=0;i--){ if(work[i].rating==="Did it") streak++; else break; }
+    box.appendChild(stat(hmin(workMin), "tracked", "acc"));
     box.appendChild(stat(rate===null?"—":(rate+"%"), "on target", rate===null?"":(rate>=70?"okc":(rate<50?"dgc":"acc"))));
     box.appendChild(stat(String(streak), "streak", streak>=3?"okc":""));
     box.appendChild(stat(String(work.length), "blocks", ""));
-    box.appendChild(stat(workMin+"m", "focused", "acc"));
-    box.appendChild(stat(offMin+"m", "off", ""));
+    box.appendChild(stat(hmin(offMin), "off", ""));
+    // goal bar
+    var goalMin = Math.max(30, Math.round((prefs.goalHrs||4)*60));
+    var pct = Math.min(100, Math.round(100*workMin/goalMin));
+    $("goalFill").style.width = pct+"%";
+    $("goalTxt").textContent = "Daily goal · "+hmin(workMin)+" / "+hmin(goalMin);
+    $("goalPct").textContent = pct+"%";
+    if(pct>=100 && !window._goalToasted){ window._goalToasted=true; toast(prefs.sarah ? "Daily goal SMASHED. The board (Victor) is thrilled. 💚" : "Daily focus goal reached. 🎯"); }
   }
   function renderChips(items){
     var box=$("chips"); box.innerHTML="";
-    var seen={}, out=[];
     var work=items.filter(function(i){return i.kind==="work";});
+    if(work.length){
+      var last=work[work.length-1];
+      if(last.planned && last.planned!=="(past entry)"){
+        var c=el("button","chip cont","▶ Continue: "+(last.planned.length>26?last.planned.slice(0,25)+"…":last.planned));
+        c.addEventListener("click", function(){ startSession(last.planned); });
+        box.appendChild(c);
+      }
+    }
+    var seen={}, out=[];
     for(var i=work.length-1;i>=0 && out.length<3;i--){
       var p=work[i].planned;
       if(!p || p==="(past entry)" || seen[p]) continue;
       seen[p]=1; out.push(p);
     }
     out.forEach(function(p){
-      var c=el("button","chip", p.length>34 ? p.slice(0,33)+"…" : p);
+      var c=el("button","chip", p.length>30 ? p.slice(0,29)+"…" : p);
       c.addEventListener("click", function(){ $("plan").value=p; $("plan").focus(); });
       box.appendChild(c);
     });
@@ -584,6 +909,14 @@
     var nowH=new Date().getHours();
     var byHour={};
     (items||[]).forEach(function(it){ var h=(typeof it.startHour==="number")?it.startHour:8; if(h<8)h=8; if(h>20)h=20; (byHour[h]=byHour[h]||[]).push(it); });
+    // ghost slot for the morning routine until it's done
+    if(EXT && prefs.show.routine && !(ROUTINE && ROUTINE.done_movement && ROUTINE.done_mind)){
+      var rh = parseInt((prefs.routineTime||"08:00").split(":")[0],10);
+      if(rh>=8 && rh<=20){
+        (byHour[rh]=byHour[rh]||[]).unshift({ghost:true, startHM:prefs.routineTime, endHM:"", minutes:30,
+          kind:"break", planned:"Morning routine (reserved)", actual:"", tag:"", rating:"", notes:""});
+      }
+    }
     var nowRow=null;
     for(var h=8;h<=20;h++){
       var row=el("div","hour"+(h===nowH?" now":""));
@@ -592,20 +925,63 @@
       var slot=el("div","hslot"); var list=byHour[h]||[];
       if(!list.length){ slot.appendChild(el("div","hempty","")); }
       list.forEach(function(it){
-        var card=el("div","ev "+(it.kind==="break"?"brk":(RATING_CLASS[it.rating]||"r-un")));
+        var card=el("div","ev "+(it.ghost?"ghost brk":(it.kind==="break"?"brk":(RATING_CLASS[it.rating]||"r-un"))));
         var top=el("div","evtop");
         top.appendChild(el("span",null, it.startHM+((it.endHM&&it.endHM!==it.startHM)?("–"+it.endHM):"")));
-        top.appendChild(el("span",null,(it.minutes||0)+"m"));
+        top.appendChild(el("span",null,(it.minutes||0)+"m"+(it.notes?" · 📝":"")));
         card.appendChild(top);
         card.appendChild(el("div","evtitle", it.kind==="break" ? (it.planned||"Break") : (it.planned||"—")));
         if(it.kind==="work" && it.actual) card.appendChild(el("div","evactual","→ "+it.actual));
         if(it.tag && it.kind==="work") card.appendChild(el("span","tag", it.tag));
-        card.addEventListener("click", function(){ deleteEntry(it); });
+        if(!it.ghost) card.addEventListener("click", function(){ deleteEntry(it); });
         slot.appendChild(card);
       });
       row.appendChild(slot); tl.appendChild(row);
     }
     if(!_scrolledOnce && nowRow){ tl.scrollTop = Math.max(0, nowRow.offsetTop - 60); _scrolledOnce = true; }
+  }
+  function renderExt(){
+    // routine
+    if(ROUTINE){
+      $("rMoveDone").checked=!!ROUTINE.done_movement;
+      $("rMindDone").checked=!!ROUTINE.done_mind;
+      document.querySelectorAll("#rMove button").forEach(function(b){ b.classList.toggle("on", (ROUTINE.movement||"")===b.dataset.v); });
+      document.querySelectorAll("#rMind button").forEach(function(b){ b.classList.toggle("on", (ROUTINE.mind||"")===b.dataset.v); });
+    } else {
+      $("rMoveDone").checked=false; $("rMindDone").checked=false;
+      document.querySelectorAll("#rMove button,#rMind button").forEach(function(b){ b.classList.remove("on"); });
+    }
+    $("routineStreak").innerHTML = ROUTINE_STREAK>0 ? ("🔥 <b>"+ROUTINE_STREAK+"</b>-day streak") : "start a streak today";
+    // tasks
+    var open=TASKS.filter(function(t){return t.status==="open";});
+    var box=$("taskList"); box.innerHTML="";
+    if(!open.length){ box.appendChild(el("div","empty","No ongoing tasks yet — they appear when you start blocks (or mark one 'Continuing')." )); }
+    open.sort(function(a,b){ return (TASK_MIN[b.id]||0)-(TASK_MIN[a.id]||0); });
+    open.slice(0,8).forEach(function(t){
+      var row=el("div","trow");
+      var nm=el("div","nm", t.name);
+      nm.addEventListener("click", function(){ $("plan").value=t.name; $("plan").focus(); window.scrollTo({top:0,behavior:"smooth"}); });
+      row.appendChild(nm);
+      if(t.tag) row.appendChild(el("span","area", t.tag));
+      row.appendChild(el("span","mins", hmin(TASK_MIN[t.id]||0)));
+      var done=el("button","xs","✓");
+      done.title="Mark task finished";
+      done.addEventListener("click", function(){ finishTask(t); });
+      row.appendChild(done);
+      box.appendChild(row);
+    });
+    // missions
+    var mbox=$("missionList"); mbox.innerHTML="";
+    if(!MISSIONS.length){ mbox.appendChild(el("div","empty","Nothing yet. Add missions here, or let open-day / close-day feed this list.")); }
+    MISSIONS.slice(0,10).forEach(function(m){
+      var row=el("div","trow");
+      var nm=el("div","nm"+(m.status==="done"?" done":""), m.title);
+      nm.addEventListener("click", function(){ toggleMission(m); });
+      row.appendChild(nm);
+      if(m.area) row.appendChild(el("span","area", m.area));
+      row.appendChild(el("span","area", m.source==="manual"?"manual":m.source));
+      mbox.appendChild(row);
+    });
   }
   function setIntervalSel(min){
     var matched=false;
@@ -617,11 +993,11 @@
     $("date").textContent = new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
     updateStatus(status());
     setIntervalSel(st.interval_min||20);
-    var key=JSON.stringify(TODAY);
+    var key=JSON.stringify(TODAY)+"|"+(prefs.goalHrs||4);
     if(key!==_lastDataKey){ _lastDataKey=key; renderStats(TODAY); renderChips(TODAY); renderTimeline(TODAY); }
   }
 
-  // ---------- tick ----------
+  // ---------------- tick ----------------
   function tick(){
     if(!st) return;
     var s=status(); updateStatus(s);
@@ -629,34 +1005,105 @@
     if(s.mode==="break" && s.remainingSec<=0 && !busy){ endBreak(); }
   }
 
-  // ---------- actions ----------
+  // ---------------- actions ----------------
   async function run(fn){ if(busy) return; busy=true; try{ await fn(); }catch(e){ console.log(e); } busy=false; await refresh(); }
 
-  function startSession(plan){ run(async function(){
+  async function resolveTask(name, tag){
+    if(!EXT) return null;
+    name=(name||"").trim();
+    if(!name || name==="(past entry)") return null;
+    try{
+      var open=TASKS.filter(function(t){ return t.status==="open" && t.name.toLowerCase()===name.toLowerCase(); });
+      if(open.length) return open[0].id;
+      var r=await SB.from("tasks").insert({ name:name, tag:(tag||"")||null }).select("id").single();
+      if(r.data){ TASKS.unshift({id:r.data.id, name:name, tag:tag||null, status:"open"}); return r.data.id; }
+    }catch(e){}
+    return null;
+  }
+  async function insertBlock(payload){
+    var r=await SB.from("blocks").insert(payload).select("id").single();
+    return r.data ? r.data.id : null;
+  }
+
+  function gateNeeded(){
+    if(!st) return false;
+    return (st.open_day_done_on||"") !== dayKey();
+  }
+  function maybeGateOnOpen(){
+    if(!gateShownThisLoad && gateNeeded() && "open_day_done_on" in (st||{})){
+      gateShownThisLoad=true; showGate(null);
+    }
+  }
+  var gateTimer=null;
+  function showGate(planAfter){
+    pendingPlan=planAfter;
+    $("gate").classList.remove("hidden");
+    var skip=$("gateSkip"); skip.disabled=true; var n=6;
+    skip.textContent="skip today (available in "+n+"s)";
+    clearInterval(gateTimer);
+    gateTimer=setInterval(function(){
+      n--; if(n<=0){ clearInterval(gateTimer); skip.disabled=false; skip.textContent="skip today — start anyway"; }
+      else skip.textContent="skip today (available in "+n+"s)";
+    },1000);
+  }
+  function closeGate(){ $("gate").classList.add("hidden"); clearInterval(gateTimer); }
+
+  function startSession(plan){
+    if(gateNeeded() && "open_day_done_on" in (st||{})){ showGate(plan); return; }
+    reallyStart(plan);
+  }
+  function reallyStart(plan){ run(async function(){
     var iv=st.interval_min||20, now=new Date(), due=new Date(now.getTime()+iv*60000);
+    var taskId=await resolveTask(plan, "");
     var s=await SB.from("sessions").insert({ interval_min:iv, started_at:now.toISOString() }).select("id").single();
-    var b=await SB.from("blocks").insert({ session_id:s.data.id, block_index:1, planned:plan, status:"open",
-      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv }).select("id").single();
-    await SB.from("state").update({ active_session_id:s.data.id, active_block_id:b.data.id, block_index:1,
+    var payload={ session_id:s.data.id, block_index:1, planned:plan, status:"open",
+      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv };
+    if(EXT && taskId) payload.task_id=taskId;
+    var bid=await insertBlock(payload);
+    await SB.from("state").update({ active_session_id:s.data.id, active_block_id:bid, block_index:1,
       block_plan:plan, block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0,
       break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 }).eq("user_id", UID);
   }); }
 
-  function logBlock(rating, actual, nextPlan){ run(async function(){
+  function logBlock(rating, actual, nextPlan, notes, doneSel){ run(async function(){
     var iv=st.interval_min||20, now=new Date(), due=new Date(now.getTime()+iv*60000), idx=(st.block_index||1)+1;
-    await SB.from("blocks").update({ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString() }).eq("id", st.active_block_id);
-    var nb=await SB.from("blocks").insert({ session_id:st.active_session_id, block_index:idx, planned:nextPlan, status:"open",
-      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv }).select("id").single();
-    await SB.from("state").update({ active_block_id:nb.data.id, block_index:idx, block_plan:nextPlan,
+    var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString() };
+    if(EXT && notes) upd.notes=notes;
+    await SB.from("blocks").update(upd).eq("id", st.active_block_id);
+    if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
+    var nextTask=await resolveTask(nextPlan, "");
+    var payload={ session_id:st.active_session_id, block_index:idx, planned:nextPlan, status:"open",
+      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv };
+    if(EXT && nextTask) payload.task_id=nextTask;
+    var nb=await insertBlock(payload);
+    await SB.from("state").update({ active_block_id:nb, block_index:idx, block_plan:nextPlan,
       block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0 }).eq("user_id", UID);
+    sarahPraise();
+    refreshExt();
   }); }
 
-  function stopSession(rating, actual){ run(async function(){
+  function stopSession(rating, actual, notes, doneSel){ run(async function(){
     var now=new Date();
-    await SB.from("blocks").update({ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString() }).eq("id", st.active_block_id);
+    var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString() };
+    if(EXT && notes) upd.notes=notes;
+    await SB.from("blocks").update(upd).eq("id", st.active_block_id);
+    if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
     await SB.from("sessions").update({ ended_at:now.toISOString() }).eq("id", st.active_session_id);
     await SB.from("state").update({ active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
       block_total:0, due_at:null, paused:false, pause_remaining:0 }).eq("user_id", UID);
+    sarahPraise();
+    refreshExt();
+  }); }
+
+  async function finishTaskByName(name){
+    name=(name||"").trim().toLowerCase(); if(!name) return;
+    var t=TASKS.filter(function(x){return x.status==="open" && x.name.toLowerCase()===name;});
+    if(t.length){ await SB.from("tasks").update({status:"done", completed_at:new Date().toISOString()}).eq("id", t[0].id); }
+  }
+  function finishTask(t){ run(async function(){
+    await SB.from("tasks").update({status:"done", completed_at:new Date().toISOString()}).eq("id", t.id);
+    sarahPraise();
+    await refreshExt();
   }); }
 
   function togglePause(){ run(async function(){
@@ -695,10 +1142,15 @@
     var start=parseToday(startHM), end=parseToday(endHM);
     if(!start||!end||end<=start) return;
     var minutes=Math.max(1, Math.round((end.getTime()-start.getTime())/60000));
+    var taskId=await resolveTask(desc, tag);
     var s=await SB.from("sessions").insert({ started_at:start.toISOString(), ended_at:end.toISOString(), interval_min:minutes }).select("id").single();
-    await SB.from("blocks").insert({ session_id:s.data.id, block_index:1, planned:desc||"(past entry)", actual:"",
+    var payload={ session_id:s.data.id, block_index:1, planned:desc||"(past entry)", actual:"",
       tag:tag, rating:met, status:"logged", planned_at:start.toISOString(), due_at:end.toISOString(),
-      logged_at:end.toISOString(), interval_min:minutes });
+      logged_at:end.toISOString(), interval_min:minutes };
+    if(EXT && taskId) payload.task_id=taskId;
+    await insertBlock(payload);
+    sarahPraise();
+    refreshExt();
   }); }
 
   function deleteEntry(it){
@@ -711,25 +1163,89 @@
     });
   }
 
-  // ---------- capture sheet ----------
+  // routine + missions writes
+  async function saveRoutine(patch){
+    if(!EXT) return;
+    try{
+      var base={ day:dayKey(), movement:(ROUTINE&&ROUTINE.movement)||null, mind:(ROUTINE&&ROUTINE.mind)||null,
+                 done_movement:!!(ROUTINE&&ROUTINE.done_movement), done_mind:!!(ROUTINE&&ROUTINE.done_mind) };
+      for(var k in patch) base[k]=patch[k];
+      base.updated_at=new Date().toISOString();
+      var r=await SB.from("routine_log").upsert(base, {onConflict:"user_id,day"}).select("*").single();
+      if(r.data) ROUTINE=r.data;
+      if(ROUTINE && ROUTINE.done_movement && ROUTINE.done_mind){
+        toast(prefs.sarah ? "Routine complete. Body: moved. Mind: cleared. You: incredible. 💚" : "Morning routine complete. 🔥");
+        sarahPraise();
+      }
+      await refreshExt();
+    }catch(e){ console.log(e); }
+  }
+  function addMission(){
+    var v=$("mAdd").value.trim(); if(!v || !EXT) return;
+    $("mAdd").value="";
+    run(async function(){
+      await SB.from("roadmap_items").insert({ title:v, status:"active", source:"manual" });
+      await refreshExt();
+    });
+  }
+  function toggleMission(m){
+    run(async function(){
+      var ns = m.status==="done" ? "active" : "done";
+      await SB.from("roadmap_items").update({ status:ns, updated_at:new Date().toISOString() }).eq("id", m.id);
+      if(ns==="done") sarahPraise();
+      await refreshExt();
+    });
+  }
+
+  // ---------------- autocomplete ----------------
+  function taskNames(){
+    var names=[], seen={};
+    TASKS.forEach(function(t){ if(t.status==="open" && !seen[t.name.toLowerCase()]){ seen[t.name.toLowerCase()]=1; names.push(t.name); } });
+    TODAY.filter(function(i){return i.kind==="work";}).forEach(function(i){
+      if(i.planned && i.planned!=="(past entry)" && !seen[i.planned.toLowerCase()]){ seen[i.planned.toLowerCase()]=1; names.push(i.planned); }
+    });
+    return names;
+  }
+  function attachSuggest(inputId, boxId){
+    var inp=$(inputId), box=$(boxId);
+    function refreshS(){
+      var q=inp.value.trim().toLowerCase(); box.innerHTML="";
+      if(q.length<1) return;
+      taskNames().filter(function(n){ return n.toLowerCase().indexOf(q)>=0 && n.toLowerCase()!==q; })
+        .slice(0,4).forEach(function(n){
+          var c=el("button","chip", n.length>34?n.slice(0,33)+"…":n);
+          c.addEventListener("mousedown", function(ev){ ev.preventDefault(); inp.value=n; box.innerHTML=""; });
+          box.appendChild(c);
+        });
+    }
+    inp.addEventListener("input", refreshS);
+    inp.addEventListener("blur", function(){ setTimeout(function(){ box.innerHTML=""; }, 250); });
+  }
+
+  // ---------------- capture sheet ----------------
   function openSheet(isStop, auto){
-    sheetIsStop=isStop;
+    sheetIsStop=isStop; sheetDoneSel="";
+    document.querySelectorAll("#sheetDone button").forEach(function(b){ b.classList.remove("on"); });
     $("sheetTitle").textContent = isStop ? "Stopping — did you do what you intended?" : ("Block "+(st.block_index||1)+" — did you do what you intended?");
     $("sheetPlanned").textContent = "You planned: " + (st.block_plan || "(no plan set)");
     $("sheetActual").value=""; $("sheetNext").value="";
+    $("sheetNotes").value=""; $("sheetNotes").classList.add("hidden");
+    $("notesToggle").classList.toggle("hidden", !EXT);
+    $("sheetDone").classList.toggle("hidden", !EXT || !(st.block_plan||"").trim());
     $("sheetNext").classList.toggle("hidden", isStop);
     $("sheet").classList.remove("hidden");
     if(auto) chime();
   }
   function closeSheet(){ $("sheet").classList.add("hidden"); }
   function submitSheet(rating){
-    var actual=$("sheetActual").value, next=$("sheetNext").value;
+    var actual=$("sheetActual").value, next=$("sheetNext").value, notes=$("sheetNotes").value;
     closeSheet();
-    if(sheetIsStop) stopSession(rating, actual); else logBlock(rating, actual, next);
+    if(sheetIsStop) stopSession(rating, actual, notes, sheetDoneSel);
+    else logBlock(rating, actual, next, notes, sheetDoneSel);
   }
 
-  // ---------- wiring ----------
-  document.addEventListener("click", unlockAudio, {once:true});
+  // ---------------- wiring ----------------
+  document.addEventListener("click", function(){ unlockAudio(); sarahClick(); });
   document.addEventListener("touchstart", unlockAudio, {once:true});
 
   $("loginBtn").addEventListener("click", doLogin);
@@ -747,10 +1263,44 @@
   $("endBreakBtn").addEventListener("click", endBreak);
   document.querySelectorAll("#reMet button").forEach(function(b){ b.addEventListener("click", function(){ retroMet=(retroMet===b.dataset.met)?"":b.dataset.met; document.querySelectorAll("#reMet button").forEach(function(x){ x.classList.toggle("on", x.dataset.met===retroMet); }); }); });
   $("reAddBtn").addEventListener("click", function(){ var s=$("reStart").value, e=$("reEnd").value; if(!s||!e) return; addPast($("reDesc").value, s, e, retroMet, $("reTag").value); $("reDesc").value=""; $("reStart").value=""; $("reEnd").value=""; $("reTag").value=""; retroMet=""; document.querySelectorAll("#reMet button").forEach(function(x){ x.classList.remove("on"); }); });
+
+  document.querySelectorAll("#sheetDone button").forEach(function(b){
+    b.addEventListener("click", function(){
+      sheetDoneSel = (sheetDoneSel===b.dataset.v) ? "" : b.dataset.v;
+      document.querySelectorAll("#sheetDone button").forEach(function(x){ x.classList.toggle("on", x.dataset.v===sheetDoneSel); });
+      if(sheetDoneSel==="cont" && !sheetIsStop){ $("sheetNext").value = st.block_plan || ""; }
+      if(sheetDoneSel==="done" && !sheetIsStop && $("sheetNext").value===(st.block_plan||"")){ $("sheetNext").value=""; }
+    });
+  });
+  $("notesToggle").addEventListener("click", function(){ $("sheetNotes").classList.toggle("hidden"); });
   $("sheetDidIt").addEventListener("click", function(){ submitSheet("Did it"); });
   $("sheetDidnt").addEventListener("click", function(){ submitSheet("Didn't"); });
   $("sheetCancel").addEventListener("click", closeSheet);
 
+  // gate
+  $("gateDone").addEventListener("click", function(){
+    closeGate();
+    run(async function(){
+      try{ await SB.from("state").update({ open_day_done_on: dayKey() }).eq("user_id", UID); }catch(e){}
+    }).then(function(){ if(pendingPlan!==null){ var p=pendingPlan; pendingPlan=null; reallyStart(p); } });
+  });
+  $("gateSkip").addEventListener("click", function(){
+    if($("gateSkip").disabled) return;
+    closeGate();
+    if(pendingPlan!==null){ var p=pendingPlan; pendingPlan=null; reallyStart(p); }
+  });
+
+  // routine
+  document.querySelectorAll("#rMove button").forEach(function(b){ b.addEventListener("click", function(){ saveRoutine({movement:b.dataset.v}); }); });
+  document.querySelectorAll("#rMind button").forEach(function(b){ b.addEventListener("click", function(){ saveRoutine({mind:b.dataset.v}); }); });
+  $("rMoveDone").addEventListener("change", function(){ saveRoutine({done_movement:this.checked}); });
+  $("rMindDone").addEventListener("change", function(){ saveRoutine({done_mind:this.checked}); });
+
+  // missions
+  $("mAddBtn").addEventListener("click", addMission);
+  $("mAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") addMission(); });
+
+  // drawer
   function openDrawer(){ $("drawerWrap").classList.remove("hidden"); }
   function closeDrawer(){ $("drawerWrap").classList.add("hidden"); }
   $("settingsBtn").addEventListener("click", openDrawer);
@@ -760,9 +1310,20 @@
   $("thLight").addEventListener("click", function(){ prefs.theme="light"; savePrefs(); applyPrefs(); });
   $("swCompact").addEventListener("change", function(){ prefs.compact=this.checked; savePrefs(); applyPrefs(); });
   $("swSound").addEventListener("change", function(){ prefs.sound=this.checked; savePrefs(); applyPrefs(); });
+  $("goalHrs").addEventListener("change", function(){ var v=parseFloat(this.value); if(v>0){ prefs.goalHrs=v; savePrefs(); _lastDataKey=""; render(); } });
+  $("routineTime").addEventListener("change", function(){ if(/^\d\d:\d\d$/.test(this.value)){ prefs.routineTime=this.value; savePrefs(); _lastDataKey=""; render(); } });
   document.querySelectorAll("[data-mod]").forEach(function(cb){
-    cb.addEventListener("change", function(){ prefs.show[cb.dataset.mod]=cb.checked; savePrefs(); applyPrefs(); });
+    cb.addEventListener("change", function(){ prefs.show[cb.dataset.mod]=cb.checked; savePrefs(); applyPrefs(); _lastDataKey=""; render(); });
   });
+  $("swSarah").addEventListener("change", function(){
+    prefs.sarah=this.checked; savePrefs(); applyPrefs();
+    if(prefs.sarah){ playSarahIntro(); }
+  });
+  $("introGo").addEventListener("click", function(){ $("sarahIntro").classList.add("hidden"); toast("Sarah Mode active. Compliments incoming. 💚"); });
+  $("bloomClose").addEventListener("click", function(){ $("bloom").classList.add("hidden"); });
+
+  attachSuggest("plan", "planSuggs");
+  attachSuggest("sheetNext", "nextSuggs");
 
   init();
 </script>
