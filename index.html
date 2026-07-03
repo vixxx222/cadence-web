@@ -156,6 +156,10 @@
   .tagrow .achip{cursor:pointer;padding:4px 11px;font-size:11.5px}
   .tagrow .achip.on{border-color:var(--accent);color:var(--accent);font-weight:600}
   .tagrow input{padding:4px 9px;font-size:11.5px;border-radius:999px;width:92px}
+  .mchip.on[data-meta="work"]{border-color:var(--accent);color:var(--accent)}
+  .mchip.on[data-meta="rest"]{border-color:var(--break);color:var(--break)}
+  .mchip.on[data-meta="personal"]{border-color:var(--ok);color:var(--ok)}
+  .mchip.on[data-meta="distraction"]{border-color:var(--danger);color:var(--danger)}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin:10px 0;
         transition:border-color .3s,background .4s}
@@ -206,6 +210,7 @@
   .pvchip.c2{border-color:var(--accent2);color:var(--accent2)}
   .pvchip.cbk{border-color:var(--break);color:var(--break)}
   .pvchip.cok{border-color:var(--ok);color:var(--ok)}
+  .pvchip.cdg{border-color:var(--danger);color:var(--danger)}
   .pv-hint{font-size:11px;color:var(--faint)}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .startrow{display:flex;gap:8px}.startrow input{flex:1}
@@ -270,6 +275,10 @@
   .evactual{font-size:12px;color:var(--muted);word-break:break-word}
   .ev .tag{display:inline-block;margin-top:4px;font-size:10.5px;color:var(--muted);
            border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-right:4px}
+  .ev .tag.m-work{color:var(--accent);border-color:var(--accent)}
+  .ev .tag.m-rest{color:var(--break);border-color:var(--break)}
+  .ev .tag.m-personal{color:var(--ok);border-color:var(--ok)}
+  .ev .tag.m-distraction{color:var(--danger);border-color:var(--danger)}
 
   /* sheet */
   #sheet,#gate{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
@@ -556,12 +565,26 @@
       <p class="planned" id="sheetPlanned"></p>
       <input type="text" id="sheetActual" placeholder="What did you actually do? (optional)">
       <div class="tagrow" id="sheetAreas"></div>
+      <div class="tagrow hidden" id="sheetMeta">
+        <span class="achip mchip" data-meta="work">work</span>
+        <span class="achip mchip" data-meta="rest">rest</span>
+        <span class="achip mchip" data-meta="personal">personal</span>
+        <span class="achip mchip" data-meta="distraction">distraction</span>
+      </div>
       <div class="sheetseg" id="sheetDone">
         <button class="sm" data-v="done">Task finished ✓</button>
         <button class="sm" data-v="cont">Continuing →</button>
       </div>
-      <input type="text" id="sheetNext" placeholder="Plan for the next block? (optional)" autocomplete="off">
+      <input type="text" id="sheetNext" placeholder="Next block — plain language works: &quot;deck for 45 #vix&quot;" autocomplete="off">
       <div class="suggs" id="nextSuggs"></div>
+      <div class="row" id="sheetLenRow" style="margin:2px 0 10px">
+        <span class="sep">next:</span>
+        <button class="xs" data-nmin="10">10</button>
+        <button class="xs" data-nmin="20">20</button>
+        <button class="xs" data-nmin="30">30</button>
+        <input type="number" id="sheetLenCustom" min="1" max="240" placeholder="custom" style="width:74px">
+        <span class="sep">min</span>
+      </div>
       <button class="linky" id="notesToggle">+ add context (for open-day / close-day)</button>
       <textarea id="sheetNotes" class="hidden" placeholder="Context, details, links — kept out of the way, used for daily wrap-ups."></textarea>
       <div class="sheetbtns">
@@ -678,6 +701,12 @@
   var TASKS = [], TASK_MIN = {}, MISSIONS = [], ROUTINE = null, ROUTINE_STREAK = 0;
   var AREA_HIST = {};              // areas used in the last 14 days: {key:{name,last,min14}}
   var sheetArea = "";              // area chip selected on the capture sheet
+  var META = false;                // true once blocks.meta column exists
+  var META_TAGS = ["work","rest","personal","distraction"];
+  var sheetMeta = "";              // metatag selected on the capture sheet
+  var sheetNextMin = 0;            // duration chosen for the next block
+  var sheetLenTouched = false;     // user explicitly picked a next-block length
+  var _sheetGrace = 0;             // suppress auto-reopen of the capture sheet until this time
   var gateShownThisLoad = false, pendingPlan = null;
 
   // ---------------- prefs ----------------
@@ -902,6 +931,8 @@
   async function probeExt(){
     try{ var r = await SB.from("tasks").select("id").limit(1); EXT = !r.error; }
     catch(e){ EXT = false; }
+    try{ var r2 = await SB.from("blocks").select("meta").limit(1); META = !r2.error; }
+    catch(e){ META = false; }
   }
 
   // ---------------- read ----------------
@@ -968,7 +999,8 @@
       var s=b.planned_at, e=b.logged_at||b.planned_at;
       items.push({id:b.id, sort:s, startHM:hm(s), endHM:hm(e), startHour:hourOf(s), kind:"work",
         planned:(b.planned||"").trim(), actual:(b.actual||"").trim(), tag:(b.tag||"").trim(),
-        rating:(b.rating||"").trim(), minutes:b.interval_min||0, notes:(b.notes||"").trim()});
+        rating:(b.rating||"").trim(), minutes:b.interval_min||0, notes:(b.notes||"").trim(),
+        meta:(b.meta||"").trim()});
     });
     brks.forEach(function(r){
       var s=r.started_at;
@@ -1102,6 +1134,18 @@
       c.appendChild(document.createTextNode(a.name+" · idle "+a.days+"d"));
       chips.appendChild(c);
     });
+    // metatag split (work / rest / personal / distraction)
+    var metaMin={};
+    work.forEach(function(i){ if(i.meta){ metaMin[i.meta]=(metaMin[i.meta]||0)+(i.minutes||0); } });
+    var MC={work:"var(--accent)", rest:"var(--break)", personal:"var(--ok)", distraction:"var(--danger)"};
+    META_TAGS.forEach(function(mt){
+      if(!metaMin[mt]) return;
+      var c=el("span","achip");
+      var d=el("span","adot"); d.style.background=MC[mt]; c.appendChild(d);
+      var b=document.createElement("b"); b.textContent=mt; c.appendChild(b);
+      c.appendChild(document.createTextNode(" "+hmin(metaMin[mt])));
+      chips.appendChild(c);
+    });
   }
   function renderStats(items){
     var box=$("card-stats"); box.innerHTML="";
@@ -1179,6 +1223,7 @@
         card.appendChild(el("div","evtitle", it.kind==="break" ? (it.planned||"Break") : (it.planned||"—")));
         if(it.kind==="work" && it.actual) card.appendChild(el("div","evactual","→ "+it.actual));
         if(it.tag && it.kind==="work") card.appendChild(el("span","tag", it.tag));
+        if(it.meta && it.kind==="work") card.appendChild(el("span","tag m-"+it.meta, it.meta));
         if(!it.ghost) card.addEventListener("click", function(){ deleteEntry(it); });
         slot.appendChild(card);
       });
@@ -1251,7 +1296,7 @@
   function tick(){
     if(!st) return;
     var s=status(); updateStatus(s);
-    if(s.mode==="work" && !s.paused && s.remainingSec<=0 && $("sheet").classList.contains("hidden") && !busy){ openSheet(false, true); }
+    if(s.mode==="work" && !s.paused && s.remainingSec<=0 && $("sheet").classList.contains("hidden") && !busy && Date.now()>_sheetGrace){ openSheet(false, true); }
     if(s.mode==="break" && s.remainingSec<=0 && !busy){ endBreak(); }
   }
 
@@ -1304,11 +1349,11 @@
   }
   function closeGate(){ $("gate").classList.add("hidden"); clearInterval(gateTimer); }
 
-  function startSession(plan, mins, area){
-    if(gateNeeded() && "open_day_done_on" in (st||{})){ showGate({plan:plan, mins:mins, area:area}); return; }
-    reallyStart(plan, mins, area);
+  function startSession(plan, mins, area, meta){
+    if(gateNeeded() && "open_day_done_on" in (st||{})){ showGate({plan:plan, mins:mins, area:area, meta:meta}); return; }
+    reallyStart(plan, mins, area, meta);
   }
-  function reallyStart(plan, mins, area){ run(async function(){
+  function reallyStart(plan, mins, area, meta){ run(async function(){
     var iv=(mins&&mins>0)?Math.min(240,Math.round(mins)):(st.interval_min||20);
     var now=new Date(), due=new Date(now.getTime()+iv*60000);
     area=(area||"").trim() || taskTagFor(plan);   // inherit the task's area when none given
@@ -1317,37 +1362,42 @@
     var payload={ session_id:s.data.id, block_index:1, planned:plan, status:"open",
       planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv, tag:area||null };
     if(EXT && taskId) payload.task_id=taskId;
+    if(META && meta) payload.meta=meta;
     var bid=await insertBlock(payload);
     await SB.from("state").update({ active_session_id:s.data.id, active_block_id:bid, block_index:1,
       block_plan:plan, block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0,
       break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 }).eq("user_id", UID);
   }); }
 
-  function logBlock(rating, actual, nextPlan, notes, doneSel, area){ run(async function(){
-    var iv=st.interval_min||20, now=new Date(), due=new Date(now.getTime()+iv*60000), idx=(st.block_index||1)+1;
+  function logBlock(rating, actual, nextPlan, notes, doneSel, area, meta, nextMins, nextAreaIn, nextMeta){ run(async function(){
+    var nv=(nextMins&&nextMins>0)?Math.min(240,Math.round(nextMins)):(st.interval_min||20);
+    var now=new Date(), due=new Date(now.getTime()+nv*60000), idx=(st.block_index||1)+1;
     area=(area||"").trim();
     var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString(), tag:area||null };
     if(EXT && notes) upd.notes=notes;
+    if(META) upd.meta=(meta||"")||null;
     await SB.from("blocks").update(upd).eq("id", st.active_block_id);
     if(EXT && area){ await resolveTask(st.block_plan, area); }   // task learns the area
     if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
-    var nextArea=(doneSel==="cont" && area) ? area : taskTagFor(nextPlan);
+    var nextArea=(nextAreaIn||"").trim() || ((doneSel==="cont" && area) ? area : taskTagFor(nextPlan));
     var nextTask=await resolveTask(nextPlan, nextArea);
     var payload={ session_id:st.active_session_id, block_index:idx, planned:nextPlan, status:"open",
-      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv, tag:nextArea||null };
+      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:nv, tag:nextArea||null };
     if(EXT && nextTask) payload.task_id=nextTask;
+    if(META && nextMeta) payload.meta=nextMeta;
     var nb=await insertBlock(payload);
     await SB.from("state").update({ active_block_id:nb, block_index:idx, block_plan:nextPlan,
-      block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0 }).eq("user_id", UID);
+      block_total:nv*60, due_at:due.toISOString(), paused:false, pause_remaining:0 }).eq("user_id", UID);
     sarahPraise();
     refreshExt();
   }); }
 
-  function stopSession(rating, actual, notes, doneSel, area){ run(async function(){
+  function stopSession(rating, actual, notes, doneSel, area, meta){ run(async function(){
     var now=new Date();
     area=(area||"").trim();
     var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString(), tag:area||null };
     if(EXT && notes) upd.notes=notes;
+    if(META) upd.meta=(meta||"")||null;
     await SB.from("blocks").update(upd).eq("id", st.active_block_id);
     if(EXT && area){ await resolveTask(st.block_plan, area); }
     if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
@@ -1428,7 +1478,7 @@
     await SB.from("state").update(upd).eq("user_id", UID);
   }); }
 
-  function addPast(desc, startHM, endHM, met, tag, dayOff){ run(async function(){
+  function addPast(desc, startHM, endHM, met, tag, dayOff, meta){ run(async function(){
     var start=parseDay(startHM, dayOff||0), end=parseDay(endHM, dayOff||0);
     if(!start||!end||end<=start) return;
     var minutes=Math.max(1, Math.round((end.getTime()-start.getTime())/60000));
@@ -1438,6 +1488,7 @@
       tag:tag, rating:met, status:"logged", planned_at:start.toISOString(), due_at:end.toISOString(),
       logged_at:end.toISOString(), interval_min:minutes };
     if(EXT && taskId) payload.task_id=taskId;
+    if(META && meta) payload.meta=meta;
     await insertBlock(payload);
     sarahPraise();
     refreshExt();
@@ -1526,15 +1577,20 @@
 
   function parseNL(raw){
     var out={temporal:false, kind:"work", kindLocked:false, intent:null, desc:"", startD:null, endD:null,
-             mins:null, met:"", dayOff:0, title:null, area:"", tokens:[]};
+             mins:null, met:"", dayOff:0, title:null, area:"", meta:"", tokens:[]};
     var s=" "+raw.replace(/\s+/g," ").trim()+" ", m;
 
     // explicit type prefix — "break: stretch" / "work: deck"
     if((m=s.match(/^\s*(break|off|rest)\s*:/i))){ out.kind="break"; out.kindLocked=true; s=" "+s.replace(m[0]," ")+" "; }
     else if((m=s.match(/^\s*(work|task|focus)\s*:/i))){ out.kind="work"; out.kindLocked=true; s=" "+s.replace(m[0]," ")+" "; }
 
-    // "#area" tags the work area — "emails for 30 min #admin"
-    if((m=s.match(/#([A-Za-z0-9_-]{1,24})/))){ out.area=m[1]; s=" "+s.replace(m[0]," ")+" "; }
+    // "#tags" — metatags (work/rest/personal/distraction) or a work area
+    var guard=0;
+    while((m=s.match(/#([A-Za-z0-9_-]{1,24})/)) && guard++<4){
+      var tg=m[1].toLowerCase();
+      if(META_TAGS.indexOf(tg)>=0) out.meta=tg; else out.area=m[1];
+      s=" "+s.replace(m[0]," ")+" ";
+    }
 
     // quoted title wins ambiguity (Fantastical-style)
     if((m=s.match(/"([^"]+)"|“([^”]+)”/))){ out.title=(m[1]||m[2]).trim(); s=" "+s.replace(m[0]," ")+" "; }
@@ -1571,6 +1627,10 @@
     }
     var bareNext=/\bfor\s+the\s+next\s+(\d{1,3})\b/i;
     if(dur===null && (m=s.match(bareNext))){ dur=Math.round(parseFloat(m[1])); s=s.replace(bareNext," "); }
+    var bareFor=/\bfor\s+(\d{1,3})\b/i;           // "deck for 45" — minutes implied (≥5 to avoid noise)
+    if(dur===null && (m=s.match(bareFor)) && parseInt(m[1],10)>=5 && parseInt(m[1],10)<=240){
+      dur=parseInt(m[1],10); s=s.replace(bareFor," ");
+    }
 
     // clock times — "8:00", "8.30", "3pm", "3p"
     var T="(\\d{1,2})(?:[:.](\\d{2}))?\\s*(a\\.?m\\.?|p\\.?m\\.?|[ap]\\b)?";
@@ -1653,6 +1713,10 @@
         out.tokens.push({cls:"c2", txt: Math.max(1,Math.round((out.endD-out.startD)/60000))+" min"});
       out.tokens.push({cls: out.kind==="break"?"cbk":"", txt: out.kind==="break"?"break":"work"});
       if(out.area) out.tokens.push({cls:"c2", txt:"#"+out.area});
+      if(out.meta){
+        var mcls={work:"", rest:"cbk", personal:"cok", distraction:"cdg"}[out.meta]||"";
+        out.tokens.push({cls:mcls, txt:"#"+out.meta});
+      }
       if(out.met==="Did it") out.tokens.push({cls:"cok", txt:"did it ✓"});
     }
     return out;
@@ -1732,16 +1796,16 @@
       else { sHM=p.startD?hm(p.startD):""; eHM=p.endD?hm(p.endD):""; }
     }
     desc = desc || (p.kind==="break" ? "Break" : "(untitled)");
-    var off=p.dayOff||0, met=p.met||"", kind=p.kind, intent=p.intent, area=p.area||"";
+    var off=p.dayOff||0, met=p.met||"", kind=p.kind, intent=p.intent, area=p.area||"", meta=p.meta||"";
     hidePreview(); $("plan").value="";
     if(intent==="start"){
       mins = (mins&&mins>0) ? mins : ((st&&st.interval_min)||20);
       if(kind==="break") startBreak(desc,"Custom",mins);
-      else startSession(desc, mins, area);
+      else startSession(desc, mins, area, meta);
     } else {
       if(!sHM||!eHM) return;
       if(kind==="break") addPastBreak(desc, sHM, eHM, off);
-      else addPast(desc, sHM, eHM, met, area, off);
+      else addPast(desc, sHM, eHM, met, area, off, meta);
       if(off<0) toast("Logged to yesterday ✓");
     }
   }
@@ -1757,7 +1821,7 @@
     if(PV && PV.temporal){ commitPV(); return; }          // Enter confirms what the preview shows
     if(!txt){ $("plan").focus(); return; }
     var p=parseNL(txt);
-    if(!p.temporal){ $("plan").value=""; hidePreview(); startSession(cap(p.desc)||txt, undefined, p.area); return; }
+    if(!p.temporal){ $("plan").value=""; hidePreview(); startSession(cap(p.desc)||txt, undefined, p.area, p.meta); return; }
     PV=p; PV_MODE="live"; commitPV();                      // fast path: parsed + Enter = committed
   }
 
@@ -1790,28 +1854,51 @@
     });
     box.appendChild(plus);
   }
+  function setSheetLen(m){
+    sheetNextMin=m;
+    var matched=false;
+    document.querySelectorAll("#sheetLenRow button").forEach(function(b){
+      var on=(parseInt(b.dataset.nmin,10)===m); b.classList.toggle("on",on); if(on)matched=true;
+    });
+    var c=$("sheetLenCustom");
+    if(!matched){ c.value=m; } else if(document.activeElement!==c){ c.value=""; }
+  }
   function openSheet(isStop, auto){
-    sheetIsStop=isStop; sheetDoneSel="";
+    sheetIsStop=isStop; sheetDoneSel=""; sheetMeta=""; sheetLenTouched=false;
     document.querySelectorAll("#sheetDone button").forEach(function(b){ b.classList.remove("on"); });
+    document.querySelectorAll("#sheetMeta .mchip").forEach(function(b){ b.classList.remove("on"); });
     $("sheetTitle").textContent = isStop ? "Stopping — did you do what you intended?" : ("Block "+(st.block_index||1)+" — did you do what you intended?");
     $("sheetPlanned").textContent = "You planned: " + (st.block_plan || "(no plan set)");
     $("sheetActual").value=""; $("sheetNext").value="";
     $("sheetNotes").value=""; $("sheetNotes").classList.add("hidden");
     sheetArea=taskTagFor(st.block_plan);          // inherit the task's area, one tap to change
     buildSheetAreas();
+    $("sheetMeta").classList.toggle("hidden", !META);
+    setSheetLen(st.interval_min||20);             // next block defaults to the session length
+    $("sheetLenRow").classList.toggle("hidden", isStop);
     $("notesToggle").classList.toggle("hidden", !EXT);
     $("sheetDone").classList.toggle("hidden", !EXT || !(st.block_plan||"").trim());
     $("sheetNext").classList.toggle("hidden", isStop);
-    $("sheetDiscard").classList.toggle("hidden", !isStop);
+    $("sheetDiscard").classList.remove("hidden"); // escape hatch available mid-block too
     $("sheet").classList.remove("hidden");
     if(auto) chime();
   }
   function closeSheet(){ $("sheet").classList.add("hidden"); }
   function submitSheet(rating){
-    var actual=$("sheetActual").value, next=$("sheetNext").value, notes=$("sheetNotes").value;
+    var actual=$("sheetActual").value, notes=$("sheetNotes").value;
+    var rawNext=$("sheetNext").value.trim();
+    // the next-block field speaks the same language as the omnibox
+    var nextPlan=rawNext, nextMins=sheetNextMin||0, nextArea="", nextMeta="";
+    if(rawNext){
+      var np=parseNL(rawNext);
+      if(np.desc) nextPlan=cap(np.desc);
+      if(np.area) nextArea=np.area;
+      if(np.meta) nextMeta=np.meta;
+      if(np.mins && np.mins>0 && !sheetLenTouched) nextMins=np.mins;   // a tapped pill wins over typed text
+    }
     closeSheet();
-    if(sheetIsStop) stopSession(rating, actual, notes, sheetDoneSel, sheetArea);
-    else logBlock(rating, actual, next, notes, sheetDoneSel, sheetArea);
+    if(sheetIsStop) stopSession(rating, actual, notes, sheetDoneSel, sheetArea, sheetMeta);
+    else logBlock(rating, actual, nextPlan, notes, sheetDoneSel, sheetArea, sheetMeta, nextMins, nextArea, nextMeta);
   }
 
   // ---------------- wiring ----------------
@@ -1862,19 +1949,49 @@
   $("notesToggle").addEventListener("click", function(){ $("sheetNotes").classList.toggle("hidden"); });
   $("sheetDidIt").addEventListener("click", function(){ submitSheet("Did it"); });
   $("sheetDidnt").addEventListener("click", function(){ submitSheet("Didn't"); });
-  $("sheetCancel").addEventListener("click", closeSheet);
+  $("sheetCancel").addEventListener("click", function(){
+    // dismissing an overdue block gets a minute of grace before the sheet returns
+    if(!sheetIsStop) _sheetGrace=Date.now()+60000;
+    closeSheet();
+  });
+  // next-block duration pills + custom
+  document.querySelectorAll("#sheetLenRow button").forEach(function(b){
+    b.addEventListener("click", function(){ sheetLenTouched=true; setSheetLen(parseInt(b.dataset.nmin,10)); });
+  });
+  $("sheetLenCustom").addEventListener("change", function(){
+    var v=parseInt(this.value,10); if(v>0){ sheetLenTouched=true; setSheetLen(v); }
+  });
+  // metatag chips (work / rest / personal / distraction)
+  document.querySelectorAll("#sheetMeta .mchip").forEach(function(c){
+    c.addEventListener("click", function(){
+      var v=c.dataset.meta;
+      sheetMeta=(sheetMeta===v)?"":v;
+      document.querySelectorAll("#sheetMeta .mchip").forEach(function(x){ x.classList.toggle("on", x.dataset.meta===sheetMeta); });
+    });
+  });
+  // the next-block field parses live — a typed duration moves into the pills
+  var snTimer=null;
+  $("sheetNext").addEventListener("input", function(){
+    clearTimeout(snTimer);
+    var self=this;
+    snTimer=setTimeout(function(){
+      var v=self.value.trim(); if(!v) return;
+      var p=parseNL(v);
+      if(p.mins && p.mins>0 && !sheetLenTouched) setSheetLen(p.mins);
+    }, 200);
+  });
 
   // gate
   $("gateDone").addEventListener("click", function(){
     closeGate();
     run(async function(){
       try{ await SB.from("state").update({ open_day_done_on: dayKey() }).eq("user_id", UID); }catch(e){}
-    }).then(function(){ if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area); } });
+    }).then(function(){ if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area, p.meta); } });
   });
   $("gateSkip").addEventListener("click", function(){
     if($("gateSkip").disabled) return;
     closeGate();
-    if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area); }
+    if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area, p.meta); }
   });
 
   // routine — multi-select chips; log as its own session (already done / starting now)
