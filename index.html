@@ -275,6 +275,9 @@
   .didit{background:var(--ok);border-color:var(--ok);color:#04140D;font-weight:700}
   .didnt{background:var(--danger);border-color:var(--danger);color:#fff;font-weight:700}
   .sheetcancel{display:block;margin:12px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
+  .sheetdiscard{margin-top:6px;color:var(--danger);opacity:.85}
+  .discardlink{display:block;margin:9px auto 0;text-align:center}
+  .discardlink:hover{color:var(--danger)}
   .gnote{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5}
   .gnote b{color:var(--ink)}
   .skiplink{display:block;margin:14px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
@@ -419,6 +422,7 @@
             <button id="logBtn">Log now</button>
             <button class="ghost-danger" id="stopBtn">Stop</button>
           </div>
+          <button class="linky discardlink" id="discardBtn">discard session — don't record</button>
         </div>
 
         <div class="sect" id="card-routine">
@@ -548,6 +552,7 @@
         <button class="didnt" id="sheetDidnt">Didn't</button>
       </div>
       <button class="sheetcancel" id="sheetCancel">cancel</button>
+      <button class="sheetcancel sheetdiscard hidden" id="sheetDiscard">discard session — don't record</button>
     </div>
   </div>
 
@@ -1231,6 +1236,33 @@
     refreshExt();
   }); }
 
+  function discardSession(){
+    if(!st || !st.active_session_id) return;
+    if(!confirm("Discard this session? Nothing will be recorded.")) return;
+    closeSheet();
+    run(async function(){
+      var sid=st.active_session_id, bid=st.active_block_id, planName=(st.block_plan||"").trim().toLowerCase();
+      if(bid) await SB.from("blocks").delete().eq("id", bid);
+      // earlier logged blocks in this session are real work — keep them; only an
+      // empty session disappears entirely
+      var rest=await SB.from("blocks").select("id").eq("session_id", sid).limit(1);
+      if(!rest.data || !rest.data.length){ await SB.from("sessions").delete().eq("id", sid); }
+      else { await SB.from("sessions").update({ ended_at:new Date().toISOString() }).eq("id", sid); }
+      // sweep up a task auto-created by the accidental start, if it has no work
+      if(EXT && planName){
+        var t=TASKS.filter(function(x){ return x.status==="open" && (x.name||"").toLowerCase()===planName; });
+        if(t.length){
+          var used=await SB.from("blocks").select("id").eq("task_id", t[0].id).limit(1);
+          if(!used.data || !used.data.length) await SB.from("tasks").delete().eq("id", t[0].id);
+        }
+      }
+      await SB.from("state").update({ active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
+        block_total:0, due_at:null, paused:false, pause_remaining:0 }).eq("user_id", UID);
+      toast("Session discarded — nothing recorded.");
+      refreshExt();
+    });
+  }
+
   async function finishTaskByName(name){
     name=(name||"").trim().toLowerCase(); if(!name) return;
     var t=TASKS.filter(function(x){return x.status==="open" && x.name.toLowerCase()===name;});
@@ -1614,6 +1646,7 @@
     $("notesToggle").classList.toggle("hidden", !EXT);
     $("sheetDone").classList.toggle("hidden", !EXT || !(st.block_plan||"").trim());
     $("sheetNext").classList.toggle("hidden", isStop);
+    $("sheetDiscard").classList.toggle("hidden", !isStop);
     $("sheet").classList.remove("hidden");
     if(auto) chime();
   }
@@ -1655,6 +1688,8 @@
   $("pauseBtn").addEventListener("click", togglePause);
   $("logBtn").addEventListener("click", function(){ openSheet(false, false); });
   $("stopBtn").addEventListener("click", function(){ openSheet(true, false); });
+  $("discardBtn").addEventListener("click", discardSession);
+  $("sheetDiscard").addEventListener("click", discardSession);
   $("brkBtn").addEventListener("click", function(){ var l=$("brkLabel").value||"Break"; var m=parseInt($("brkMin").value,10); if(m>0){ $("brkLabel").value=""; $("brkMin").value=""; startBreak(l,"Custom",m); } });
   $("endBreakBtn").addEventListener("click", endBreak);
   document.querySelectorAll("#reMet button").forEach(function(b){ b.addEventListener("click", function(){ retroMet=(retroMet===b.dataset.met)?"":b.dataset.met; document.querySelectorAll("#reMet button").forEach(function(x){ x.classList.toggle("on", x.dataset.met===retroMet); }); }); });
