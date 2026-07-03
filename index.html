@@ -144,6 +144,18 @@
             background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:var(--glow);
             transition:width .8s cubic-bezier(.2,.8,.2,1)}
   .goaltxt{display:flex;justify-content:space-between;font-size:10.5px;color:var(--faint);margin-top:4px}
+  .areabar{display:flex;height:8px;border-radius:999px;overflow:hidden;background:var(--track);margin:9px 2px 0}
+  .areabar i{display:block;height:100%}
+  .areachips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 2px 0}
+  .achip{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);
+         border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:transparent}
+  .achip .adot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+  .achip b{color:var(--ink);font-weight:600}
+  .achip.idle{opacity:.55}
+  .tagrow{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+  .tagrow .achip{cursor:pointer;padding:4px 11px;font-size:11.5px}
+  .tagrow .achip.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+  .tagrow input{padding:4px 9px;font-size:11.5px;border-radius:999px;width:92px}
 
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin:10px 0;
         transition:border-color .3s,background .4s}
@@ -394,6 +406,10 @@
             <div class="goalbar"><div class="goalfill" id="goalFill"></div></div>
             <div class="goaltxt"><span id="goalTxt"></span><span id="goalPct"></span></div>
           </div>
+          <div id="areasWrap">
+            <div class="areabar" id="areaBar"></div>
+            <div class="areachips" id="areaChips"></div>
+          </div>
         </div>
 
         <div id="startBox">
@@ -539,6 +555,7 @@
       <h3 id="sheetTitle">Did you do what you intended?</h3>
       <p class="planned" id="sheetPlanned"></p>
       <input type="text" id="sheetActual" placeholder="What did you actually do? (optional)">
+      <div class="tagrow" id="sheetAreas"></div>
       <div class="sheetseg" id="sheetDone">
         <button class="sm" data-v="done">Task finished ✓</button>
         <button class="sm" data-v="cont">Continuing →</button>
@@ -602,6 +619,7 @@
 
       <div class="dsec">Modules — show or hide</div>
       <div class="opt"><span>Focus stats + goal</span><label class="sw"><input type="checkbox" data-mod="stats"><i></i></label></div>
+      <div class="opt"><span>Areas breakdown</span><label class="sw"><input type="checkbox" data-mod="areas"><i></i></label></div>
       <div class="opt"><span>Quick plan chips</span><label class="sw"><input type="checkbox" data-mod="chips"><i></i></label></div>
       <div class="opt"><span>Morning routine</span><label class="sw"><input type="checkbox" data-mod="routine"><i></i></label></div>
       <div class="opt"><span>Session length</span><label class="sw"><input type="checkbox" data-mod="length"><i></i></label></div>
@@ -658,12 +676,14 @@
   var _scrolledOnce = false, audioCtx = null;
   var EXT = false;                 // true once the upgrade SQL tables exist
   var TASKS = [], TASK_MIN = {}, MISSIONS = [], ROUTINE = null, ROUTINE_STREAK = 0;
+  var AREA_HIST = {};              // areas used in the last 14 days: {key:{name,last,min14}}
+  var sheetArea = "";              // area chip selected on the capture sheet
   var gateShownThisLoad = false, pendingPlan = null;
 
   // ---------------- prefs ----------------
   var DEFAULT_PREFS = {theme:"dark", sound:true, compact:false, sarah:false,
     goalHrs:4, routineTime:"08:00",
-    show:{stats:true, chips:true, routine:true, length:true, breaks:true, past:true, tasks:true, missions:true, timeline:true},
+    show:{stats:true, areas:true, chips:true, routine:true, length:true, breaks:true, past:true, tasks:true, missions:true, timeline:true},
     collapsed:{routine:false, breaks:true, past:true, tasks:false, missions:true}};
   var prefs = loadPrefs();
   function loadPrefs(){
@@ -702,6 +722,7 @@
     $("routineTime").value = prefs.routineTime;
     document.querySelectorAll("[data-mod]").forEach(function(cb){ cb.checked = !!prefs.show[cb.dataset.mod]; });
     $("statsWrap").classList.toggle("off", !prefs.show.stats);
+    $("areasWrap").classList.toggle("off", !prefs.show.areas);
     $("chips").classList.toggle("off", !prefs.show.chips);
     $("ivsegWrap").classList.toggle("off", !prefs.show.length);
     $("card-past").classList.toggle("off", !prefs.show.past);
@@ -895,6 +916,20 @@
     render();
   }
   async function refreshExt(){
+    // area history (plain blocks query — works with or without the upgrade SQL)
+    try{
+      var since=new Date(Date.now()-14*864e5).toISOString();
+      var ab=await SB.from("blocks").select("tag, planned_at, interval_min").eq("status","logged").gte("planned_at", since);
+      AREA_HIST={};
+      (ab.data||[]).forEach(function(r){
+        var tg=(r.tag||"").trim(); if(!tg || tg.toLowerCase()==="routine") return;
+        var k=tg.toLowerCase();
+        var d=AREA_HIST[k]=AREA_HIST[k]||{name:tg, last:null, min14:0};
+        d.min14+=r.interval_min||0;
+        if(!d.last || r.planned_at>d.last) d.last=r.planned_at;
+      });
+      renderAreas(TODAY);
+    }catch(e){}
     if(!EXT) return;
     try{
       var t = await SB.from("tasks").select("*").order("id", {ascending:false}).limit(60);
@@ -992,6 +1027,81 @@
   }
   function stat(v, k, cls){
     var d=el("div","stat"); var vv=el("div","v"+(cls?" "+cls:""), v); d.appendChild(vv); d.appendChild(el("div","k",k)); return d;
+  }
+
+  // ---- areas ----
+  function areaColor(name){
+    var h=0; name=(name||"").toLowerCase();
+    for(var i=0;i<name.length;i++){ h=(h*31+name.charCodeAt(i))%360; }
+    return "hsl("+h+",62%,52%)";
+  }
+  function taskTagFor(name){
+    name=(name||"").trim().toLowerCase(); if(!name) return "";
+    var t=TASKS.filter(function(x){ return x.status==="open" && (x.name||"").toLowerCase()===name; });
+    return (t.length && t[0].tag) ? t[0].tag : "";
+  }
+  function areaNames(){
+    var arr=[];
+    for(var k in AREA_HIST) arr.push(AREA_HIST[k]);
+    arr.sort(function(a,b){ return (b.last||"")<(a.last||"") ? -1 : 1; });
+    return arr.map(function(a){ return a.name; });
+  }
+  function renderAreas(items){
+    var bar=$("areaBar"), chips=$("areaChips");
+    if(!bar) return;
+    bar.innerHTML=""; chips.innerHTML="";
+    var work=items.filter(function(i){ return i.kind==="work"; });
+    var per={}, untagged=0, total=0;
+    work.forEach(function(i){
+      var m=i.minutes||0; total+=m;
+      var tg=(i.tag||"").trim();
+      if(!tg){ untagged+=m; return; }
+      var k=tg.toLowerCase();
+      per[k]=per[k]||{name:tg, min:0}; per[k].min+=m;
+    });
+    var keys=Object.keys(per).sort(function(a,b){ return per[b].min-per[a].min; });
+    if(total>0){
+      keys.forEach(function(k){
+        var seg=document.createElement("i");
+        seg.style.width=(100*per[k].min/total)+"%";
+        seg.style.background=areaColor(per[k].name);
+        seg.title=per[k].name+" · "+hmin(per[k].min);
+        bar.appendChild(seg);
+      });
+      if(untagged>0){
+        var u=document.createElement("i");
+        u.style.width=(100*untagged/total)+"%";
+        u.style.background="var(--faint)"; u.style.opacity=".45";
+        bar.appendChild(u);
+      }
+    }
+    keys.forEach(function(k){
+      var c=el("span","achip");
+      var d=el("span","adot"); d.style.background=areaColor(per[k].name);
+      c.appendChild(d);
+      var b=document.createElement("b"); b.textContent=per[k].name; c.appendChild(b);
+      c.appendChild(document.createTextNode(" "+hmin(per[k].min)));
+      chips.appendChild(c);
+    });
+    if(untagged>0){
+      var uc=el("span","achip idle", "untagged "+hmin(untagged));
+      chips.appendChild(uc);
+    }
+    // areas touched in the last 14 days but not today → visible neglect
+    var idle=[];
+    for(var k2 in AREA_HIST){
+      if(per[k2]) continue;
+      var days=Math.max(1, Math.floor((Date.now()-new Date(AREA_HIST[k2].last).getTime())/864e5));
+      idle.push({name:AREA_HIST[k2].name, days:days, last:AREA_HIST[k2].last});
+    }
+    idle.sort(function(a,b){ return a.days-b.days; });
+    idle.slice(0,4).forEach(function(a){
+      var c=el("span","achip idle");
+      var d=el("span","adot"); d.style.background=areaColor(a.name);
+      c.appendChild(d);
+      c.appendChild(document.createTextNode(a.name+" · idle "+a.days+"d"));
+      chips.appendChild(c);
+    });
   }
   function renderStats(items){
     var box=$("card-stats"); box.innerHTML="";
@@ -1134,7 +1244,7 @@
     updateStatus(status());
     setIntervalSel(st.interval_min||20);
     var key=JSON.stringify(TODAY)+"|"+(prefs.goalHrs||4);
-    if(key!==_lastDataKey){ _lastDataKey=key; renderStats(TODAY); renderChips(TODAY); renderTimeline(TODAY); }
+    if(key!==_lastDataKey){ _lastDataKey=key; renderStats(TODAY); renderAreas(TODAY); renderChips(TODAY); renderTimeline(TODAY); }
   }
 
   // ---------------- tick ----------------
@@ -1154,7 +1264,13 @@
     if(!name || name==="(past entry)") return null;
     try{
       var open=TASKS.filter(function(t){ return t.status==="open" && t.name.toLowerCase()===name.toLowerCase(); });
-      if(open.length) return open[0].id;
+      if(open.length){
+        if(tag && !open[0].tag){  // task learns its area the first time one is given
+          open[0].tag=tag;
+          await SB.from("tasks").update({tag:tag}).eq("id", open[0].id);
+        }
+        return open[0].id;
+      }
       var r=await SB.from("tasks").insert({ name:name, tag:(tag||"")||null }).select("id").single();
       if(r.data){ TASKS.unshift({id:r.data.id, name:name, tag:tag||null, status:"open"}); return r.data.id; }
     }catch(e){}
@@ -1188,17 +1304,18 @@
   }
   function closeGate(){ $("gate").classList.add("hidden"); clearInterval(gateTimer); }
 
-  function startSession(plan, mins){
-    if(gateNeeded() && "open_day_done_on" in (st||{})){ showGate({plan:plan, mins:mins}); return; }
-    reallyStart(plan, mins);
+  function startSession(plan, mins, area){
+    if(gateNeeded() && "open_day_done_on" in (st||{})){ showGate({plan:plan, mins:mins, area:area}); return; }
+    reallyStart(plan, mins, area);
   }
-  function reallyStart(plan, mins){ run(async function(){
+  function reallyStart(plan, mins, area){ run(async function(){
     var iv=(mins&&mins>0)?Math.min(240,Math.round(mins)):(st.interval_min||20);
     var now=new Date(), due=new Date(now.getTime()+iv*60000);
-    var taskId=await resolveTask(plan, "");
+    area=(area||"").trim() || taskTagFor(plan);   // inherit the task's area when none given
+    var taskId=await resolveTask(plan, area);
     var s=await SB.from("sessions").insert({ interval_min:iv, started_at:now.toISOString() }).select("id").single();
     var payload={ session_id:s.data.id, block_index:1, planned:plan, status:"open",
-      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv };
+      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv, tag:area||null };
     if(EXT && taskId) payload.task_id=taskId;
     var bid=await insertBlock(payload);
     await SB.from("state").update({ active_session_id:s.data.id, active_block_id:bid, block_index:1,
@@ -1206,15 +1323,18 @@
       break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 }).eq("user_id", UID);
   }); }
 
-  function logBlock(rating, actual, nextPlan, notes, doneSel){ run(async function(){
+  function logBlock(rating, actual, nextPlan, notes, doneSel, area){ run(async function(){
     var iv=st.interval_min||20, now=new Date(), due=new Date(now.getTime()+iv*60000), idx=(st.block_index||1)+1;
-    var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString() };
+    area=(area||"").trim();
+    var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString(), tag:area||null };
     if(EXT && notes) upd.notes=notes;
     await SB.from("blocks").update(upd).eq("id", st.active_block_id);
+    if(EXT && area){ await resolveTask(st.block_plan, area); }   // task learns the area
     if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
-    var nextTask=await resolveTask(nextPlan, "");
+    var nextArea=(doneSel==="cont" && area) ? area : taskTagFor(nextPlan);
+    var nextTask=await resolveTask(nextPlan, nextArea);
     var payload={ session_id:st.active_session_id, block_index:idx, planned:nextPlan, status:"open",
-      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv };
+      planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv, tag:nextArea||null };
     if(EXT && nextTask) payload.task_id=nextTask;
     var nb=await insertBlock(payload);
     await SB.from("state").update({ active_block_id:nb, block_index:idx, block_plan:nextPlan,
@@ -1223,11 +1343,13 @@
     refreshExt();
   }); }
 
-  function stopSession(rating, actual, notes, doneSel){ run(async function(){
+  function stopSession(rating, actual, notes, doneSel, area){ run(async function(){
     var now=new Date();
-    var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString() };
+    area=(area||"").trim();
+    var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString(), tag:area||null };
     if(EXT && notes) upd.notes=notes;
     await SB.from("blocks").update(upd).eq("id", st.active_block_id);
+    if(EXT && area){ await resolveTask(st.block_plan, area); }
     if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
     await SB.from("sessions").update({ ended_at:now.toISOString() }).eq("id", st.active_session_id);
     await SB.from("state").update({ active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
@@ -1404,12 +1526,15 @@
 
   function parseNL(raw){
     var out={temporal:false, kind:"work", kindLocked:false, intent:null, desc:"", startD:null, endD:null,
-             mins:null, met:"", dayOff:0, title:null, tokens:[]};
+             mins:null, met:"", dayOff:0, title:null, area:"", tokens:[]};
     var s=" "+raw.replace(/\s+/g," ").trim()+" ", m;
 
     // explicit type prefix — "break: stretch" / "work: deck"
     if((m=s.match(/^\s*(break|off|rest)\s*:/i))){ out.kind="break"; out.kindLocked=true; s=" "+s.replace(m[0]," ")+" "; }
     else if((m=s.match(/^\s*(work|task|focus)\s*:/i))){ out.kind="work"; out.kindLocked=true; s=" "+s.replace(m[0]," ")+" "; }
+
+    // "#area" tags the work area — "emails for 30 min #admin"
+    if((m=s.match(/#([A-Za-z0-9_-]{1,24})/))){ out.area=m[1]; s=" "+s.replace(m[0]," ")+" "; }
 
     // quoted title wins ambiguity (Fantastical-style)
     if((m=s.match(/"([^"]+)"|“([^”]+)”/))){ out.title=(m[1]||m[2]).trim(); s=" "+s.replace(m[0]," ")+" "; }
@@ -1527,6 +1652,7 @@
       else if(out.startD && out.endD)
         out.tokens.push({cls:"c2", txt: Math.max(1,Math.round((out.endD-out.startD)/60000))+" min"});
       out.tokens.push({cls: out.kind==="break"?"cbk":"", txt: out.kind==="break"?"break":"work"});
+      if(out.area) out.tokens.push({cls:"c2", txt:"#"+out.area});
       if(out.met==="Did it") out.tokens.push({cls:"cok", txt:"did it ✓"});
     }
     return out;
@@ -1606,16 +1732,16 @@
       else { sHM=p.startD?hm(p.startD):""; eHM=p.endD?hm(p.endD):""; }
     }
     desc = desc || (p.kind==="break" ? "Break" : "(untitled)");
-    var off=p.dayOff||0, met=p.met||"", kind=p.kind, intent=p.intent;
+    var off=p.dayOff||0, met=p.met||"", kind=p.kind, intent=p.intent, area=p.area||"";
     hidePreview(); $("plan").value="";
     if(intent==="start"){
       mins = (mins&&mins>0) ? mins : ((st&&st.interval_min)||20);
       if(kind==="break") startBreak(desc,"Custom",mins);
-      else startSession(desc, mins);
+      else startSession(desc, mins, area);
     } else {
       if(!sHM||!eHM) return;
       if(kind==="break") addPastBreak(desc, sHM, eHM, off);
-      else addPast(desc, sHM, eHM, met, "", off);
+      else addPast(desc, sHM, eHM, met, area, off);
       if(off<0) toast("Logged to yesterday ✓");
     }
   }
@@ -1631,11 +1757,39 @@
     if(PV && PV.temporal){ commitPV(); return; }          // Enter confirms what the preview shows
     if(!txt){ $("plan").focus(); return; }
     var p=parseNL(txt);
-    if(!p.temporal){ $("plan").value=""; hidePreview(); startSession(txt); return; }
+    if(!p.temporal){ $("plan").value=""; hidePreview(); startSession(cap(p.desc)||txt, undefined, p.area); return; }
     PV=p; PV_MODE="live"; commitPV();                      // fast path: parsed + Enter = committed
   }
 
   // ---------------- capture sheet ----------------
+  function buildSheetAreas(){
+    var box=$("sheetAreas"); box.innerHTML="";
+    var names=areaNames().slice(0,5);
+    var sel=(sheetArea||"").toLowerCase();
+    if(sel && names.map(function(n){return n.toLowerCase();}).indexOf(sel)<0 && sheetArea) names.unshift(sheetArea);
+    names.forEach(function(n){
+      var c=el("span","achip"+(n.toLowerCase()===sel?" on":""));
+      var d=el("span","adot"); d.style.background=areaColor(n); c.appendChild(d);
+      c.appendChild(document.createTextNode(n));
+      c.addEventListener("click", function(){
+        sheetArea=(sheetArea.toLowerCase()===n.toLowerCase())?"":n;
+        buildSheetAreas();
+      });
+      box.appendChild(c);
+    });
+    var plus=el("span","achip","+ new");
+    plus.addEventListener("click", function(){
+      var inp=document.createElement("input"); inp.type="text"; inp.placeholder="area";
+      inp.autocapitalize="off";
+      inp.addEventListener("keydown", function(e){
+        if(e.key==="Enter"){ var v=inp.value.trim(); if(v){ sheetArea=v; } buildSheetAreas(); }
+        else if(e.key==="Escape"){ buildSheetAreas(); }
+      });
+      inp.addEventListener("blur", function(){ var v=inp.value.trim(); if(v) sheetArea=v; buildSheetAreas(); });
+      plus.replaceWith(inp); inp.focus();
+    });
+    box.appendChild(plus);
+  }
   function openSheet(isStop, auto){
     sheetIsStop=isStop; sheetDoneSel="";
     document.querySelectorAll("#sheetDone button").forEach(function(b){ b.classList.remove("on"); });
@@ -1643,6 +1797,8 @@
     $("sheetPlanned").textContent = "You planned: " + (st.block_plan || "(no plan set)");
     $("sheetActual").value=""; $("sheetNext").value="";
     $("sheetNotes").value=""; $("sheetNotes").classList.add("hidden");
+    sheetArea=taskTagFor(st.block_plan);          // inherit the task's area, one tap to change
+    buildSheetAreas();
     $("notesToggle").classList.toggle("hidden", !EXT);
     $("sheetDone").classList.toggle("hidden", !EXT || !(st.block_plan||"").trim());
     $("sheetNext").classList.toggle("hidden", isStop);
@@ -1654,8 +1810,8 @@
   function submitSheet(rating){
     var actual=$("sheetActual").value, next=$("sheetNext").value, notes=$("sheetNotes").value;
     closeSheet();
-    if(sheetIsStop) stopSession(rating, actual, notes, sheetDoneSel);
-    else logBlock(rating, actual, next, notes, sheetDoneSel);
+    if(sheetIsStop) stopSession(rating, actual, notes, sheetDoneSel, sheetArea);
+    else logBlock(rating, actual, next, notes, sheetDoneSel, sheetArea);
   }
 
   // ---------------- wiring ----------------
@@ -1713,12 +1869,12 @@
     closeGate();
     run(async function(){
       try{ await SB.from("state").update({ open_day_done_on: dayKey() }).eq("user_id", UID); }catch(e){}
-    }).then(function(){ if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins); } });
+    }).then(function(){ if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area); } });
   });
   $("gateSkip").addEventListener("click", function(){
     if($("gateSkip").disabled) return;
     closeGate();
-    if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins); }
+    if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area); }
   });
 
   // routine — multi-select chips; log as its own session (already done / starting now)
