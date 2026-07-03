@@ -29,7 +29,7 @@
     --glow:0 0 16px rgba(10,158,140,.25);
     --halo:radial-gradient(1100px 520px at 50% -12%, rgba(10,158,140,.07), transparent 60%);
   }
-  [data-theme="sarah"]{
+  [data-theme="dark"][data-sarah="1"]{
     --bg:#101711; --panel:#18231A; --card:rgba(139,212,138,.07); --field:rgba(255,255,255,.05);
     --line:rgba(139,212,138,.16); --line2:rgba(139,212,138,.3);
     --ink:#F2F7EF; --muted:#A8BCA6; --faint:#6E8570;
@@ -39,6 +39,17 @@
     --glow:0 0 16px rgba(255,125,184,.4);
     --halo:radial-gradient(900px 480px at 12% -10%, rgba(255,125,184,.16), transparent 60%),
            radial-gradient(900px 480px at 88% -10%, rgba(139,212,138,.14), transparent 60%);
+  }
+  [data-theme="light"][data-sarah="1"]{
+    --bg:#F3F7EF; --panel:#FFFFFF; --card:#FFFFFF; --field:#F8FBF5;
+    --line:#DFE8DA; --line2:#C5D4BE;
+    --ink:#1C2618; --muted:#5C6E56; --faint:#93A48C;
+    --accent:#E0518F; --accent-ink:#FFFFFF; --accent-soft:rgba(224,81,143,.13);
+    --warn:#B26E00; --danger:#D91F33; --ok:#3E8E41; --break:#1F7EC0;
+    --track:#E3EBDD; --scrim:rgba(24,34,22,.45);
+    --glow:0 0 14px rgba(224,81,143,.28);
+    --halo:radial-gradient(900px 480px at 12% -10%, rgba(224,81,143,.10), transparent 60%),
+           radial-gradient(900px 480px at 88% -10%, rgba(110,176,108,.12), transparent 60%);
   }
   *{box-sizing:border-box}
   html{background:var(--bg)}
@@ -132,6 +143,41 @@
   .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);font-weight:600;margin-bottom:9px;
        display:flex;justify-content:space-between;align-items:center}
   .lbl .mini{letter-spacing:0;text-transform:none;font-weight:500;color:var(--faint)}
+
+  /* borderless collapsible sections (replaces the boxy cards) */
+  .sect{border-top:1px solid var(--line);margin-top:8px;padding:2px 2px 6px}
+  .shead{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;
+         padding:9px 0 7px;user-select:none;-webkit-user-select:none}
+  .shead .st{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);font-weight:600;
+             transition:color .25s}
+  .sect.open .shead .st{color:var(--ink)}
+  .shead .sm2{font-size:11px;color:var(--faint);letter-spacing:0;text-transform:none;font-weight:500;
+              flex:1;text-align:right;margin-right:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chev{flex:0 0 auto;color:var(--faint);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+  .sect.open .chev{transform:rotate(90deg);color:var(--accent)}
+  .sbody{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s cubic-bezier(.2,.8,.2,1)}
+  .sbody > div{overflow:hidden;min-height:0}
+  .sect.open .sbody{grid-template-rows:1fr}
+  .sbody .pad{padding:2px 0 8px}
+
+  /* omnibox — one natural-language entry point */
+  .omni{display:flex;gap:8px;margin:14px 0 0}
+  .omni input{flex:1;padding:12px 14px;border-radius:12px;font-size:15px;background:var(--field);
+              border:1px solid var(--line2);box-shadow:none;transition:border-color .25s,box-shadow .35s}
+  .omni input:focus{border-color:var(--accent);box-shadow:var(--glow)}
+  .omni button{border-radius:12px;padding:12px 16px}
+  .pillsrow{display:flex;gap:6px;align-items:center;margin:9px 2px 0;flex-wrap:wrap}
+  .pillsrow .sep{margin-left:2px}
+  .nlhint{font-size:11px;color:var(--faint);margin:7px 4px 0;line-height:1.5}
+
+  /* parse preview */
+  #nlPreview{margin:10px 0 2px;border:1px solid var(--accent);border-radius:14px;padding:11px 13px;
+             background:var(--accent-soft);box-shadow:var(--glow);animation:rise .3s ease both}
+  #nlPreview .pv-kind{font-size:10px;text-transform:uppercase;letter-spacing:.18em;color:var(--accent);
+                      font-weight:700;margin-bottom:7px}
+  #nlPreview .pv-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  #nlPreview input[type=text]{flex:1;min-width:140px}
+  #nlPreview .pv-actions{display:flex;gap:8px;justify-content:flex-end}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .startrow{display:flex;gap:8px}.startrow input{flex:1}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
@@ -275,6 +321,10 @@
   body.compact .hero svg{width:186px;height:186px}
   body.compact .clock{font-size:44px}
   body.compact .card{padding:9px 11px;margin:7px 0;border-radius:12px}
+  body.compact .omni{margin-top:10px}
+  body.compact .omni input,body.compact .omni button{padding:10px 12px}
+  body.compact .shead{padding:7px 0 5px}
+  body.compact .sect{margin-top:5px}
   body.compact .stats-row{margin:8px 0 0}
   body.compact main{padding:2px 12px 20px}
   body.compact .subplan{margin-top:6px}
@@ -326,18 +376,27 @@
           </div>
         </div>
 
-        <div class="card" id="startBox">
-          <div class="lbl">Start a session</div>
-          <div class="startrow">
-            <input type="text" id="plan" placeholder="What will you focus on?" autocomplete="off">
-            <button class="primary" id="startBtn">Start</button>
+        <div id="startBox">
+          <div class="omni">
+            <input type="text" id="plan" placeholder="Focus — or say it: &quot;emails for the next 20 min&quot;" autocomplete="off">
+            <button class="primary" id="startBtn">Go</button>
+          </div>
+          <div id="nlPreview" class="hidden"></div>
+          <div class="pillsrow" id="ivsegWrap">
+            <span class="row" id="ivseg" style="gap:6px">
+              <button class="sm" data-min="10">10</button>
+              <button class="sm on" data-min="20">20</button>
+              <button class="sm" data-min="30">30</button>
+            </span>
+            <input type="number" id="ivcustom" min="1" max="180" placeholder="custom">
+            <span class="sep">min</span>
           </div>
           <div class="suggs" id="planSuggs"></div>
           <div class="chips" id="chips"></div>
+          <div class="nlhint" id="nlHint">Understands plain language — "worked out 8:00–8:35" logs it, "deep work for the next 30" starts it.</div>
         </div>
 
-        <div class="card hidden" id="runBox">
-          <div class="lbl">This session</div>
+        <div class="hidden" id="runBox" style="margin-top:14px">
           <div class="runbtns">
             <button id="pauseBtn">Pause</button>
             <button id="logBtn">Log now</button>
@@ -345,80 +404,105 @@
           </div>
         </div>
 
-        <div class="card" id="card-routine">
-          <div class="lbl"><span>Morning routine</span><span class="streak" id="routineStreak"></span></div>
-          <div class="rrow"><span class="ic">🏃</span>
-            <div class="opts" id="rMove">
-              <button class="xs" data-v="Pushups">Pushups</button>
-              <button class="xs" data-v="Core">Core</button>
-              <button class="xs" data-v="Run">Run</button>
-              <button class="xs" data-v="Swim">Swim</button>
+        <div class="sect" id="card-routine">
+          <div class="shead" data-sect="routine">
+            <span class="st">Morning routine</span>
+            <span class="sm2" id="routineStreak"></span>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          </div>
+          <div class="sbody"><div><div class="pad">
+            <div class="rrow"><span class="ic">🏃</span>
+              <div class="opts" id="rMove">
+                <button class="xs" data-v="Pushups">Pushups</button>
+                <button class="xs" data-v="Core">Core</button>
+                <button class="xs" data-v="Run">Run</button>
+                <button class="xs" data-v="Swim">Swim</button>
+              </div>
+              <label class="sw"><input type="checkbox" id="rMoveDone"><i></i></label>
             </div>
-            <label class="sw"><input type="checkbox" id="rMoveDone"><i></i></label>
-          </div>
-          <div class="rrow"><span class="ic">🧘</span>
-            <div class="opts" id="rMind">
-              <button class="xs" data-v="Meditate">Meditate</button>
-              <button class="xs" data-v="Journal">Journal</button>
+            <div class="rrow"><span class="ic">🧘</span>
+              <div class="opts" id="rMind">
+                <button class="xs" data-v="Meditate">Meditate</button>
+                <button class="xs" data-v="Journal">Journal</button>
+              </div>
+              <label class="sw"><input type="checkbox" id="rMindDone"><i></i></label>
             </div>
-            <label class="sw"><input type="checkbox" id="rMindDone"><i></i></label>
-          </div>
-        </div>
-
-        <div class="card" id="card-length">
-          <div class="lbl">Session length</div>
-          <div class="row" id="ivseg">
-            <button class="sm" data-min="10">10</button>
-            <button class="sm on" data-min="20">20</button>
-            <button class="sm" data-min="30">30</button>
-            <input type="number" id="ivcustom" min="1" max="180" placeholder="custom">
-            <span class="sep">min</span>
-          </div>
-        </div>
-
-        <div class="card" id="card-breaks">
-          <div class="lbl">Block off time</div>
-          <div id="breakIdle" class="inline">
-            <input type="text" id="brkLabel" placeholder="Label (lunch, call, walk…)">
-            <input type="number" id="brkMin" min="1" max="240" placeholder="min">
-            <button class="primary sm" id="brkBtn">Start</button>
-          </div>
-          <div class="breakactive hidden" id="breakActive">
-            <span class="lab" id="breakActiveLabel"></span>
-            <button class="ghost-danger sm" id="endBreakBtn">End break</button>
-          </div>
-        </div>
-
-        <div class="card" id="card-past">
-          <div class="lbl">Log a past entry</div>
-          <div class="retrow"><input type="text" id="reDesc" placeholder="What was it?"></div>
-          <div class="retrow">
-            <input type="time" id="reStart" title="Start time">
-            <span class="sep">to</span>
-            <input type="time" id="reEnd" title="End time">
-          </div>
-          <div class="retrow">
-            <div class="row" id="reMet">
-              <button data-met="Did it" class="sm">Did it</button>
-              <button data-met="Didn't" class="sm">Didn't</button>
+            <div class="rrow" style="justify-content:flex-end">
+              <input type="number" id="rMin" min="5" max="120" value="30" style="width:62px">
+              <span class="sep">min</span>
+              <button class="sm" id="rDidBtn">Already did it ✓</button>
+              <button class="primary sm" id="rNowBtn">Start now ▶</button>
             </div>
-            <input type="text" id="reTag" placeholder="tag (optional)" style="flex:1;min-width:90px;">
-          </div>
-          <div style="display:flex;justify-content:flex-end;"><button class="primary sm" id="reAddBtn">Add entry</button></div>
+          </div></div></div>
         </div>
 
-        <div class="card" id="card-tasks">
-          <div class="lbl"><span>Ongoing tasks</span><span class="mini">tap to continue · ✓ to finish</span></div>
-          <div id="taskList"></div>
+        <div class="sect" id="card-breaks">
+          <div class="shead" data-sect="breaks">
+            <span class="st">Block off time</span>
+            <span class="sm2">meals · calls · rest</span>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          </div>
+          <div class="sbody"><div><div class="pad">
+            <div id="breakIdle" class="inline">
+              <input type="text" id="brkLabel" placeholder="Label (lunch, call, walk…)">
+              <input type="number" id="brkMin" min="1" max="240" placeholder="min">
+              <button class="primary sm" id="brkBtn">Start</button>
+            </div>
+            <div class="breakactive hidden" id="breakActive">
+              <span class="lab" id="breakActiveLabel"></span>
+              <button class="ghost-danger sm" id="endBreakBtn">End break</button>
+            </div>
+          </div></div></div>
         </div>
 
-        <div class="card" id="card-missions">
-          <div class="lbl"><span>Missions · roadmap</span><span class="mini">fed by open-day / close-day</span></div>
-          <div id="missionList"></div>
-          <div class="addrow">
-            <input type="text" id="mAdd" placeholder="Add a mission or deliverable…">
-            <button class="sm" id="mAddBtn">Add</button>
+        <div class="sect" id="card-past">
+          <div class="shead" data-sect="past">
+            <span class="st">Manual entry</span>
+            <span class="sm2">past session · exact times</span>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
           </div>
+          <div class="sbody"><div><div class="pad">
+            <div class="retrow"><input type="text" id="reDesc" placeholder="What was it?"></div>
+            <div class="retrow">
+              <input type="time" id="reStart" title="Start time">
+              <span class="sep">to</span>
+              <input type="time" id="reEnd" title="End time">
+            </div>
+            <div class="retrow">
+              <div class="row" id="reMet">
+                <button data-met="Did it" class="sm">Did it</button>
+                <button data-met="Didn't" class="sm">Didn't</button>
+              </div>
+              <input type="text" id="reTag" placeholder="tag (optional)" style="flex:1;min-width:90px;">
+            </div>
+            <div style="display:flex;justify-content:flex-end;"><button class="primary sm" id="reAddBtn">Add entry</button></div>
+          </div></div></div>
+        </div>
+
+        <div class="sect" id="card-tasks">
+          <div class="shead" data-sect="tasks">
+            <span class="st">Ongoing tasks</span>
+            <span class="sm2">tap to continue · ✓ to finish</span>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          </div>
+          <div class="sbody"><div><div class="pad">
+            <div id="taskList"></div>
+          </div></div></div>
+        </div>
+
+        <div class="sect" id="card-missions">
+          <div class="shead" data-sect="missions">
+            <span class="st">Missions · roadmap</span>
+            <span class="sm2">fed by open-day / close-day</span>
+            <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          </div>
+          <div class="sbody"><div><div class="pad">
+            <div id="missionList"></div>
+            <div class="addrow">
+              <input type="text" id="mAdd" placeholder="Add a mission or deliverable…">
+              <button class="sm" id="mAddBtn">Add</button>
+            </div>
+          </div></div></div>
         </div>
 
         <div class="todayhead" id="todayHead">
@@ -506,7 +590,7 @@
       <div class="opt"><span>Today timeline</span><label class="sw"><input type="checkbox" data-mod="timeline"><i></i></label></div>
 
       <div class="dsec">Sarah mode 💚</div>
-      <div class="opt"><span>Sarah mode<span class="hintx">gorp-core colors, encouragement, flowers</span></span>
+      <div class="opt"><span>Sarah mode<span class="hintx">her colors, encouragement, flowers</span></span>
         <label class="sw"><input type="checkbox" id="swSarah"><i></i></label>
       </div>
 
@@ -524,7 +608,7 @@
     <div class="blob g"></div><div class="blob p"></div>
     <div class="introbox">
       <h1 id="introTitle"></h1>
-      <p>You've entered <b>Sarah Mode</b> 🌸 Softer colors, gorpier vibes, and one extra feature: this app now reminds you — often — that you're doing amazing. Victor knows you don't exactly <i>need</i> a focus timer. This is just his way of sneaking encouragement, affirmation, and the L-word into your day. Expect compliments at random intervals. Finish things, earn flowers. Resistance is futile. 💚</p>
+      <p>You've entered <b>Sarah Mode</b> 🌸 Greens go soft, pinks bloom, and one extra feature switches on: this app now reminds you — often — that you're doing amazing. Victor knows you don't exactly <i>need</i> a focus timer. This is just his way of sneaking encouragement, affirmation, and the L-word into your day. Expect compliments at random intervals. Finish things, earn flowers. Resistance is futile. 💚</p>
       <button id="introGo">Let's go 💐</button>
     </div>
   </div>
@@ -557,7 +641,8 @@
   // ---------------- prefs ----------------
   var DEFAULT_PREFS = {theme:"dark", sound:true, compact:false, sarah:false,
     goalHrs:4, routineTime:"08:00",
-    show:{stats:true, chips:true, routine:true, length:true, breaks:true, past:true, tasks:true, missions:true, timeline:true}};
+    show:{stats:true, chips:true, routine:true, length:true, breaks:true, past:true, tasks:true, missions:true, timeline:true},
+    collapsed:{routine:false, breaks:true, past:true, tasks:false, missions:true}};
   var prefs = loadPrefs();
   function loadPrefs(){
     try{
@@ -570,15 +655,20 @@
       if(typeof p.goalHrs==="number" && p.goalHrs>0) out.goalHrs=p.goalHrs;
       if(typeof p.routineTime==="string" && /^\d\d:\d\d$/.test(p.routineTime)) out.routineTime=p.routineTime;
       if(p.show){ for(var k in out.show){ if(typeof p.show[k]==="boolean") out.show[k]=p.show[k]; } }
+      if(p.collapsed){ for(var k2 in out.collapsed){ if(typeof p.collapsed[k2]==="boolean") out.collapsed[k2]=p.collapsed[k2]; } }
       return out;
     }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_PREFS)); }
   }
   function savePrefs(){ try{ localStorage.setItem("cadence_prefs", JSON.stringify(prefs)); }catch(e){} }
   function applyPrefs(){
-    var theme = prefs.sarah ? "sarah" : prefs.theme;
-    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.setAttribute("data-theme", prefs.theme);
+    document.documentElement.setAttribute("data-sarah", prefs.sarah ? "1" : "0");
     var tc = document.querySelector('meta[name="theme-color"]');
-    if(tc) tc.setAttribute("content", theme==="sarah" ? "#101711" : (theme==="dark" ? "#0B0D12" : "#EFF2F8"));
+    if(tc){
+      var c = prefs.theme==="dark" ? (prefs.sarah ? "#101711" : "#0B0D12")
+                                   : (prefs.sarah ? "#F3F7EF" : "#EFF2F8");
+      tc.setAttribute("content", c);
+    }
     document.body.classList.toggle("compact", prefs.compact);
     $("brandTxt").textContent = prefs.sarah ? "CADENCE · S" : "CADENCE";
     $("thDark").classList.toggle("on", prefs.theme==="dark");
@@ -591,18 +681,23 @@
     document.querySelectorAll("[data-mod]").forEach(function(cb){ cb.checked = !!prefs.show[cb.dataset.mod]; });
     $("statsWrap").classList.toggle("off", !prefs.show.stats);
     $("chips").classList.toggle("off", !prefs.show.chips);
-    $("card-length").classList.toggle("off", !prefs.show.length);
+    $("ivsegWrap").classList.toggle("off", !prefs.show.length);
     $("card-past").classList.toggle("off", !prefs.show.past);
     $("todayHead").classList.toggle("off", !prefs.show.timeline);
     $("timeline").classList.toggle("off", !prefs.show.timeline);
     $("card-routine").classList.toggle("off", !prefs.show.routine || !EXT);
     $("card-tasks").classList.toggle("off", !prefs.show.tasks || !EXT);
     $("card-missions").classList.toggle("off", !prefs.show.missions || !EXT);
+    document.querySelectorAll(".sect").forEach(function(s){
+      var h=s.querySelector(".shead"); if(!h || !h.dataset.sect) return;
+      s.classList.toggle("open", !prefs.collapsed[h.dataset.sect]);
+    });
     syncBreaksCard();
   }
   function syncBreaksCard(){
     var onBreak = !!(st && st.break_due);
     $("card-breaks").classList.toggle("off", !prefs.show.breaks && !onBreak);
+    if(onBreak) $("card-breaks").classList.add("open");  // End-break stays reachable
   }
 
   // ---------------- utils ----------------
@@ -945,13 +1040,17 @@
     if(ROUTINE){
       $("rMoveDone").checked=!!ROUTINE.done_movement;
       $("rMindDone").checked=!!ROUTINE.done_mind;
-      document.querySelectorAll("#rMove button").forEach(function(b){ b.classList.toggle("on", (ROUTINE.movement||"")===b.dataset.v); });
-      document.querySelectorAll("#rMind button").forEach(function(b){ b.classList.toggle("on", (ROUTINE.mind||"")===b.dataset.v); });
+      var mv=(ROUTINE.movement||"").split(",").map(function(x){return x.trim();});
+      var mn=(ROUTINE.mind||"").split(",").map(function(x){return x.trim();});
+      document.querySelectorAll("#rMove button").forEach(function(b){ b.classList.toggle("on", mv.indexOf(b.dataset.v)>=0); });
+      document.querySelectorAll("#rMind button").forEach(function(b){ b.classList.toggle("on", mn.indexOf(b.dataset.v)>=0); });
     } else {
       $("rMoveDone").checked=false; $("rMindDone").checked=false;
       document.querySelectorAll("#rMove button,#rMind button").forEach(function(b){ b.classList.remove("on"); });
     }
     $("routineStreak").innerHTML = ROUTINE_STREAK>0 ? ("🔥 <b>"+ROUTINE_STREAK+"</b>-day streak") : "start a streak today";
+    // keep the routine front-and-center until it's done today
+    if(!(ROUTINE && ROUTINE.done_movement && ROUTINE.done_mind)) $("card-routine").classList.add("open");
     // tasks
     var open=TASKS.filter(function(t){return t.status==="open";});
     var box=$("taskList"); box.innerHTML="";
@@ -1048,12 +1147,13 @@
   }
   function closeGate(){ $("gate").classList.add("hidden"); clearInterval(gateTimer); }
 
-  function startSession(plan){
-    if(gateNeeded() && "open_day_done_on" in (st||{})){ showGate(plan); return; }
-    reallyStart(plan);
+  function startSession(plan, mins){
+    if(gateNeeded() && "open_day_done_on" in (st||{})){ showGate({plan:plan, mins:mins}); return; }
+    reallyStart(plan, mins);
   }
-  function reallyStart(plan){ run(async function(){
-    var iv=st.interval_min||20, now=new Date(), due=new Date(now.getTime()+iv*60000);
+  function reallyStart(plan, mins){ run(async function(){
+    var iv=(mins&&mins>0)?Math.min(240,Math.round(mins)):(st.interval_min||20);
+    var now=new Date(), due=new Date(now.getTime()+iv*60000);
     var taskId=await resolveTask(plan, "");
     var s=await SB.from("sessions").insert({ interval_min:iv, started_at:now.toISOString() }).select("id").single();
     var payload={ session_id:s.data.id, block_index:1, planned:plan, status:"open",
@@ -1176,6 +1276,7 @@
       if(ROUTINE && ROUTINE.done_movement && ROUTINE.done_mind){
         toast(prefs.sarah ? "Routine complete. Body: moved. Mind: cleared. You: incredible. 💚" : "Morning routine complete. 🔥");
         sarahPraise();
+        prefs.collapsed.routine=true; savePrefs(); applyPrefs();  // fold the card once it's done
       }
       await refreshExt();
     }catch(e){ console.log(e); }
@@ -1222,6 +1323,172 @@
     inp.addEventListener("blur", function(){ setTimeout(function(){ box.innerHTML=""; }, 250); });
   }
 
+  // ---------------- natural language entry ----------------
+  var PAST_VERBS=/\b(worked|did|had|took|was|went|finished|responded|replied|called|met|wrote|made|read|ran|swam|trained|meditated|journaled|exercised|cleaned|reviewed|edited|built|fixed|prepped|prepared|talked|spoke|emailed|texted|helped|drove|shopped|cooked|ate)\b/i;
+  var BREAK_WORDS=/\b(lunch|break|walk|nap|coffee|breakfast|dinner|meal|rest|snack|errand|errands)\b/i;
+
+  function parseNL(raw){
+    var s=" "+raw.replace(/\s+/g," ").trim()+" ";
+    var out={temporal:false, kind:"work", intent:null, desc:"", startD:null, endD:null, mins:null, met:""};
+    var now=new Date(), m;
+    var isNext=/\b(for the next|the next|starting now|from now)\b/i.test(s);
+    var isPastWord=PAST_VERBS.test(s) || /\b(earlier|this morning|this afternoon|ago|since|already)\b/i.test(s);
+
+    // --- duration phrases (removed from the string as matched) ---
+    var dur=null;
+    var wordDur=[[/\bhalf an hour\b/i,30],[/\ban hour and a half\b/i,90],[/\ban hour\b/i,60],[/\bone hour\b/i,60]];
+    for(var w=0;w<wordDur.length;w++){ if(wordDur[w][0].test(s)){ dur=wordDur[w][1]; s=s.replace(wordDur[w][0]," "); break; } }
+    var durRe=/(?:\bfor\s+)?(?:\bthe\s+next\s+|\babout\s+|\baround\s+)?\b(\d{1,3}(?:\.\d+)?)\s*(minutes?|mins?|hours?|hrs?|hr|h|m)\b/i;
+    if(dur===null && (m=s.match(durRe))){
+      dur=/h/i.test(m[2]) ? Math.round(parseFloat(m[1])*60) : Math.round(parseFloat(m[1]));
+      s=s.replace(durRe," ");
+    }
+    var bareNext=/\bfor\s+the\s+next\s+(\d{1,3})\b/i;   // "for the next 30" (unit implied)
+    if(dur===null && (m=s.match(bareNext))){ dur=Math.round(parseFloat(m[1])); s=s.replace(bareNext," "); }
+
+    // --- explicit clock times ---
+    var T="(\\d{1,2})(?:[:.](\\d{2}))?\\s*(a\\.?m\\.?|p\\.?m\\.?)?";
+    function mkTime(h,mi,mer,bias){
+      h=parseInt(h,10); mi=mi?parseInt(mi,10):0;
+      if(h>24||mi>59) return null;
+      if(mer){
+        mer=mer.replace(/\./g,"").toLowerCase();
+        if(mer[0]==="p"&&h<12)h+=12; if(mer[0]==="a"&&h===12)h=0;
+        var d=new Date(); d.setHours(h,mi,0,0); return d;
+      }
+      if(h>12){ var dx=new Date(); dx.setHours(h,mi,0,0); return dx; }
+      if(h===12){ var dn=new Date(); dn.setHours(12,mi,0,0); return dn; }  // bare 12 = noon
+      var a=new Date(); a.setHours(h,mi,0,0);                // as given
+      var b=new Date(); b.setHours(h+12,mi,0,0);             // +12h alternative
+      var ref=bias||now, ca=ref-a, cb=ref-b;
+      if(ca>=0&&cb>=0) return (ca<=cb)?a:b;                   // both past: closest
+      if(ca>=0) return a;
+      if(cb>=0) return b;
+      return a;                                               // both future: as given
+    }
+    var rangeRe=new RegExp("(?:\\b(?:between|from)\\s+)?"+T+"\\s*(?:to|and|until|till|[-–—])\\s*"+T,"i");
+    var sinceRe=new RegExp("\\bsince\\s+"+T,"i");
+    var atRe=new RegExp("\\bat\\s+"+T,"i");
+
+    if((m=s.match(rangeRe)) && (m[2]!=null || m[3]!=null || m[5]!=null || m[6]!=null || /\b(between|from)\b/i.test(m[0]) || (dur===null && (m[1]!=null && m[4]!=null)))){
+      var t2=mkTime(m[4],m[5],m[6]);
+      var t1=mkTime(m[1],m[2],m[3]||m[6], t2);
+      if(t1&&t2){
+        if(t2<=t1) t2=new Date(t2.getTime()+12*3600e3);
+        if(t2<=t1) t2=new Date(t1.getTime()+30*60000);
+        out.startD=t1; out.endD=t2; out.temporal=true; out.intent="past";
+        s=s.replace(rangeRe," ");
+      }
+    } else if((m=s.match(sinceRe))){
+      var ts=mkTime(m[1],m[2],m[3]);
+      if(ts && ts<=now){ out.startD=ts; out.endD=new Date(); out.temporal=true; out.intent="past"; s=s.replace(sinceRe," "); }
+    } else if((m=s.match(atRe))){
+      var t0=mkTime(m[1],m[2],m[3]);
+      if(t0){
+        var dd=dur||((st&&st.interval_min)||20);
+        out.startD=t0; out.endD=new Date(t0.getTime()+dd*60000);
+        out.temporal=true; out.intent=(t0<=now)?"past":"start"; out.mins=dd;
+        s=s.replace(atRe," ");
+      }
+    }
+
+    // --- duration-only phrases ---
+    if(!out.intent && dur){
+      out.temporal=true;
+      if(isPastWord && !isNext){ out.intent="past"; out.endD=new Date(); out.startD=new Date(Date.now()-dur*60000); }
+      else { out.intent="start"; out.mins=dur; }
+    }
+
+    // --- description = whatever's left ---
+    var d=s.replace(/\s+/g," ").trim();
+    d=d.replace(/^(?:i\s+|was\s+|just\s+|been\s+|i've\s+|i'm\s+)+/i,"");
+    d=d.replace(/^(?:between|from|for|at|since|until|till|to|and|the next|next)\s+/i,"");
+    d=d.replace(/\s+(?:between|from|for|at|since|until|till|to|and|the|next)$/i,"");
+    d=d.replace(/^[\s,.;:!-]+|[\s,.;:!-]+$/g,"");
+    out.desc=d;
+    if(BREAK_WORDS.test(d)) out.kind="break";
+    if(out.intent==="past" && PAST_VERBS.test(raw)) out.met="Did it";
+    return out;
+  }
+
+  function cap(t){ t=(t||"").trim(); return t ? t.charAt(0).toUpperCase()+t.slice(1) : t; }
+  var PV=null;
+  function hidePreview(){ $("nlPreview").classList.add("hidden"); $("nlPreview").innerHTML=""; PV=null; }
+  function showPreview(p){
+    PV=p;
+    var box=$("nlPreview"); box.innerHTML="";
+    var kindTxt = p.intent==="start"
+      ? (p.kind==="break" ? "Start break · now" : "Start session · now")
+      : (p.kind==="break" ? "Log past break" : "Log past session");
+    box.appendChild(el("div","pv-kind","Understood: "+kindTxt));
+    var r1=el("div","pv-row");
+    var di=document.createElement("input"); di.type="text"; di.id="pvDesc";
+    di.value=cap(p.desc) || (p.kind==="break" ? "Break" : ""); di.placeholder="Description";
+    r1.appendChild(di); box.appendChild(r1);
+    var r2=el("div","pv-row");
+    if(p.intent==="start"){
+      var mi=document.createElement("input"); mi.type="number"; mi.id="pvMins"; mi.min=1; mi.max=240;
+      mi.value=p.mins || ((st&&st.interval_min)||20);
+      r2.appendChild(mi); r2.appendChild(el("span","sep","min · starting now"));
+    } else {
+      var s1=document.createElement("input"); s1.type="time"; s1.id="pvStart"; s1.value=p.startD?hm(p.startD):"";
+      var e1=document.createElement("input"); e1.type="time"; e1.id="pvEnd"; e1.value=p.endD?hm(p.endD):"";
+      r2.appendChild(s1); r2.appendChild(el("span","sep","to")); r2.appendChild(e1);
+    }
+    box.appendChild(r2);
+    var r3=el("div","pv-row");
+    var wk=el("button","xs"+(p.kind==="work"?" on":""),"Work");
+    var bk=el("button","xs"+(p.kind==="break"?" on":""),"Break");
+    wk.addEventListener("click",function(){ p.kind="work"; wk.classList.add("on"); bk.classList.remove("on"); });
+    bk.addEventListener("click",function(){ p.kind="break"; bk.classList.add("on"); wk.classList.remove("on"); });
+    r3.appendChild(wk); r3.appendChild(bk);
+    if(p.intent==="past"){
+      var ddb=el("button","xs"+(p.met==="Did it"?" on":""),"Did it ✓");
+      ddb.addEventListener("click",function(){ p.met = p.met==="Did it" ? "" : "Did it"; ddb.classList.toggle("on", p.met==="Did it"); });
+      r3.appendChild(ddb);
+    }
+    box.appendChild(r3);
+    var act=el("div","pv-actions");
+    var cx=el("button","sm","Cancel"); cx.addEventListener("click",hidePreview);
+    var ok=el("button","primary sm","Confirm"); ok.addEventListener("click",confirmPreview);
+    act.appendChild(cx); act.appendChild(ok); box.appendChild(act);
+    box.classList.remove("hidden");
+  }
+  function confirmPreview(){
+    if(!PV) return;
+    var descEl=$("pvDesc");
+    var desc=cap(descEl?descEl.value:"") || (PV.kind==="break" ? "Break" : "(untitled)");
+    if(PV.intent==="start"){
+      var minsEl=$("pvMins");
+      var mins=parseInt(minsEl?minsEl.value:"",10) || ((st&&st.interval_min)||20);
+      hidePreview(); $("plan").value="";
+      if(PV.kind==="break") startBreak(desc,"Custom",mins);
+      else startSession(desc, mins);
+    } else {
+      var sEl=$("pvStart"), eEl=$("pvEnd");
+      var sHM=sEl?sEl.value:"", eHM=eEl?eEl.value:"";
+      if(!sHM||!eHM) return;
+      var met=PV.met||"", kind=PV.kind;
+      hidePreview(); $("plan").value="";
+      if(kind==="break") addPastBreak(desc, sHM, eHM);
+      else addPast(desc, sHM, eHM, met, "");
+    }
+  }
+  function addPastBreak(label, startHM, endHM){ run(async function(){
+    var start=parseToday(startHM), end=parseToday(endHM);
+    if(!start||!end||end<=start) return;
+    var mins=Math.max(1, Math.round((end.getTime()-start.getTime())/60000));
+    await SB.from("breaks").insert({ label:label, tag:"Custom", started_at:start.toISOString(),
+      ended_at:end.toISOString(), minutes:mins });
+  }); }
+  function omniGo(){
+    var txt=$("plan").value.trim();
+    if(!txt){ $("plan").focus(); return; }
+    var p=parseNL(txt);
+    if(!p.temporal){ $("plan").value=""; hidePreview(); startSession(txt); return; }
+    showPreview(p);
+  }
+
   // ---------------- capture sheet ----------------
   function openSheet(isStop, auto){
     sheetIsStop=isStop; sheetDoneSel="";
@@ -1254,8 +1521,8 @@
 
   document.querySelectorAll("#ivseg button").forEach(function(b){ b.addEventListener("click", function(){ setIntervalMin(parseInt(b.dataset.min,10)); }); });
   $("ivcustom").addEventListener("change", function(){ var v=parseInt(this.value,10); if(v>0) setIntervalMin(v); });
-  $("startBtn").addEventListener("click", function(){ var p=$("plan").value; $("plan").value=""; startSession(p); });
-  $("plan").addEventListener("keydown", function(e){ if(e.key==="Enter") $("startBtn").click(); });
+  $("startBtn").addEventListener("click", omniGo);
+  $("plan").addEventListener("keydown", function(e){ if(e.key==="Enter") omniGo(); });
   $("pauseBtn").addEventListener("click", togglePause);
   $("logBtn").addEventListener("click", function(){ openSheet(false, false); });
   $("stopBtn").addEventListener("click", function(){ openSheet(true, false); });
@@ -1282,23 +1549,64 @@
     closeGate();
     run(async function(){
       try{ await SB.from("state").update({ open_day_done_on: dayKey() }).eq("user_id", UID); }catch(e){}
-    }).then(function(){ if(pendingPlan!==null){ var p=pendingPlan; pendingPlan=null; reallyStart(p); } });
+    }).then(function(){ if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins); } });
   });
   $("gateSkip").addEventListener("click", function(){
     if($("gateSkip").disabled) return;
     closeGate();
-    if(pendingPlan!==null){ var p=pendingPlan; pendingPlan=null; reallyStart(p); }
+    if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins); }
   });
 
-  // routine
-  document.querySelectorAll("#rMove button").forEach(function(b){ b.addEventListener("click", function(){ saveRoutine({movement:b.dataset.v}); }); });
-  document.querySelectorAll("#rMind button").forEach(function(b){ b.addEventListener("click", function(){ saveRoutine({mind:b.dataset.v}); }); });
+  // routine — multi-select chips; log as its own session (already done / starting now)
+  function routineSel(id){
+    var out=[]; document.querySelectorAll("#"+id+" button.on").forEach(function(b){ out.push(b.dataset.v); });
+    return out.join(", ");
+  }
+  function routineSummary(){
+    var a=routineSel("rMove"), b=routineSel("rMind");
+    var parts=[]; if(a) parts.push(a); if(b) parts.push(b);
+    return "Morning routine: "+(parts.join(" · ")||"movement + mind");
+  }
+  function routineDonePatch(){
+    var patch={};
+    if(routineSel("rMove")) patch.done_movement=true;
+    if(routineSel("rMind")) patch.done_mind=true;
+    return patch;
+  }
+  document.querySelectorAll("#rMove button").forEach(function(b){
+    b.addEventListener("click", function(){ b.classList.toggle("on"); saveRoutine({movement:routineSel("rMove")||null}); });
+  });
+  document.querySelectorAll("#rMind button").forEach(function(b){
+    b.addEventListener("click", function(){ b.classList.toggle("on"); saveRoutine({mind:routineSel("rMind")||null}); });
+  });
   $("rMoveDone").addEventListener("change", function(){ saveRoutine({done_movement:this.checked}); });
   $("rMindDone").addEventListener("change", function(){ saveRoutine({done_mind:this.checked}); });
+  $("rDidBtn").addEventListener("click", function(){
+    var mins=parseInt($("rMin").value,10)||30;
+    var end=new Date(), start=new Date(end.getTime()-mins*60000);
+    addPast(routineSummary(), hm(start), hm(end), "Did it", "routine");
+    var patch=routineDonePatch();
+    if(Object.keys(patch).length) saveRoutine(patch);
+  });
+  $("rNowBtn").addEventListener("click", function(){
+    var mins=parseInt($("rMin").value,10)||30;
+    startSession(routineSummary(), mins);
+    var patch=routineDonePatch();
+    if(Object.keys(patch).length) saveRoutine(patch);
+  });
 
   // missions
   $("mAddBtn").addEventListener("click", addMission);
   $("mAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") addMission(); });
+
+  // collapsible sections
+  document.querySelectorAll(".shead").forEach(function(h){
+    h.addEventListener("click", function(){
+      var s=h.parentElement;
+      s.classList.toggle("open");
+      if(h.dataset.sect){ prefs.collapsed[h.dataset.sect]=!s.classList.contains("open"); savePrefs(); }
+    });
+  });
 
   // drawer
   function openDrawer(){ $("drawerWrap").classList.remove("hidden"); }
