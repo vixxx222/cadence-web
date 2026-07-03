@@ -1361,7 +1361,8 @@
   }
 
   // ---------------- natural language entry ----------------
-  var PAST_VERBS=/\b(worked|did|had|took|was|went|finished|responded|replied|called|met|wrote|made|read|ran|swam|trained|meditated|journaled|exercised|cleaned|reviewed|edited|built|fixed|prepped|prepared|talked|spoke|emailed|texted|helped|drove|shopped|cooked|ate)\b/i;
+  var PAST_VERBS=/\b(worked|did|had|took|was|went|finished|responded|replied|called|met|wrote|made|read|ran|swam|trained|meditated|journaled|exercised|cleaned|reviewed|edited|built|fixed|prepped|prepared|talked|spoke|emailed|texted|helped|drove|shopped|cooked|ate|spent|got|sent|held|kept|paid|bought|taught|thought|brought|found|gave|saw)\b/i;
+  var PAST_ED=/\b[a-z]{3,}ed\b/i;   // generic past tense: developed, designed, debugged…
   var BREAK_WORDS=/\b(lunch|break|walk|nap|coffee|breakfast|dinner|meal|rest|snack|errand|errands)\b/i;
 
   function fmt12(d){
@@ -1390,12 +1391,22 @@
 
     var now=new Date();
     var isNext=/\b(for the next|the next|starting now|from now)\b/i.test(s);
-    var isPastWord=out.dayOff<0 || PAST_VERBS.test(s) || /\b(earlier|this morning|this afternoon|ago|since|already)\b/i.test(s);
+    var isPastWord=out.dayOff<0 || PAST_VERBS.test(s) || PAST_ED.test(s) || /\b(earlier|this morning|this afternoon|ago|since|already)\b/i.test(s);
 
-    // durations (removed from the string as matched)
-    var dur=null;
+    // "for the past hour" / "over the last 45 minutes" — a span that must log as past
+    var dur=null, isPastSpan=false;
+    var pastSpanRe=/(?:\b(?:for|over|during|in)\s+)?\bthe\s+(?:past|last)\s+(?:(\d{1,3}(?:\.\d+)?)\s*)?(hour and a half|half\s+(?:an\s+)?hour|minutes?|mins?|hours?|hrs?|hr|h|m)\b/i;
+    if((m=s.match(pastSpanRe))){
+      var pn=m[1]?parseFloat(m[1]):1, pu=m[2].toLowerCase();
+      if(pu.indexOf("half")===0) dur=30;
+      else if(pu==="hour and a half") dur=90;
+      else dur=/h/.test(pu) ? Math.round(pn*60) : Math.round(pn);
+      isPastSpan=true; s=s.replace(pastSpanRe," ");
+    }
+
+    // other durations (removed from the string as matched)
     var wordDur=[[/\bhalf an hour\b/i,30],[/\ban hour and a half\b/i,90],[/\ban hour\b/i,60],[/\bone hour\b/i,60]];
-    for(var w=0;w<wordDur.length;w++){ if(wordDur[w][0].test(s)){ dur=wordDur[w][1]; s=s.replace(wordDur[w][0]," "); break; } }
+    for(var w=0;w<wordDur.length && dur===null;w++){ if(wordDur[w][0].test(s)){ dur=wordDur[w][1]; s=s.replace(wordDur[w][0]," "); break; } }
     var durRe=/(?:\bfor\s+)?(?:\bthe\s+next\s+|\babout\s+|\baround\s+)?\b(\d{1,3}(?:\.\d+)?)\s*(minutes?|mins?|hours?|hrs?|hr|h|m)\b/i;
     if(dur===null && (m=s.match(durRe))){
       dur=/h/i.test(m[2]) ? Math.round(parseFloat(m[1])*60) : Math.round(parseFloat(m[1]));
@@ -1455,7 +1466,7 @@
     // duration-only phrases
     if(!out.intent && dur){
       out.temporal=true;
-      if((isPastWord && !isNext) || out.dayOff<0){
+      if(isPastSpan || (isPastWord && !isNext) || out.dayOff<0){
         out.intent="past";
         var e2 = out.dayOff<0 ? (function(){ var d=dayBase(); d.setHours(17,0,0,0); return d; })() : new Date();
         out.endD=e2; out.startD=new Date(e2.getTime()-dur*60000);
@@ -1467,12 +1478,12 @@
     // description = what's left (quoted title wins)
     var d=s.replace(/\s+/g," ").trim();
     d=d.replace(/^(?:i\s+|was\s+|just\s+|been\s+|i've\s+|i'm\s+)+/i,"");
-    d=d.replace(/^(?:between|from|for|at|since|until|till|to|and|the next|next)\s+/i,"");
-    d=d.replace(/\s+(?:between|from|for|at|since|until|till|to|and|the|next)$/i,"");
+    d=d.replace(/^(?:between|from|for|at|since|until|till|to|and|on|the next|next)\s+/i,"");
+    d=d.replace(/\s+(?:between|from|for|at|since|until|till|to|and|on|the|next)$/i,"");
     d=d.replace(/^[\s,.;:!-]+|[\s,.;:!-]+$/g,"");
     out.desc = out.title!==null ? out.title : d;
     if(!out.kindLocked && BREAK_WORDS.test(out.desc)) out.kind="break";
-    if(out.intent==="past" && PAST_VERBS.test(raw)) out.met="Did it";
+    if(out.intent==="past" && (PAST_VERBS.test(raw) || PAST_ED.test(raw))) out.met="Did it";
 
     // interpretation tokens for the live preview
     if(out.temporal){
