@@ -760,6 +760,11 @@
     "Quarterly review: 10/10, would L-word again.",
     "Stakeholder update: everyone agrees you're doing amazing. (The stakeholder is Victor.)",
     "Block closed like it owed you money. Respect. 💪",
+    "Block complete. Victor's sweet girl does it again. 💚",
+    "NorAm-champion energy detected in that block. Confirmed and filed.",
+    "Minutes logged, my sweet girl. Podium habits. 🎿",
+    "That's the focus that wins World Cups. Filed under: obviously.",
+    "Executive summary: fastest girl on snow, now also fastest through a to-do list.",
     "Synergy achieved: your brain × this block = excellence.",
     "Please see attached: 💚 (formal delivery of the L-word)",
     "Meeting notes: you showed up, you did the thing, you're wonderful.",
@@ -768,6 +773,11 @@
   var RANDOM_REMARKS = [
     "Random check-in: still brilliant. Carry on. ✨",
     "This is your recurring reminder that Victor L-words you enormously.",
+    "From the desk of Victor: you're his sweet girl, and the best ski racer alive (pending FIS confirmation, but he's confident).",
+    "Somewhere a World Cup start list already has your name on it. Keep going. 🎿",
+    "Random audit: NorAm title — yours. Victor's whole heart — also yours.",
+    "My sweet girl update: still crushing it. This has been the update.",
+    "Training, focus, grace. The scouting report writes itself. 💚",
     "KPI check — Kindness, Poise, Incredible-ness: all exceeding targets.",
     "Fun fact: you make everything around you better. Documented. Filed. Official.",
     "Status update: gorgeous AND productive. Unrelated, but worth logging.",
@@ -776,13 +786,16 @@
     "Breaking news: local woman absolutely killing it. More at 11."
   ];
   var BOUQUET_TIERS = [
-    {n:3,   f:"💐", size:44, msg:"First bouquet unlocked. Small, like the beginning of something great — just like this. L-word, always."},
-    {n:10,  f:"🌷🌸💐🌸🌷", size:40, msg:"Ten wins. The garden grows. Victor says: proud of you doesn't cover it."},
-    {n:25,  f:"🌷🌸🌹💐🌹🌸🌷", size:44, msg:"Twenty-five! An actual armful of flowers. You're unstoppable and deeply L-worded."},
-    {n:50,  f:"🌹🌷🌸🌺🌻💐🌻🌺🌸🌷🌹", size:46, msg:"FIFTY. This bouquet barely fits through the door. Neither does Victor's pride."},
-    {n:100, f:"🌹🌷🌸🌺🌻🏵️💮🌼💐🌼💮🏵️🌻🌺🌸🌷🌹", size:50, msg:"One hundred. A whole flower shop. There is no bouquet big enough for how L-worded you are. 💚"}
+    {n:1,  f:"🌷", size:40, msg:"First win, first flower. One tulip for my sweet girl — the first of many, like your podiums."},
+    {n:3,  f:"💐", size:44, msg:"Three wins and a proper bouquet already. NorAm champions collect flowers fast."},
+    {n:6,  f:"🌷🌸💐", size:42, msg:"Six! The florist (Victor) is struggling to keep up with you."},
+    {n:10, f:"🌷🌸💐🌸🌷", size:42, msg:"Ten wins. World Cup pace. Victor says: proud of you doesn't cover it."},
+    {n:15, f:"🌸🌷🌹💐🌹🌷🌸", size:44, msg:"Fifteen. An armful. Somewhere between here and the start gate, you became unstoppable."},
+    {n:25, f:"🌹🌷🌸🌺💐🌺🌸🌷🌹", size:46, msg:"Twenty-five!! Flowers usually go to the podium girl. Convenient — that's you. 💚"},
+    {n:40, f:"🌹🌷🌸🌺🌻💐🌻🌺🌸🌷🌹", size:46, msg:"FORTY. This bouquet needs its own wax tech. Deeply, officially L-worded."},
+    {n:60, f:"🌹🌷🌸🌺🌻🏵️💮🌼💐🌼💮🏵️🌻🌺🌸🌷🌹", size:50, msg:"Sixty. A whole flower shop for Victor's sweet girl — the hardest worker on snow, the most L-worded person on earth."}
   ];
-  function sarahProg(){ try{ return JSON.parse(localStorage.getItem("sarah_prog")||'{"n":0,"seen":[],"clicks":0,"nextAt":12}'); }catch(e){ return {n:0,seen:[],clicks:0,nextAt:12}; } }
+  function sarahProg(){ try{ return JSON.parse(localStorage.getItem("sarah_prog")||'{"n":0,"seen":[],"clicks":0,"nextAt":4}'); }catch(e){ return {n:0,seen:[],clicks:0,nextAt:4}; } }
   function saveSarahProg(p){ try{ localStorage.setItem("sarah_prog", JSON.stringify(p)); }catch(e){} }
   function sarahPraise(){
     if(!prefs.sarah) return;
@@ -798,7 +811,7 @@
     if(!prefs.sarah) return;
     var p=sarahProg(); p.clicks++;
     if(p.clicks>=p.nextAt){
-      p.clicks=0; p.nextAt=12+Math.floor(Math.random()*12);
+      p.clicks=0; p.nextAt=3+Math.floor(Math.random()*8);   // every 3–10 clicks
       toast(RANDOM_REMARKS[Math.floor(Math.random()*RANDOM_REMARKS.length)]);
     }
     saveSarahProg(p);
