@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cadence">
 <meta name="theme-color" content="#0B0D12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
 <title>Cadence</title>
 <style>
   :root, [data-theme="dark"]{
@@ -936,14 +939,28 @@
   }
 
   // ---------------- read ----------------
+  // offline snapshot: last good state + today's items, so the app opens and the
+  // countdown keeps running with no connection (writes still need to be online).
+  function snapKey(){ return "cad_snap_" + (UID || "anon"); }
+  function saveSnap(o){ try{ localStorage.setItem(snapKey(), JSON.stringify(o)); }catch(e){} }
+  function loadSnap(){ try{ var s = localStorage.getItem(snapKey()); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
+  function useSnap(){
+    var c = loadSnap();
+    if(c){ if(c.st) st = c.st; if(c.today) TODAY = c.today; render(); return true; }
+    return false;
+  }
+
   async function refresh(){
     if(busy) return;
     var sr = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
+    if(sr.error){ useSnap(); return; }              // offline / failed → last-known snapshot
     if(sr.data) st = sr.data;
     var iso = todayStartISO();
     var b = await SB.from("blocks").select("*").eq("status","logged").gte("planned_at", iso).order("id");
     var k = await SB.from("breaks").select("*").gte("started_at", iso).order("id");
+    if(b.error || k.error){ useSnap(); return; }
     TODAY = buildItems(b.data||[], k.data||[]);
+    saveSnap({st:st, today:TODAY});                  // remember for offline
     render();
   }
   async function refreshExt(){
@@ -2069,6 +2086,13 @@
 
   attachSuggest("plan", "planSuggs");
   attachSuggest("sheetNext", "nextSuggs");
+
+  // installable + offline: register the service worker
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  }
+  // when the connection comes back, pull fresh data
+  window.addEventListener("online", function(){ toast("Back online — syncing…", 2200); refresh(); refreshExt(); });
 
   init();
 </script>
