@@ -106,6 +106,9 @@
   header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 4px}
   .hright{display:flex;align-items:center;gap:12px}
   .date{font-size:12px;color:var(--muted)}
+  .syncpill{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+  .syncpill.amber{color:#E8A33D;border-color:rgba(232,163,61,.45)}
+  .offlink{display:block;margin-top:14px;font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:none}
   .iconbtn{border:none;padding:6px;border-radius:8px;color:var(--muted);line-height:0}
   .iconbtn:hover{color:var(--ink);border:none;background:var(--card)}
 
@@ -384,6 +387,7 @@
       <input type="password" id="password" placeholder="password">
       <button class="primary" id="loginBtn">Sign in</button>
       <div class="err" id="loginErr"></div>
+      <button class="offlink hidden" id="offBoot">continue offline with cached data</button>
     </div>
   </div>
 
@@ -392,6 +396,7 @@
       <header>
         <div class="wordmark"><i></i><span id="brandTxt">CADENCE</span></div>
         <div class="hright">
+          <span class="syncpill hidden" id="syncPill"></span>
           <span class="date" id="date"></span>
           <button class="iconbtn" id="settingsBtn" aria-label="Settings">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -892,22 +897,56 @@
   }
 
   // ---------------- auth ----------------
+  var OFFBOOT = false;   // running on cached data without a live session
   async function init(){
     applyPrefs();
-    var res = await SB.auth.getSession();
-    if(res.data && res.data.session){ onLogin(res.data.session); } else { showLogin(); }
-    SB.auth.onAuthStateChange(function(_e, session){ if(session) onLogin(session); else showLogin(); });
+    var res = null;
+    try{ res = await SB.auth.getSession(); }catch(e){}
+    var sess = res && res.data && res.data.session;
+    if(sess){ onLogin(sess); }
+    else{
+      var cu = null; try{ cu = localStorage.getItem("cad_uid"); }catch(e){}
+      if(cu && navigator.onLine === false){ bootOffline(cu); } else { showLogin(); }
+    }
+    SB.auth.onAuthStateChange(function(_e, session){ if(session) onLogin(session); else if(!OFFBOOT) showLogin(); });
   }
-  function showLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); }
+  function showLogin(){
+    $("app").classList.add("hidden"); $("login").classList.remove("hidden");
+    // a cached mirror means the app is still usable with no connection
+    var cu = null; try{ cu = localStorage.getItem("cad_uid"); }catch(e){}
+    if(cu) $("offBoot").classList.remove("hidden");
+  }
+  // open the app from the local mirror when there's no session (e.g. token
+  // expired while offline); auth restores itself once the connection is back
+  function bootOffline(uid){
+    OFFBOOT = true; UID = uid;
+    try{ EMAIL = localStorage.getItem("cad_email") || ""; }catch(e){ EMAIL = ""; }
+    $("acctEmail").textContent = EMAIL + " (offline)";
+    $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+    loadOB(); loadMirror();
+    EXT = !!(MIRROR.flags && MIRROR.flags.ext); META = !!(MIRROR.flags && MIRROR.flags.meta);
+    st = MIRROR.st || { interval_min:20, block_index:0 };
+    rebuildFromMirror(true);
+    extFromMirror();
+    applyPrefs(); obBadge();
+    maybeGateOnOpen();
+    if(!tickTimer) tickTimer = setInterval(tick, 1000);
+    if(!refreshTimer) refreshTimer = setInterval(function(){ refresh(); }, 5000);
+    if(!extTimer) extTimer = setInterval(function(){ refreshExt(); }, 60000);
+  }
   async function onLogin(session){
+    OFFBOOT = false;
     UID = session.user.id; EMAIL = session.user.email || "";
+    try{ localStorage.setItem("cad_uid", UID); localStorage.setItem("cad_email", EMAIL); }catch(e){}
     $("acctEmail").textContent = EMAIL;
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+    loadOB(); loadMirror();
     await ensureState();
     await probeExt();
     await refresh();
     await refreshExt();
     applyPrefs();
+    obBadge();
     // Sarah's account: her mode greets her on first sign-in, automatically
     if(EMAIL.toLowerCase()==="sarahbenski@gmail.com" && localStorage.getItem("sarah_welcomed")!=="1"){
       try{ localStorage.setItem("sarah_welcomed","1"); }catch(e){}
@@ -924,50 +963,221 @@
     if(r.error) $("loginErr").textContent = r.error.message;
   }
   async function ensureState(){
-    var r = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
-    if(!r.data){
-      await SB.from("state").insert({ user_id: UID, interval_min: 20 });
-      r = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
-    }
-    st = r.data || { interval_min:20, block_index:0 };
+    var r = null;
+    try{ r = await SB.from("state").select("*").eq("user_id", UID).maybeSingle(); }catch(e){ r = {error:e}; }
+    if(r && r.data){ st = r.data; MIRROR.st = st; saveMirror(); return; }
+    if(r && r.error){ st = MIRROR.st || { interval_min:20, block_index:0 }; return; }   // offline → last known
+    // reachable and genuinely no row: first login for this account
+    await SB.from("state").insert({ user_id: UID, interval_min: 20 });
+    r = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
+    st = (r && r.data) || { interval_min:20, block_index:0 };
+    MIRROR.st = st; saveMirror();
   }
   async function probeExt(){
-    try{ var r = await SB.from("tasks").select("id").limit(1); EXT = !r.error; }
-    catch(e){ EXT = false; }
-    try{ var r2 = await SB.from("blocks").select("meta").limit(1); META = !r2.error; }
-    catch(e){ META = false; }
+    // offline can't distinguish "table missing" from "no connection" — reuse the
+    // last verified flags instead of silently hiding modules
+    var mf = MIRROR.flags || {};
+    try{ var r = await SB.from("tasks").select("id").limit(1);
+      EXT = r.error ? (netErr(r.error) ? !!mf.ext : false) : true; }
+    catch(e){ EXT = netErr(e) ? !!mf.ext : false; }
+    try{ var r2 = await SB.from("blocks").select("meta").limit(1);
+      META = r2.error ? (netErr(r2.error) ? !!mf.meta : false) : true; }
+    catch(e){ META = netErr(e) ? !!mf.meta : false; }
+    MIRROR.flags = { ext:EXT, meta:META }; saveMirror();
   }
+
+  // =============== [OB-BEGIN] offline data layer ===============
+  // MIRROR: local copy of everything the UI shows (state row, today's blocks/
+  // breaks, tasks, missions…) so the app renders fully offline.
+  // OB: outbox of writes made while offline, replayed in order on reconnect.
+  // Offline inserts get temporary NEGATIVE ids; replay maps them to the real
+  // server ids (OB.map) and substitutes them in later ops' foreign keys.
+  var MIRROR = { st:null, blocks:[], breaks:[], tasks:[], roadmap_items:[], flags:null };
+  var OB = { ops:[], map:{}, seq:-2 };
+  var DRAINING = false;
+  var ID_KEYS = { id:1, session_id:1, block_id:1, task_id:1, active_session_id:1, active_block_id:1 };
+
+  function mirKey(){ return "cad_mir_" + (UID||"anon"); }
+  function obKey(){ return "cad_ob_" + (UID||"anon"); }
+  function saveMirror(){ try{ localStorage.setItem(mirKey(), JSON.stringify(MIRROR)); }catch(e){} }
+  function loadMirror(){ try{ var m=JSON.parse(localStorage.getItem(mirKey())||"null"); if(m){ MIRROR=m; MIRROR.blocks=MIRROR.blocks||[]; MIRROR.breaks=MIRROR.breaks||[]; MIRROR.tasks=MIRROR.tasks||[]; MIRROR.roadmap_items=MIRROR.roadmap_items||[]; return true; } }catch(e){} return false; }
+  function saveOB(){ try{ localStorage.setItem(obKey(), JSON.stringify(OB)); }catch(e){} }
+  function loadOB(){ try{ var o=JSON.parse(localStorage.getItem(obKey())||"null"); if(o && o.ops){ OB=o; OB.map=OB.map||{}; if(typeof OB.seq!=="number") OB.seq=-2; } }catch(e){} }
+
+  function netErr(e){
+    if(navigator.onLine === false) return true;
+    var m = ((e && e.message) || String(e||"")).toLowerCase();
+    return /failed to fetch|networkerror|network request failed|load failed|fetch failed|timed?[ -]?out|abort|connection|err_internet/.test(m);
+  }
+  function authErr(e){
+    var c = e && (e.status || e.code);
+    var m = ((e && e.message) || "").toLowerCase();
+    return c===401 || c===403 || /jwt|token|not.?authenticated|authorization/.test(m);
+  }
+  function offlineNow(){ return navigator.onLine === false || OB.ops.length > 0; }
+
+  function mMatch(r, match){ for(var k in match){ if(r[k] !== match[k]) return false; } return true; }
+  function mApply(op){
+    if(op.table === "state"){
+      MIRROR.st = Object.assign({}, MIRROR.st || st || {}, op.row || op.patch || {});
+      st = MIRROR.st;
+      return;
+    }
+    var arr = MIRROR[op.table]; if(!arr) return;   // sessions, routine_log: not mirrored as arrays
+    if(op.kind === "ins"){ if(!arr.some(function(r){ return r.id === op.row.id; })) arr.push(op.row); }
+    else if(op.kind === "upd"){ arr.forEach(function(r){ if(mMatch(r, op.match)) Object.assign(r, op.patch); }); }
+    else if(op.kind === "del"){ MIRROR[op.table] = arr.filter(function(r){ return !mMatch(r, op.match); }); }
+  }
+  function rebuildFromMirror(renderIt){
+    if(MIRROR.st) st = MIRROR.st;
+    var iso = todayStartISO();
+    var bl = (MIRROR.blocks||[]).filter(function(b){ return b.status==="logged" && (b.planned_at||"") >= iso; });
+    var kk = (MIRROR.breaks||[]).filter(function(r){ return (r.started_at||"") >= iso; });
+    TODAY = buildItems(bl, kk);
+    if(renderIt){ render(); try{ renderAreas(TODAY); }catch(e){} }
+  }
+  function extFromMirror(){
+    AREA_HIST = MIRROR.areaHist || {};
+    TASKS = MIRROR.tasks || [];
+    TASK_MIN = MIRROR.taskMin || {};
+    MISSIONS = (MIRROR.roadmap_items || []).filter(function(m){ return m.status !== "done"; });
+    ROUTINE = MIRROR.routine || null;
+    ROUTINE_STREAK = MIRROR.streak || 0;
+    try{ renderAreas(TODAY); }catch(e){}
+    if(EXT){ try{ renderExt(); }catch(e){} }
+  }
+  function obBadge(){
+    var el = $("syncPill"); if(!el) return;
+    var n = OB.ops.length;
+    if(n){ el.textContent = "⇡ "+n+" to sync"; el.classList.remove("hidden"); el.classList.add("amber"); }
+    else if(navigator.onLine === false){ el.textContent = "offline"; el.classList.remove("hidden"); el.classList.remove("amber"); }
+    else { el.classList.add("hidden"); }
+  }
+
+  function enqueue(kind, table, row, patch, match, conflict){
+    var op = { kind:kind, table:table };
+    if(row) op.row = row; if(patch) op.patch = patch; if(match) op.match = match; if(conflict) op.conflict = conflict;
+    OB.ops.push(op); saveOB();
+    mApply(op); saveMirror();
+    rebuildFromMirror(false);
+    obBadge();
+  }
+  async function dbIns(table, row){
+    if(!offlineNow()){
+      try{
+        var q = await SB.from(table).insert(row).select().single();
+        if(!q.error){ mApply({kind:"ins", table:table, row:q.data}); saveMirror(); return q; }
+        if(!netErr(q.error)) return q;
+      }catch(e){ if(!netErr(e)) throw e; }
+    }
+    var r = Object.assign({}, row); r.id = OB.seq--;
+    enqueue("ins", table, r);
+    return { data:r, error:null, offline:true };
+  }
+  async function dbUpd(table, patch, match){
+    if(!offlineNow()){
+      try{
+        var q = await SB.from(table).update(patch).match(match);
+        if(!q.error){ mApply({kind:"upd", table:table, patch:patch, match:match}); saveMirror(); return q; }
+        if(!netErr(q.error)) return q;
+      }catch(e){ if(!netErr(e)) throw e; }
+    }
+    enqueue("upd", table, null, patch, match);
+    return { data:null, error:null, offline:true };
+  }
+  async function dbDel(table, match){
+    if(!offlineNow()){
+      try{
+        var q = await SB.from(table).delete().match(match);
+        if(!q.error){ mApply({kind:"del", table:table, match:match}); saveMirror(); return q; }
+        if(!netErr(q.error)) return q;
+      }catch(e){ if(!netErr(e)) throw e; }
+    }
+    enqueue("del", table, null, null, match);
+    return { data:null, error:null, offline:true };
+  }
+  async function dbUps(table, row, conflict){
+    if(!offlineNow()){
+      try{
+        var q = await SB.from(table).upsert(row, conflict ? {onConflict:conflict} : undefined).select().single();
+        if(!q.error){ mApply({kind:"ups", table:table, row:q.data}); saveMirror(); return q; }
+        if(!netErr(q.error)) return q;
+      }catch(e){ if(!netErr(e)) throw e; }
+    }
+    enqueue("ups", table, Object.assign({}, row), null, null, conflict);
+    return { data:Object.assign({}, row), error:null, offline:true };
+  }
+
+  function obResolveVal(v){ return (typeof v === "number" && v < 0 && OB.map[v] !== undefined) ? OB.map[v] : v; }
+  function obResolveObj(o){ if(!o) return o; var out = {}; for(var k in o){ out[k] = ID_KEYS[k] ? obResolveVal(o[k]) : o[k]; } return out; }
+
+  async function drainOutbox(){
+    if(DRAINING || !OB.ops.length || navigator.onLine === false || !UID) return;
+    try{ var sess = await SB.auth.getSession(); if(!(sess.data && sess.data.session)) return; }catch(e){ return; }
+    DRAINING = true;
+    var synced = 0, dropped = 0;
+    try{
+      while(OB.ops.length){
+        var op = OB.ops[0], res = null;
+        try{
+          if(op.kind === "ins"){
+            var row = obResolveObj(op.row), tid = op.row.id;
+            if(typeof row.id === "number" && row.id < 0) delete row.id;   // server assigns the real id
+            res = await SB.from(op.table).insert(row).select().single();
+            if(!res.error && typeof tid === "number" && tid < 0){ OB.map[tid] = res.data.id; }
+          } else if(op.kind === "upd"){
+            res = await SB.from(op.table).update(obResolveObj(op.patch)).match(obResolveObj(op.match));
+          } else if(op.kind === "del"){
+            res = await SB.from(op.table).delete().match(obResolveObj(op.match));
+          } else if(op.kind === "ups"){
+            res = await SB.from(op.table).upsert(obResolveObj(op.row), op.conflict ? {onConflict:op.conflict} : undefined);
+          }
+        }catch(e){ res = { error:e }; }
+        if(res && res.error){
+          if(netErr(res.error) || authErr(res.error)) break;   // try again next poll — never drop for these
+          op.fails = (op.fails||0) + 1;
+          if(op.fails >= 3){ OB.ops.shift(); dropped++; }      // poison op: skip so the rest can sync
+          else break;
+        } else { OB.ops.shift(); synced++; }
+        saveOB();
+      }
+    } finally { DRAINING = false; }
+    saveOB(); obBadge();
+    if(!OB.ops.length && (synced || dropped)){
+      OB.map = {}; saveOB();
+      toast(dropped ? ("Synced "+synced+" — "+dropped+" couldn't be saved") : "Offline work synced ✓", 2600);
+      await refresh(); refreshExt();
+    }
+  }
+  // =============== [OB-END] offline data layer ===============
 
   // ---------------- read ----------------
-  // offline snapshot: last good state + today's items, so the app opens and the
-  // countdown keeps running with no connection (writes still need to be online).
-  function snapKey(){ return "cad_snap_" + (UID || "anon"); }
-  function saveSnap(o){ try{ localStorage.setItem(snapKey(), JSON.stringify(o)); }catch(e){} }
-  function loadSnap(){ try{ var s = localStorage.getItem(snapKey()); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
-  function useSnap(){
-    var c = loadSnap();
-    if(c){ if(c.st) st = c.st; if(c.today) TODAY = c.today; render(); return true; }
-    return false;
-  }
-
   async function refresh(){
     if(busy) return;
+    drainOutbox();                                    // retry queued writes (no-op when empty)
+    if(OB.ops.length || navigator.onLine === false){  // don't show server state that predates queued writes
+      rebuildFromMirror(true); obBadge(); return;
+    }
     var sr = await SB.from("state").select("*").eq("user_id", UID).maybeSingle();
-    if(sr.error){ useSnap(); return; }              // offline / failed → last-known snapshot
-    if(sr.data) st = sr.data;
+    if(sr.error){ rebuildFromMirror(true); obBadge(); return; }
+    if(sr.data){ st = sr.data; MIRROR.st = st; }
     var iso = todayStartISO();
-    var b = await SB.from("blocks").select("*").eq("status","logged").gte("planned_at", iso).order("id");
+    // all of today's blocks (open + logged) so the mirror can log the open one offline
+    var b = await SB.from("blocks").select("*").gte("planned_at", iso).order("id");
     var k = await SB.from("breaks").select("*").gte("started_at", iso).order("id");
-    if(b.error || k.error){ useSnap(); return; }
-    TODAY = buildItems(b.data||[], k.data||[]);
-    saveSnap({st:st, today:TODAY});                  // remember for offline
+    if(b.error || k.error){ rebuildFromMirror(true); obBadge(); return; }
+    MIRROR.blocks = b.data||[]; MIRROR.breaks = k.data||[];
+    TODAY = buildItems(MIRROR.blocks.filter(function(x){ return x.status==="logged"; }), MIRROR.breaks);
+    saveMirror(); obBadge();
     render();
   }
   async function refreshExt(){
+    if(offlineNow()){ extFromMirror(); return; }      // serve tasks/areas/missions from the mirror
     // area history (plain blocks query — works with or without the upgrade SQL)
     try{
       var since=new Date(Date.now()-14*864e5).toISOString();
       var ab=await SB.from("blocks").select("tag, planned_at, interval_min").eq("status","logged").gte("planned_at", since);
+      if(ab.error) throw ab.error;
       AREA_HIST={};
       (ab.data||[]).forEach(function(r){
         var tg=(r.tag||"").trim(); if(!tg || tg.toLowerCase()==="routine") return;
@@ -976,11 +1186,13 @@
         d.min14+=r.interval_min||0;
         if(!d.last || r.planned_at>d.last) d.last=r.planned_at;
       });
+      MIRROR.areaHist=AREA_HIST; saveMirror();
       renderAreas(TODAY);
     }catch(e){}
     if(!EXT) return;
     try{
       var t = await SB.from("tasks").select("*").order("id", {ascending:false}).limit(60);
+      if(t.error) throw t.error;
       TASKS = (t.data||[]);
       var ids = TASKS.filter(function(x){return x.status==="open";}).map(function(x){return x.id;});
       TASK_MIN = {};
@@ -996,6 +1208,8 @@
       ROUTINE = null;
       rows.forEach(function(r){ if(r.day===today) ROUTINE=r; });
       ROUTINE_STREAK = calcStreak(rows);
+      MIRROR.tasks=TASKS; MIRROR.taskMin=TASK_MIN; MIRROR.roadmap_items=MISSIONS.slice();
+      MIRROR.routine=ROUTINE; MIRROR.streak=ROUTINE_STREAK; saveMirror();
       renderExt();
     }catch(e){ console.log("ext", e); }
   }
@@ -1329,17 +1543,17 @@
       if(open.length){
         if(tag && !open[0].tag){  // task learns its area the first time one is given
           open[0].tag=tag;
-          await SB.from("tasks").update({tag:tag}).eq("id", open[0].id);
+          await dbUpd("tasks", {tag:tag}, {id:open[0].id});
         }
         return open[0].id;
       }
-      var r=await SB.from("tasks").insert({ name:name, tag:(tag||"")||null }).select("id").single();
+      var r=await dbIns("tasks", { name:name, tag:(tag||"")||null, status:"open" });
       if(r.data){ TASKS.unshift({id:r.data.id, name:name, tag:tag||null, status:"open"}); return r.data.id; }
     }catch(e){}
     return null;
   }
   async function insertBlock(payload){
-    var r=await SB.from("blocks").insert(payload).select("id").single();
+    var r=await dbIns("blocks", payload);
     return r.data ? r.data.id : null;
   }
 
@@ -1375,15 +1589,15 @@
     var now=new Date(), due=new Date(now.getTime()+iv*60000);
     area=(area||"").trim() || taskTagFor(plan);   // inherit the task's area when none given
     var taskId=await resolveTask(plan, area);
-    var s=await SB.from("sessions").insert({ interval_min:iv, started_at:now.toISOString() }).select("id").single();
+    var s=await dbIns("sessions", { interval_min:iv, started_at:now.toISOString() });
     var payload={ session_id:s.data.id, block_index:1, planned:plan, status:"open",
       planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv, tag:area||null };
     if(EXT && taskId) payload.task_id=taskId;
     if(META && meta) payload.meta=meta;
     var bid=await insertBlock(payload);
-    await SB.from("state").update({ active_session_id:s.data.id, active_block_id:bid, block_index:1,
+    await dbUpd("state", { active_session_id:s.data.id, active_block_id:bid, block_index:1,
       block_plan:plan, block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0,
-      break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 }).eq("user_id", UID);
+      break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 }, {user_id:UID});
   }); }
 
   function logBlock(rating, actual, nextPlan, notes, doneSel, area, meta, nextMins, nextAreaIn, nextMeta){ run(async function(){
@@ -1393,7 +1607,7 @@
     var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString(), tag:area||null };
     if(EXT && notes) upd.notes=notes;
     if(META) upd.meta=(meta||"")||null;
-    await SB.from("blocks").update(upd).eq("id", st.active_block_id);
+    await dbUpd("blocks", upd, {id:st.active_block_id});
     if(EXT && area){ await resolveTask(st.block_plan, area); }   // task learns the area
     if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
     var nextArea=(nextAreaIn||"").trim() || ((doneSel==="cont" && area) ? area : taskTagFor(nextPlan));
@@ -1403,8 +1617,8 @@
     if(EXT && nextTask) payload.task_id=nextTask;
     if(META && nextMeta) payload.meta=nextMeta;
     var nb=await insertBlock(payload);
-    await SB.from("state").update({ active_block_id:nb, block_index:idx, block_plan:nextPlan,
-      block_total:nv*60, due_at:due.toISOString(), paused:false, pause_remaining:0 }).eq("user_id", UID);
+    await dbUpd("state", { active_block_id:nb, block_index:idx, block_plan:nextPlan,
+      block_total:nv*60, due_at:due.toISOString(), paused:false, pause_remaining:0 }, {user_id:UID});
     sarahPraise();
     refreshExt();
   }); }
@@ -1415,12 +1629,12 @@
     var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString(), tag:area||null };
     if(EXT && notes) upd.notes=notes;
     if(META) upd.meta=(meta||"")||null;
-    await SB.from("blocks").update(upd).eq("id", st.active_block_id);
+    await dbUpd("blocks", upd, {id:st.active_block_id});
     if(EXT && area){ await resolveTask(st.block_plan, area); }
     if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
-    await SB.from("sessions").update({ ended_at:now.toISOString() }).eq("id", st.active_session_id);
-    await SB.from("state").update({ active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
-      block_total:0, due_at:null, paused:false, pause_remaining:0 }).eq("user_id", UID);
+    await dbUpd("sessions", { ended_at:now.toISOString() }, {id:st.active_session_id});
+    await dbUpd("state", { active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
+      block_total:0, due_at:null, paused:false, pause_remaining:0 }, {user_id:UID});
     sarahPraise();
     refreshExt();
   }); }
@@ -1431,22 +1645,26 @@
     closeSheet();
     run(async function(){
       var sid=st.active_session_id, bid=st.active_block_id, planName=(st.block_plan||"").trim().toLowerCase();
-      if(bid) await SB.from("blocks").delete().eq("id", bid);
+      if(bid) await dbDel("blocks", {id:bid});
       // earlier logged blocks in this session are real work — keep them; only an
       // empty session disappears entirely
-      var rest=await SB.from("blocks").select("id").eq("session_id", sid).limit(1);
-      if(!rest.data || !rest.data.length){ await SB.from("sessions").delete().eq("id", sid); }
-      else { await SB.from("sessions").update({ ended_at:new Date().toISOString() }).eq("id", sid); }
+      var restRows;
+      if(offlineNow()){ restRows=(MIRROR.blocks||[]).filter(function(x){ return x.session_id===sid; }); }
+      else { var rest=await SB.from("blocks").select("id").eq("session_id", sid).limit(1); restRows=rest.data||[]; }
+      if(!restRows.length){ await dbDel("sessions", {id:sid}); }
+      else { await dbUpd("sessions", { ended_at:new Date().toISOString() }, {id:sid}); }
       // sweep up a task auto-created by the accidental start, if it has no work
       if(EXT && planName){
         var t=TASKS.filter(function(x){ return x.status==="open" && (x.name||"").toLowerCase()===planName; });
         if(t.length){
-          var used=await SB.from("blocks").select("id").eq("task_id", t[0].id).limit(1);
-          if(!used.data || !used.data.length) await SB.from("tasks").delete().eq("id", t[0].id);
+          var usedRows;
+          if(offlineNow()){ usedRows=(MIRROR.blocks||[]).filter(function(x){ return x.task_id===t[0].id; }); }
+          else { var used=await SB.from("blocks").select("id").eq("task_id", t[0].id).limit(1); usedRows=used.data||[]; }
+          if(!usedRows.length) await dbDel("tasks", {id:t[0].id});
         }
       }
-      await SB.from("state").update({ active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
-        block_total:0, due_at:null, paused:false, pause_remaining:0 }).eq("user_id", UID);
+      await dbUpd("state", { active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
+        block_total:0, due_at:null, paused:false, pause_remaining:0 }, {user_id:UID});
       toast("Session discarded — nothing recorded.");
       refreshExt();
     });
@@ -1455,10 +1673,10 @@
   async function finishTaskByName(name){
     name=(name||"").trim().toLowerCase(); if(!name) return;
     var t=TASKS.filter(function(x){return x.status==="open" && x.name.toLowerCase()===name;});
-    if(t.length){ await SB.from("tasks").update({status:"done", completed_at:new Date().toISOString()}).eq("id", t[0].id); }
+    if(t.length){ await dbUpd("tasks", {status:"done", completed_at:new Date().toISOString()}, {id:t[0].id}); }
   }
   function finishTask(t){ run(async function(){
-    await SB.from("tasks").update({status:"done", completed_at:new Date().toISOString()}).eq("id", t.id);
+    await dbUpd("tasks", {status:"done", completed_at:new Date().toISOString()}, {id:t.id});
     sarahPraise();
     await refreshExt();
   }); }
@@ -1467,14 +1685,14 @@
     var now=Date.now();
     if(st.paused){
       var due=new Date(now+(st.pause_remaining||0)*1000);
-      await SB.from("state").update({ paused:false, due_at:due.toISOString() }).eq("user_id", UID);
+      await dbUpd("state", { paused:false, due_at:due.toISOString() }, {user_id:UID});
     } else {
       var rem=Math.max(0, Math.round((new Date(st.due_at).getTime()-now)/1000));
-      await SB.from("state").update({ paused:true, pause_remaining:rem }).eq("user_id", UID);
+      await dbUpd("state", { paused:true, pause_remaining:rem }, {user_id:UID});
     }
   }); }
 
-  function setIntervalMin(m){ run(async function(){ await SB.from("state").update({ interval_min:m }).eq("user_id", UID); }); }
+  function setIntervalMin(m){ run(async function(){ await dbUpd("state", { interval_min:m }, {user_id:UID}); }); }
 
   function startBreak(label, tag, minutes){ run(async function(){
     var now=new Date(), due=new Date(now.getTime()+minutes*60000);
@@ -1482,17 +1700,17 @@
     if(st.active_session_id && !st.paused){
       upd.paused=true; upd.pause_remaining=Math.max(0, Math.round((new Date(st.due_at).getTime()-now.getTime())/1000));
     }
-    await SB.from("state").update(upd).eq("user_id", UID);
+    await dbUpd("state", upd, {user_id:UID});
   }); }
 
   function endBreak(){ run(async function(){
     if(!st.break_due) return;
     var now=new Date(), start=new Date(st.break_start);
     var mins=Math.max(1, Math.round((now.getTime()-start.getTime())/60000));
-    await SB.from("breaks").insert({ label:st.break_label, tag:st.break_tag, started_at:st.break_start, ended_at:now.toISOString(), minutes:mins });
+    await dbIns("breaks", { label:st.break_label, tag:st.break_tag, started_at:st.break_start, ended_at:now.toISOString(), minutes:mins });
     var upd={ break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 };
     if(st.active_session_id){ upd.paused=false; upd.due_at=new Date(now.getTime()+(st.pause_remaining||0)*1000).toISOString(); }
-    await SB.from("state").update(upd).eq("user_id", UID);
+    await dbUpd("state", upd, {user_id:UID});
   }); }
 
   function addPast(desc, startHM, endHM, met, tag, dayOff, meta){ run(async function(){
@@ -1500,7 +1718,7 @@
     if(!start||!end||end<=start) return;
     var minutes=Math.max(1, Math.round((end.getTime()-start.getTime())/60000));
     var taskId=await resolveTask(desc, tag);
-    var s=await SB.from("sessions").insert({ started_at:start.toISOString(), ended_at:end.toISOString(), interval_min:minutes }).select("id").single();
+    var s=await dbIns("sessions", { started_at:start.toISOString(), ended_at:end.toISOString(), interval_min:minutes });
     var payload={ session_id:s.data.id, block_index:1, planned:desc||"(past entry)", actual:"",
       tag:tag, rating:met, status:"logged", planned_at:start.toISOString(), due_at:end.toISOString(),
       logged_at:end.toISOString(), interval_min:minutes };
@@ -1516,8 +1734,8 @@
     var name = it.planned || (it.kind==="break" ? "break" : "entry");
     if(!confirm('Delete "'+name+'" ('+it.startHM+')?')) return;
     run(async function(){
-      if(it.kind==="break"){ await SB.from("breaks").delete().eq("id", it.id); }
-      else { await SB.from("blocks").delete().eq("id", it.id); }
+      if(it.kind==="break"){ await dbDel("breaks", {id:it.id}); }
+      else { await dbDel("blocks", {id:it.id}); }
     });
   }
 
@@ -1529,8 +1747,9 @@
                  done_movement:!!(ROUTINE&&ROUTINE.done_movement), done_mind:!!(ROUTINE&&ROUTINE.done_mind) };
       for(var k in patch) base[k]=patch[k];
       base.updated_at=new Date().toISOString();
-      var r=await SB.from("routine_log").upsert(base, {onConflict:"user_id,day"}).select("*").single();
+      var r=await dbUps("routine_log", base, "user_id,day");
       if(r.data) ROUTINE=r.data;
+      MIRROR.routine=ROUTINE; saveMirror();
       if(ROUTINE && ROUTINE.done_movement && ROUTINE.done_mind){
         toast(prefs.sarah ? "Routine complete. Body: moved. Mind: cleared. You: incredible. 💚" : "Morning routine complete. 🔥");
         sarahPraise();
@@ -1543,14 +1762,14 @@
     var v=$("mAdd").value.trim(); if(!v || !EXT) return;
     $("mAdd").value="";
     run(async function(){
-      await SB.from("roadmap_items").insert({ title:v, status:"active", source:"manual" });
+      await dbIns("roadmap_items", { title:v, status:"active", source:"manual" });
       await refreshExt();
     });
   }
   function toggleMission(m){
     run(async function(){
       var ns = m.status==="done" ? "active" : "done";
-      await SB.from("roadmap_items").update({ status:ns, updated_at:new Date().toISOString() }).eq("id", m.id);
+      await dbUpd("roadmap_items", { status:ns, updated_at:new Date().toISOString() }, {id:m.id});
       if(ns==="done") sarahPraise();
       await refreshExt();
     });
@@ -1830,7 +2049,7 @@
     var start=parseDay(startHM, dayOff||0), end=parseDay(endHM, dayOff||0);
     if(!start||!end||end<=start) return;
     var mins=Math.max(1, Math.round((end.getTime()-start.getTime())/60000));
-    await SB.from("breaks").insert({ label:label, tag:"Custom", started_at:start.toISOString(),
+    await dbIns("breaks", { label:label, tag:"Custom", started_at:start.toISOString(),
       ended_at:end.toISOString(), minutes:mins });
   }); }
   function omniGo(){
@@ -1924,7 +2143,11 @@
 
   $("loginBtn").addEventListener("click", doLogin);
   $("password").addEventListener("keydown", function(e){ if(e.key==="Enter") doLogin(); });
-  $("logoutBtn").addEventListener("click", function(){ closeDrawer(); SB.auth.signOut(); });
+  $("logoutBtn").addEventListener("click", function(){
+    closeDrawer();
+    try{ localStorage.removeItem("cad_uid"); }catch(e){}   // intentional sign-out: no offline auto-boot
+    OFFBOOT=false; SB.auth.signOut();
+  });
 
   document.querySelectorAll("#ivseg button").forEach(function(b){ b.addEventListener("click", function(){ setIntervalMin(parseInt(b.dataset.min,10)); }); });
   $("ivcustom").addEventListener("change", function(){ var v=parseInt(this.value,10); if(v>0) setIntervalMin(v); });
@@ -2002,7 +2225,7 @@
   $("gateDone").addEventListener("click", function(){
     closeGate();
     run(async function(){
-      try{ await SB.from("state").update({ open_day_done_on: dayKey() }).eq("user_id", UID); }catch(e){}
+      try{ await dbUpd("state", { open_day_done_on: dayKey() }, {user_id:UID}); }catch(e){}
     }).then(function(){ if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area, p.meta); } });
   });
   $("gateSkip").addEventListener("click", function(){
@@ -2091,8 +2314,16 @@
   if("serviceWorker" in navigator){
     window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
   }
-  // when the connection comes back, pull fresh data
-  window.addEventListener("online", function(){ toast("Back online — syncing…", 2200); refresh(); refreshExt(); });
+  // when the connection comes back, push queued work then pull fresh data
+  window.addEventListener("online", function(){
+    toast("Back online — syncing…", 2200); obBadge();
+    drainOutbox().then(function(){ if(!OB.ops.length){ refresh(); refreshExt(); } });
+  });
+  window.addEventListener("offline", obBadge);
+  $("offBoot").addEventListener("click", function(){
+    var cu=null; try{ cu=localStorage.getItem("cad_uid"); }catch(e){}
+    if(cu) bootOffline(cu);
+  });
 
   init();
 </script>
