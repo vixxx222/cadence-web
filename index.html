@@ -305,6 +305,28 @@
   .sheetdiscard{margin-top:6px;color:var(--danger);opacity:.85}
   .discardlink{display:block;margin:9px auto 0;text-align:center}
   .discardlink:hover{color:var(--danger)}
+  /* fast capture path + alarm */
+  #sheetBox.alarm{animation:up .28s cubic-bezier(.2,.8,.2,1), alarmpulse 1.1s ease-in-out infinite}
+  @keyframes alarmpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,86,86,0)}50%{box-shadow:0 -4px 46px 2px rgba(255,86,86,.42)}}
+  .fastrate{display:flex;gap:10px;margin:4px 0 12px}
+  .frate{flex:1;padding:17px 10px;font-size:15px;font-weight:700;display:flex;align-items:center;
+         justify-content:center;gap:9px;border-radius:13px;transition:transform .08s,opacity .12s}
+  .frate .fbig{font-size:22px;line-height:1}
+  .frate:active{transform:scale(.97)}
+  .fyes{background:var(--ok);border-color:var(--ok);color:#04140D}
+  .fno{background:var(--danger);border-color:var(--danger);color:#fff}
+  .frate:not(.on){opacity:.8}
+  .frate.on{opacity:1;outline:2.5px solid var(--ink);outline-offset:2px}
+  .fastnext{margin:0 0 6px;transition:opacity .16s}
+  .fastnext.locked{opacity:.32;pointer-events:none;filter:grayscale(.5)}
+  .fnlabel{font-size:12px;color:var(--muted);margin:0 0 7px}
+  .fnbtns{display:flex;gap:10px}
+  .fnbtns button{flex:1;padding:14px 10px;font-size:14px;font-weight:650;border-radius:12px}
+  .fcont{background:var(--accent);border-color:var(--accent);color:#06131A}
+  .fchange{background:transparent;border-color:var(--line2);color:var(--ink)}
+  .fchange:hover{border-color:var(--accent);color:var(--accent)}
+  #detWrap{margin-top:10px}
+  #sheetNotes{width:100%;min-height:60px;margin-bottom:10px}
   .gnote{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5}
   .gnote b{color:var(--ink)}
   .skiplink{display:block;margin:14px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
@@ -568,38 +590,55 @@
   </div>
 
   <div id="sheet" class="hidden">
-    <div class="sheetbox">
-      <h3 id="sheetTitle">Did you do what you intended?</h3>
+    <div class="sheetbox" id="sheetBox">
+      <h3 id="sheetTitle">Block done — did you do it?</h3>
       <p class="planned" id="sheetPlanned"></p>
-      <input type="text" id="sheetActual" placeholder="What did you actually do? (optional)">
-      <div class="tagrow" id="sheetAreas"></div>
-      <div class="tagrow hidden" id="sheetMeta">
-        <span class="achip mchip" data-meta="work">work</span>
-        <span class="achip mchip" data-meta="rest">rest</span>
-        <span class="achip mchip" data-meta="personal">personal</span>
-        <span class="achip mchip" data-meta="distraction">distraction</span>
+
+      <!-- decision 1: did it / didn't -->
+      <div class="fastrate">
+        <button class="frate fyes" id="fDidIt"><span class="fbig">✓</span> Did it</button>
+        <button class="frate fno" id="fDidnt"><span class="fbig">✕</span> Didn't</button>
       </div>
-      <div class="sheetseg" id="sheetDone">
-        <button class="sm" data-v="done">Task finished ✓</button>
-        <button class="sm" data-v="cont">Continuing →</button>
+
+      <!-- decision 2: same task / new task (lights up once you've rated) -->
+      <div class="fastnext locked" id="fastNext">
+        <div class="fnlabel" id="fnLabel">Then — keep going?</div>
+        <div class="fnbtns">
+          <button class="fcont" id="fCont">⟳ Same task</button>
+          <button class="fchange" id="fChange">→ New task</button>
+        </div>
       </div>
-      <input type="text" id="sheetNext" placeholder="Next block — plain language works: &quot;deck for 45 #vix&quot;" autocomplete="off">
-      <div class="suggs" id="nextSuggs"></div>
-      <div class="row" id="sheetLenRow" style="margin:2px 0 10px">
-        <span class="sep">next:</span>
-        <button class="xs" data-nmin="10">10</button>
-        <button class="xs" data-nmin="20">20</button>
-        <button class="xs" data-nmin="30">30</button>
-        <input type="number" id="sheetLenCustom" min="1" max="240" placeholder="custom" style="width:74px">
-        <span class="sep">min</span>
+
+      <!-- new-task reveal -->
+      <div id="changeWrap" class="hidden">
+        <input type="text" id="sheetNext" placeholder="What's next? — &quot;deck for 45 #vix&quot;" autocomplete="off">
+        <div class="suggs" id="nextSuggs"></div>
+        <div class="row" id="sheetLenRow" style="margin:2px 0 10px">
+          <span class="sep">for:</span>
+          <button class="xs" data-nmin="10">10</button>
+          <button class="xs" data-nmin="20">20</button>
+          <button class="xs" data-nmin="30">30</button>
+          <input type="number" id="sheetLenCustom" min="1" max="240" placeholder="custom" style="width:74px">
+          <span class="sep">min</span>
+        </div>
+        <button class="primary" id="fStartNew">Start next block →</button>
       </div>
-      <button class="linky" id="notesToggle">+ add context (for open-day / close-day)</button>
-      <textarea id="sheetNotes" class="hidden" placeholder="Context, details, links — kept out of the way, used for daily wrap-ups."></textarea>
-      <div class="sheetbtns">
-        <button class="didit" id="sheetDidIt">Did it</button>
-        <button class="didnt" id="sheetDidnt">Didn't</button>
+
+      <!-- everything else is optional, tucked away -->
+      <button class="linky" id="detToggle">+ details (what you did · area · notes)</button>
+      <div id="detWrap" class="hidden">
+        <input type="text" id="sheetActual" placeholder="What did you actually do? (optional)">
+        <div class="tagrow" id="sheetAreas"></div>
+        <div class="tagrow hidden" id="sheetMeta">
+          <span class="achip mchip" data-meta="work">work</span>
+          <span class="achip mchip" data-meta="rest">rest</span>
+          <span class="achip mchip" data-meta="personal">personal</span>
+          <span class="achip mchip" data-meta="distraction">distraction</span>
+        </div>
+        <textarea id="sheetNotes" placeholder="Context, details, links — used for daily wrap-ups."></textarea>
       </div>
-      <button class="sheetcancel" id="sheetCancel">cancel</button>
+
+      <button class="sheetcancel" id="sheetCancel">snooze 1 min</button>
       <button class="sheetcancel sheetdiscard hidden" id="sheetDiscard">discard session — don't record</button>
     </div>
   </div>
@@ -796,6 +835,7 @@
   function unlockAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
   function chime(){
     if(!prefs.sound || !audioCtx) return;
+    try{ if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){}
     try{
       var t = audioCtx.currentTime;
       [880, 1174.7].forEach(function(f, i){
@@ -808,6 +848,25 @@
         o.start(t + i*0.16); o.stop(t + i*0.16 + 0.36);
       });
     }catch(e){}
+  }
+
+  // block-end alarm: repeats until you engage. Sound loops, the box pulses, and
+  // the browser-tab title flashes so it screams even from a background tab. The
+  // native menu-bar companion is the audible backstop when the tab can't sound.
+  var alarmTimer=null, titleTimer=null, alarmTitle=null;
+  function startAlarm(){
+    stopAlarm();
+    chime();
+    alarmTimer=setInterval(chime, 2500);
+    var box=$("sheetBox"); if(box) box.classList.add("alarm");
+    alarmTitle=document.title; var flip=false;
+    titleTimer=setInterval(function(){ flip=!flip; document.title=flip?"⏰ BLOCK DONE — log it":(alarmTitle||"Cadence"); }, 1000);
+  }
+  function stopAlarm(){
+    if(alarmTimer){ clearInterval(alarmTimer); alarmTimer=null; }
+    if(titleTimer){ clearInterval(titleTimer); titleTimer=null; }
+    if(alarmTitle!=null){ document.title=alarmTitle; alarmTitle=null; }
+    var box=$("sheetBox"); if(box) box.classList.remove("alarm");
   }
 
   var toastTimer=null;
@@ -2099,42 +2158,70 @@
     var c=$("sheetLenCustom");
     if(!matched){ c.value=m; } else if(document.activeElement!==c){ c.value=""; }
   }
+  var sheetRating = "";            // ✓/✗ chosen this sheet, gates the next-block choice
   function openSheet(isStop, auto){
-    sheetIsStop=isStop; sheetDoneSel=""; sheetMeta=""; sheetLenTouched=false;
-    document.querySelectorAll("#sheetDone button").forEach(function(b){ b.classList.remove("on"); });
+    sheetIsStop=isStop; sheetDoneSel=""; sheetMeta=""; sheetRating=""; sheetLenTouched=false;
+    $("sheetBox").classList.remove("alarm");
+    $("fDidIt").classList.remove("on"); $("fDidnt").classList.remove("on");
+    $("fastNext").classList.add("locked");
+    $("changeWrap").classList.add("hidden");
+    $("detWrap").classList.add("hidden");
     document.querySelectorAll("#sheetMeta .mchip").forEach(function(b){ b.classList.remove("on"); });
-    $("sheetTitle").textContent = isStop ? "Stopping — did you do what you intended?" : ("Block "+(st.block_index||1)+" — did you do what you intended?");
-    $("sheetPlanned").textContent = "You planned: " + (st.block_plan || "(no plan set)");
-    $("sheetActual").value=""; $("sheetNext").value="";
-    $("sheetNotes").value=""; $("sheetNotes").classList.add("hidden");
-    sheetArea=taskTagFor(st.block_plan);          // inherit the task's area, one tap to change
+    $("sheetTitle").textContent = isStop ? "Stopping — did you do it?" : "Block done — did you do it?";
+    $("sheetPlanned").textContent = (st.block_plan||"").trim() ? ("Planned: " + st.block_plan) : "No plan was set for this block";
+    $("sheetActual").value=""; $("sheetNext").value=""; $("sheetNotes").value="";
+    sheetArea=taskTagFor(st.block_plan);          // inherit the task's area (editable under details)
     buildSheetAreas();
     $("sheetMeta").classList.toggle("hidden", !META);
     setSheetLen(st.interval_min||20);             // next block defaults to the session length
-    $("sheetLenRow").classList.toggle("hidden", isStop);
-    $("notesToggle").classList.toggle("hidden", !EXT);
-    $("sheetDone").classList.toggle("hidden", !EXT || !(st.block_plan||"").trim());
-    $("sheetNext").classList.toggle("hidden", isStop);
+    // stop = ending the session: a rating commits it, no "next block" choice
+    $("fastNext").classList.toggle("hidden", isStop);
+    $("sheetCancel").textContent = isStop ? "cancel" : "snooze 1 min";
+    $("detToggle").classList.remove("hidden");
     $("sheetDiscard").classList.remove("hidden"); // escape hatch available mid-block too
     $("sheet").classList.remove("hidden");
-    if(auto) chime();
+    if(auto) startAlarm();
   }
-  function closeSheet(){ $("sheet").classList.add("hidden"); }
-  function submitSheet(rating){
+  function closeSheet(){ stopAlarm(); $("sheet").classList.add("hidden"); }
+
+  // ---- fast path: rate (✓/✗) → same task / new task ----
+  function fastRate(rating){
+    sheetRating=rating;
+    stopAlarm();                                  // engaging is what silences it
+    $("fDidIt").classList.toggle("on", rating==="Did it");
+    $("fDidnt").classList.toggle("on", rating==="Didn't");
+    if(sheetIsStop){ commitStop(rating); return; }
+    $("fastNext").classList.remove("locked");        // unlock the same/new choice
+    $("fnLabel").textContent = "Next block —";
+  }
+  function commitStop(rating){
     var actual=$("sheetActual").value, notes=$("sheetNotes").value;
-    var rawNext=$("sheetNext").value.trim();
-    // the next-block field speaks the same language as the omnibox
-    var nextPlan=rawNext, nextMins=sheetNextMin||0, nextArea="", nextMeta="";
-    if(rawNext){
-      var np=parseNL(rawNext);
-      if(np.desc) nextPlan=cap(np.desc);
-      if(np.area) nextArea=np.area;
-      if(np.meta) nextMeta=np.meta;
-      if(np.mins && np.mins>0 && !sheetLenTouched) nextMins=np.mins;   // a tapped pill wins over typed text
-    }
     closeSheet();
-    if(sheetIsStop) stopSession(rating, actual, notes, sheetDoneSel, sheetArea, sheetMeta);
-    else logBlock(rating, actual, nextPlan, notes, sheetDoneSel, sheetArea, sheetMeta, nextMins, nextArea, nextMeta);
+    stopSession(rating, actual, notes, "", sheetArea, sheetMeta);
+  }
+  function fastContinue(){                         // same task, same length — one tap, done
+    if(!sheetRating) return;
+    var actual=$("sheetActual").value, notes=$("sheetNotes").value;
+    closeSheet();
+    logBlock(sheetRating, actual, st.block_plan||"", notes, "cont", sheetArea, sheetMeta, sheetNextMin||0, "", sheetMeta);
+  }
+  function fastChange(){                           // reveal the one field a new task needs
+    if(!sheetRating) return;
+    $("changeWrap").classList.remove("hidden");
+    setTimeout(function(){ $("sheetNext").focus(); }, 30);
+  }
+  function fastStartNew(){
+    if(!sheetRating) return;
+    var raw=$("sheetNext").value.trim();
+    if(!raw){ $("sheetNext").focus(); return; }
+    var np=parseNL(raw), nextPlan=raw, nextArea="", nextMeta="", nextMins=sheetNextMin||0;
+    if(np.desc) nextPlan=cap(np.desc);
+    if(np.area) nextArea=np.area;
+    if(np.meta) nextMeta=np.meta;
+    if(np.mins && np.mins>0 && !sheetLenTouched) nextMins=np.mins;   // a tapped pill wins over typed text
+    var actual=$("sheetActual").value, notes=$("sheetNotes").value;
+    closeSheet();
+    logBlock(sheetRating, actual, nextPlan, notes, "", sheetArea, sheetMeta, nextMins, nextArea, nextMeta);
   }
 
   // ---------------- wiring ----------------
@@ -2178,19 +2265,15 @@
   document.querySelectorAll("#reMet button").forEach(function(b){ b.addEventListener("click", function(){ retroMet=(retroMet===b.dataset.met)?"":b.dataset.met; document.querySelectorAll("#reMet button").forEach(function(x){ x.classList.toggle("on", x.dataset.met===retroMet); }); }); });
   $("reAddBtn").addEventListener("click", function(){ var s=$("reStart").value, e=$("reEnd").value; if(!s||!e) return; addPast($("reDesc").value, s, e, retroMet, $("reTag").value); $("reDesc").value=""; $("reStart").value=""; $("reEnd").value=""; $("reTag").value=""; retroMet=""; document.querySelectorAll("#reMet button").forEach(function(x){ x.classList.remove("on"); }); });
 
-  document.querySelectorAll("#sheetDone button").forEach(function(b){
-    b.addEventListener("click", function(){
-      sheetDoneSel = (sheetDoneSel===b.dataset.v) ? "" : b.dataset.v;
-      document.querySelectorAll("#sheetDone button").forEach(function(x){ x.classList.toggle("on", x.dataset.v===sheetDoneSel); });
-      if(sheetDoneSel==="cont" && !sheetIsStop){ $("sheetNext").value = st.block_plan || ""; }
-      if(sheetDoneSel==="done" && !sheetIsStop && $("sheetNext").value===(st.block_plan||"")){ $("sheetNext").value=""; }
-    });
-  });
-  $("notesToggle").addEventListener("click", function(){ $("sheetNotes").classList.toggle("hidden"); });
-  $("sheetDidIt").addEventListener("click", function(){ submitSheet("Did it"); });
-  $("sheetDidnt").addEventListener("click", function(){ submitSheet("Didn't"); });
+  $("fDidIt").addEventListener("click", function(){ fastRate("Did it"); });
+  $("fDidnt").addEventListener("click", function(){ fastRate("Didn't"); });
+  $("fCont").addEventListener("click", fastContinue);
+  $("fChange").addEventListener("click", fastChange);
+  $("fStartNew").addEventListener("click", fastStartNew);
+  $("sheetNext").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); fastStartNew(); } });
+  $("detToggle").addEventListener("click", function(){ $("detWrap").classList.toggle("hidden"); });
   $("sheetCancel").addEventListener("click", function(){
-    // dismissing an overdue block gets a minute of grace before the sheet returns
+    // an overdue block gets a minute of grace before the alarm/sheet returns
     if(!sheetIsStop) _sheetGrace=Date.now()+60000;
     closeSheet();
   });
