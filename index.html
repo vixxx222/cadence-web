@@ -327,6 +327,28 @@
   .fchange:hover{border-color:var(--accent);color:var(--accent)}
   #detWrap{margin-top:10px}
   #sheetNotes{width:100%;min-height:60px;margin-bottom:10px}
+  /* daily frog */
+  .frogbar{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:11px 14px;
+           border:1px solid var(--line2);border-radius:13px;background:var(--panel)}
+  .frogbar.hot{border-color:rgba(232,163,61,.55);box-shadow:0 0 22px -6px rgba(232,163,61,.4)}
+  .frogbar.eaten{border-color:var(--ok);opacity:.8}
+  .frogbar.eaten .ftitle{text-decoration:line-through;color:var(--muted)}
+  .frogbar .femoji{font-size:20px;line-height:1;flex:0 0 auto}
+  .frogbar .fmain{flex:1;min-width:0}
+  .frogbar .ftitle{display:block;font-weight:650;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .frogbar .fsub{display:block;font-size:10px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-top:1px}
+  .frogbar input{flex:1;margin:0;min-width:0}
+  .frogbar .xs,.frogbar .sm{flex:0 0 auto}
+  /* up-next picks */
+  .upnext{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 0}
+  .unlabel{font-size:10px;color:var(--faint);letter-spacing:.09em;text-transform:uppercase;flex:0 0 auto}
+  .pick{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line2);
+        border-radius:999px;font-size:12.5px;cursor:pointer;max-width:240px;overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+  .pick:hover{border-color:var(--accent);color:var(--accent)}
+  .pick.frogpick{border-color:rgba(232,163,61,.6)}
+  .pick .pdot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+  #nextPicks{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
   .gnote{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5}
   .gnote b{color:var(--ink)}
   .skiplink{display:block;margin:14px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
@@ -439,6 +461,8 @@
       <div class="subplan" id="subplan"></div>
 
       <main>
+        <div class="frogbar hidden" id="frogBar"></div>
+
         <div id="statsWrap">
           <div class="stats-row" id="card-stats"></div>
           <div class="goalwrap" id="goalWrap">
@@ -466,6 +490,7 @@
             <input type="number" id="ivcustom" min="1" max="180" placeholder="custom">
             <span class="sep">min</span>
           </div>
+          <div class="upnext hidden" id="upNext"></div>
           <div class="suggs" id="planSuggs"></div>
           <div class="chips" id="chips"></div>
           <div class="nlhint" id="nlHint">Understands plain language — "worked out 8:00–8:35" logs it, "deep work for the next 30" starts it.</div>
@@ -508,6 +533,9 @@
               <span class="sep">min</span>
               <button class="sm" id="rDidBtn">Already did it ✓</button>
               <button class="primary sm" id="rNowBtn">Start now ▶</button>
+            </div>
+            <div class="rrow" style="justify-content:flex-end;margin-top:-2px">
+              <button class="linky" id="rLogBtn">already did it + put the time on the timeline</button>
             </div>
           </div></div></div>
         </div>
@@ -609,9 +637,10 @@
         </div>
       </div>
 
-      <!-- new-task reveal -->
+      <!-- new-task reveal: pick from your list, or type -->
       <div id="changeWrap" class="hidden">
-        <input type="text" id="sheetNext" placeholder="What's next? — &quot;deck for 45 #vix&quot;" autocomplete="off">
+        <div id="nextPicks"></div>
+        <input type="text" id="sheetNext" placeholder="Or type it — &quot;deck for 45 #vix&quot;" autocomplete="off">
         <div class="suggs" id="nextSuggs"></div>
         <div class="row" id="sheetLenRow" style="margin:2px 0 10px">
           <span class="sep">for:</span>
@@ -649,6 +678,7 @@
       <p class="gnote">First session of the day. Before you dive in:<br>
         <b>1.</b> Run <b>/open-day</b> with Claude on your Mac — it sets today's priorities.<br>
         <b>2.</b> Knock out the morning routine (or schedule it on the timeline).</p>
+      <input type="text" id="gateFrog" class="hidden" placeholder="🐸 today's frog — the task you're avoiding" autocomplete="off">
       <div class="sheetbtns">
         <button class="primary" id="gateDone">Open-day is done — let's go</button>
       </div>
@@ -750,6 +780,8 @@
   var sheetArea = "";              // area chip selected on the capture sheet
   var META = false;                // true once blocks.meta column exists
   var META_TAGS = ["work","rest","personal","distraction"];
+  var FROG = false;                // true once the frogs table exists
+  var FROGS = [];                  // yesterday + today's frog rows
   var sheetMeta = "";              // metatag selected on the capture sheet
   var sheetNextMin = 0;            // duration chosen for the next block
   var sheetLenTouched = false;     // user explicitly picked a next-block length
@@ -984,6 +1016,7 @@
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
     loadOB(); loadMirror();
     EXT = !!(MIRROR.flags && MIRROR.flags.ext); META = !!(MIRROR.flags && MIRROR.flags.meta);
+    FROG = !!(MIRROR.flags && MIRROR.flags.frog);
     st = MIRROR.st || { interval_min:20, block_index:0 };
     rebuildFromMirror(true);
     extFromMirror();
@@ -1042,7 +1075,10 @@
     try{ var r2 = await SB.from("blocks").select("meta").limit(1);
       META = r2.error ? (netErr(r2.error) ? !!mf.meta : false) : true; }
     catch(e){ META = netErr(e) ? !!mf.meta : false; }
-    MIRROR.flags = { ext:EXT, meta:META }; saveMirror();
+    try{ var r3 = await SB.from("frogs").select("id").limit(1);
+      FROG = r3.error ? (netErr(r3.error) ? !!mf.frog : false) : true; }
+    catch(e){ FROG = netErr(e) ? !!mf.frog : false; }
+    MIRROR.flags = { ext:EXT, meta:META, frog:FROG }; saveMirror();
   }
 
   // =============== [OB-BEGIN] offline data layer ===============
@@ -1051,7 +1087,7 @@
   // OB: outbox of writes made while offline, replayed in order on reconnect.
   // Offline inserts get temporary NEGATIVE ids; replay maps them to the real
   // server ids (OB.map) and substitutes them in later ops' foreign keys.
-  var MIRROR = { st:null, blocks:[], breaks:[], tasks:[], roadmap_items:[], flags:null };
+  var MIRROR = { st:null, blocks:[], breaks:[], tasks:[], roadmap_items:[], frogs:[], flags:null };
   var OB = { ops:[], map:{}, seq:-2 };
   var DRAINING = false;
   var ID_KEYS = { id:1, session_id:1, block_id:1, task_id:1, active_session_id:1, active_block_id:1 };
@@ -1059,7 +1095,7 @@
   function mirKey(){ return "cad_mir_" + (UID||"anon"); }
   function obKey(){ return "cad_ob_" + (UID||"anon"); }
   function saveMirror(){ try{ localStorage.setItem(mirKey(), JSON.stringify(MIRROR)); }catch(e){} }
-  function loadMirror(){ try{ var m=JSON.parse(localStorage.getItem(mirKey())||"null"); if(m){ MIRROR=m; MIRROR.blocks=MIRROR.blocks||[]; MIRROR.breaks=MIRROR.breaks||[]; MIRROR.tasks=MIRROR.tasks||[]; MIRROR.roadmap_items=MIRROR.roadmap_items||[]; return true; } }catch(e){} return false; }
+  function loadMirror(){ try{ var m=JSON.parse(localStorage.getItem(mirKey())||"null"); if(m){ MIRROR=m; MIRROR.blocks=MIRROR.blocks||[]; MIRROR.breaks=MIRROR.breaks||[]; MIRROR.tasks=MIRROR.tasks||[]; MIRROR.roadmap_items=MIRROR.roadmap_items||[]; MIRROR.frogs=MIRROR.frogs||[]; return true; } }catch(e){} return false; }
   function saveOB(){ try{ localStorage.setItem(obKey(), JSON.stringify(OB)); }catch(e){} }
   function loadOB(){ try{ var o=JSON.parse(localStorage.getItem(obKey())||"null"); if(o && o.ops){ OB=o; OB.map=OB.map||{}; if(typeof OB.seq!=="number") OB.seq=-2; } }catch(e){} }
 
@@ -1102,8 +1138,10 @@
     MISSIONS = (MIRROR.roadmap_items || []).filter(function(m){ return m.status !== "done"; });
     ROUTINE = MIRROR.routine || null;
     ROUTINE_STREAK = MIRROR.streak || 0;
+    FROGS = MIRROR.frogs || [];
     try{ renderAreas(TODAY); }catch(e){}
     if(EXT){ try{ renderExt(); }catch(e){} }
+    try{ renderFrog(); renderUpNext(); }catch(e){}
   }
   function obBadge(){
     var el = $("syncPill"); if(!el) return;
@@ -1271,6 +1309,14 @@
       MIRROR.routine=ROUTINE; MIRROR.streak=ROUTINE_STREAK; saveMirror();
       renderExt();
     }catch(e){ console.log("ext", e); }
+    if(FROG){
+      try{
+        var yk=new Date(Date.now()-864e5), ykey=yk.getFullYear()+"-"+String(yk.getMonth()+1).padStart(2,"0")+"-"+String(yk.getDate()).padStart(2,"0");
+        var fr = await SB.from("frogs").select("*").gte("day", ykey).order("day");
+        if(!fr.error){ FROGS = fr.data||[]; MIRROR.frogs=FROGS.slice(); saveMirror(); }
+      }catch(e){}
+    }
+    renderFrog(); renderUpNext();
   }
   function calcStreak(rows){
     var done={}; rows.forEach(function(r){ if(r.done_movement && r.done_mind) done[r.day]=1; });
@@ -1628,6 +1674,9 @@
   var gateTimer=null;
   function showGate(planAfter){
     pendingPlan=planAfter;
+    // name the frog while you're setting up the day
+    $("gateFrog").classList.toggle("hidden", !FROG || !!frogToday());
+    $("gateFrog").value="";
     $("gate").classList.remove("hidden");
     var skip=$("gateSkip"); skip.disabled=true; var n=6;
     skip.textContent="skip today (available in "+n+"s)";
@@ -1831,6 +1880,143 @@
       await dbUpd("roadmap_items", { status:ns, updated_at:new Date().toISOString() }, {id:m.id});
       if(ns==="done") sarahPraise();
       await refreshExt();
+    });
+  }
+
+  // ---------------- the daily frog 🐸 ----------------
+  // one dreaded-but-necessary task per day, pinned to the dashboard until eaten
+  function frogToday(){ var k=dayKey(); return FROGS.filter(function(f){ return f.day===k; })[0]||null; }
+  function frogYesterday(){
+    var d=new Date(Date.now()-864e5), k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    return FROGS.filter(function(f){ return f.day===k; })[0]||null;
+  }
+  // plain async (not run()): frog writes don't touch session state, and must
+  // not steal the busy lock from a session starting in the same tap (gate)
+  async function setFrog(title){
+    title=(title||"").trim(); if(!title || !FROG) return;
+    try{
+      var t=frogToday();
+      if(t){ await dbUpd("frogs", {title:title, done:false, done_at:null}, {id:t.id}); Object.assign(t,{title:title,done:false,done_at:null}); }
+      else { var r=await dbIns("frogs", {day:dayKey(), title:title, done:false}); if(r.data) FROGS.push(r.data); }
+      MIRROR.frogs=FROGS.slice(); saveMirror();
+      renderFrog(); renderUpNext();
+      toast("🐸 Frog set. Eat it early.");
+    }catch(e){ console.log("frog", e); }
+  }
+  async function frogEaten(){
+    var t=frogToday(); if(!t) return;
+    try{
+      await dbUpd("frogs", {done:true, done_at:new Date().toISOString()}, {id:t.id});
+      t.done=true; t.done_at=new Date().toISOString();
+      MIRROR.frogs=FROGS.slice(); saveMirror();
+      renderFrog(); renderUpNext();
+      toast(prefs.sarah ? "Frog: swallowed. You: unstoppable. 💚" : "🐸 Frog swallowed — the worst is behind you.");
+      sarahPraise();
+    }catch(e){ console.log("frog", e); }
+  }
+  function frogStart(){
+    var t=frogToday(); if(!t) return;
+    startSession(t.title, undefined, "", META?"work":"");
+  }
+  function renderFrog(){
+    var bar=$("frogBar"); if(!bar) return;
+    if(!FROG){ bar.classList.add("hidden"); return; }
+    bar.classList.remove("hidden"); bar.innerHTML="";
+    bar.classList.remove("hot","eaten");
+    var t=frogToday();
+    bar.appendChild(el("span","femoji","🐸"));
+    if(!t){
+      var main=el("div","fmain");
+      main.appendChild(el("span","fsub","today's frog — the task you're avoiding"));
+      bar.appendChild(main);
+      var inp=document.createElement("input");
+      inp.type="text"; inp.placeholder="name it…"; inp.autocapitalize="off"; inp.id="frogInp";
+      inp.addEventListener("keydown", function(e){ if(e.key==="Enter") setFrog(inp.value); });
+      bar.appendChild(inp);
+      var y=frogYesterday();
+      if(y && !y.done){
+        var carry=el("button","xs","↻ "+(y.title.length>18?y.title.slice(0,18)+"…":y.title));
+        carry.title="carry over yesterday's frog";
+        carry.addEventListener("click", function(){ setFrog(y.title); });
+        bar.appendChild(carry);
+      }
+      var setb=el("button","sm","Set");
+      setb.addEventListener("click", function(){ setFrog(inp.value); });
+      bar.appendChild(setb);
+      return;
+    }
+    var main2=el("div","fmain");
+    var ttl=el("span","ftitle", t.title);
+    if(t.done){
+      bar.classList.add("eaten");
+      main2.appendChild(ttl);
+      var when=t.done_at ? new Date(t.done_at) : null;
+      main2.appendChild(el("span","fsub","swallowed"+(when?(" at "+hm(when.toISOString())):"")+" ✓"));
+      bar.appendChild(main2);
+    } else {
+      bar.classList.add("hot");
+      main2.appendChild(ttl);
+      main2.appendChild(el("span","fsub","swallow the frog — do this first"));
+      bar.appendChild(main2);
+      var go=el("button","sm","Eat it ▶");
+      go.addEventListener("click", frogStart);
+      bar.appendChild(go);
+      var done=el("button","xs","✓ done");
+      done.addEventListener("click", frogEaten);
+      bar.appendChild(done);
+    }
+  }
+
+  // ---------------- up next: pick, don't ponder ----------------
+  // the void between blocks is where sessions die — always offer the next
+  // block as a one-tap menu (frog first, then open tasks by recent activity)
+  function pickList(excludeName){
+    var picks=[], seen={};
+    var ex=(excludeName||"").trim().toLowerCase();
+    var t=frogToday();
+    if(t && !t.done && t.title.toLowerCase()!==ex){ picks.push({name:t.title, frog:true}); seen[t.title.toLowerCase()]=1; }
+    TASKS.forEach(function(k){
+      if(picks.length>=7) return;
+      if(k.status!=="open") return;
+      var lo=(k.name||"").toLowerCase();
+      if(!lo || lo===ex || seen[lo]) return;
+      seen[lo]=1;
+      picks.push({name:k.name, tag:k.tag||""});
+    });
+    return picks;
+  }
+  function mkPick(p, act){
+    var c=el("span","pick"+(p.frog?" frogpick":""));
+    if(p.frog){ c.appendChild(document.createTextNode("🐸 ")); }
+    else if(p.tag){ var d=el("span","pdot"); d.style.background=areaColor(p.tag); c.appendChild(d); }
+    c.appendChild(document.createTextNode(p.name.length>34 ? p.name.slice(0,34)+"…" : p.name));
+    c.addEventListener("click", function(){ act(p); });
+    return c;
+  }
+  function renderUpNext(){
+    var box=$("upNext"); if(!box) return;
+    var picks=pickList("");
+    box.innerHTML="";
+    if(!picks.length){ box.classList.add("hidden"); return; }
+    box.classList.remove("hidden");
+    box.appendChild(el("span","unlabel","up next"));
+    picks.slice(0,5).forEach(function(p){
+      box.appendChild(mkPick(p, function(pp){
+        if(pp.frog) frogStart();
+        else startSession(pp.name, undefined, pp.tag||"");
+      }));
+    });
+  }
+  function renderNextPicks(){
+    var box=$("nextPicks"); if(!box) return;
+    box.innerHTML="";
+    var picks=pickList(st && st.block_plan);
+    picks.slice(0,6).forEach(function(p){
+      box.appendChild(mkPick(p, function(pp){
+        $("sheetNext").value = pp.name;
+        if(pp.frog){ var t=frogToday(); if(t) $("sheetNext").value=t.title; }
+        fastStartNew();
+      }));
     });
   }
 
@@ -2205,8 +2391,9 @@
     closeSheet();
     logBlock(sheetRating, actual, st.block_plan||"", notes, "cont", sheetArea, sheetMeta, sheetNextMin||0, "", sheetMeta);
   }
-  function fastChange(){                           // reveal the one field a new task needs
+  function fastChange(){                           // reveal the pick list — tap a task, done
     if(!sheetRating) return;
+    renderNextPicks();
     $("changeWrap").classList.remove("hidden");
     setTimeout(function(){ $("sheetNext").focus(); }, 30);
   }
@@ -2306,10 +2493,14 @@
 
   // gate
   $("gateDone").addEventListener("click", function(){
+    var fv=$("gateFrog").value.trim();
     closeGate();
     run(async function(){
       try{ await dbUpd("state", { open_day_done_on: dayKey() }, {user_id:UID}); }catch(e){}
-    }).then(function(){ if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area, p.meta); } });
+    }).then(function(){
+      if(fv) setFrog(fv);
+      if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area, p.meta); }
+    });
   });
   $("gateSkip").addEventListener("click", function(){
     if($("gateSkip").disabled) return;
@@ -2342,11 +2533,20 @@
   $("rMoveDone").addEventListener("change", function(){ saveRoutine({done_movement:this.checked}); });
   $("rMindDone").addEventListener("change", function(){ saveRoutine({done_mind:this.checked}); });
   $("rDidBtn").addEventListener("click", function(){
+    // mark done WITHOUT putting anything on the timeline (no chips selected = both done)
+    var patch=routineDonePatch();
+    if(!Object.keys(patch).length) patch={done_movement:true, done_mind:true};
+    saveRoutine(patch);
+    toast("Routine marked done — nothing added to the timeline.");
+  });
+  $("rLogBtn").addEventListener("click", function(){
+    // the optional version: mark done AND log the time as a past block
     var mins=parseInt($("rMin").value,10)||30;
     var end=new Date(), start=new Date(end.getTime()-mins*60000);
     addPast(routineSummary(), hm(start), hm(end), "Did it", "routine");
     var patch=routineDonePatch();
-    if(Object.keys(patch).length) saveRoutine(patch);
+    if(!Object.keys(patch).length) patch={done_movement:true, done_mind:true};
+    saveRoutine(patch);
   });
   $("rNowBtn").addEventListener("click", function(){
     var mins=parseInt($("rMin").value,10)||30;
