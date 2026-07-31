@@ -338,6 +338,9 @@
   .frogbar .ftitle{display:block;font-weight:650;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .frogbar .fsub{display:block;font-size:10px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-top:1px}
   .frogbar input{flex:1;margin:0;min-width:0}
+  .frogbar.choosing{flex-wrap:wrap;align-items:flex-start}
+  .fpick{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:9px}
+  .fpick input{flex:1;min-width:120px;margin:0}
   .frogbar .xs,.frogbar .sm{flex:0 0 auto}
   /* up-next picks */
   .upnext{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 0}
@@ -619,6 +622,10 @@
           </div>
           <div class="sbody"><div><div class="pad">
             <div id="taskList"></div>
+            <div class="row" style="margin-top:8px">
+              <input type="text" id="tkAdd" placeholder="add a task — &quot;chase the mill quote #vix&quot;" autocomplete="off" style="flex:1">
+              <button class="sm" id="tkAddBtn">Add</button>
+            </div>
           </div></div></div>
         </div>
 
@@ -1168,14 +1175,17 @@
     if(renderIt){ render(); try{ renderAreas(TODAY); }catch(e){} }
   }
   function extFromMirror(){
+    // .slice() matters: these globals get mutated in place (resolveTask unshifts,
+    // setFrog pushes). Sharing the mirror's array object would double-add every
+    // optimistic insert, since dbIns already applied it to the mirror.
     AREA_HIST = MIRROR.areaHist || {};
-    TASKS = MIRROR.tasks || [];
+    TASKS = (MIRROR.tasks || []).slice();
     TASK_MIN = MIRROR.taskMin || {};
     MISSIONS = (MIRROR.roadmap_items || []).filter(function(m){ return m.status !== "done"; });
     ROUTINE = MIRROR.routine || null;
     ROUTINE_STREAK = MIRROR.streak || 0;
-    FROGS = MIRROR.frogs || [];
-    TODOS = MIRROR.todos || [];
+    FROGS = (MIRROR.frogs || []).slice();
+    TODOS = (MIRROR.todos || []).slice();
     try{ renderAreas(TODAY); }catch(e){}
     if(EXT){ try{ renderExt(); }catch(e){} }
     try{ renderFrog(); renderUpNext(); renderTodos(); }catch(e){}
@@ -1696,7 +1706,12 @@
         return open[0].id;
       }
       var r=await dbIns("tasks", { name:name, tag:(tag||"")||null, status:"open" });
-      if(r.data){ TASKS.unshift({id:r.data.id, name:name, tag:tag||null, status:"open"}); return r.data.id; }
+      if(r.data){
+        if(!TASKS.some(function(x){ return x.id===r.data.id; })){
+          TASKS.unshift({id:r.data.id, name:name, tag:tag||null, status:"open"});
+        }
+        return r.data.id;
+      }
     }catch(e){}
     return null;
   }
@@ -1940,7 +1955,10 @@
     try{
       var t=frogToday();
       if(t){ await dbUpd("frogs", {title:title, done:false, done_at:null}, {id:t.id}); Object.assign(t,{title:title,done:false,done_at:null}); }
-      else { var r=await dbIns("frogs", {day:dayKey(), title:title, done:false}); if(r.data) FROGS.push(r.data); }
+      else {
+        var r=await dbIns("frogs", {day:dayKey(), title:title, done:false});
+        if(r.data && !FROGS.some(function(f){ return f.id===r.data.id; })) FROGS.push(r.data);
+      }
       MIRROR.frogs=FROGS.slice(); saveMirror();
       renderFrog(); renderUpNext();
       toast("🐸 Frog set. Eat it early.");
@@ -1965,27 +1983,45 @@
     var bar=$("frogBar"); if(!bar) return;
     if(!FROG){ bar.classList.add("hidden"); return; }
     bar.classList.remove("hidden"); bar.innerHTML="";
-    bar.classList.remove("hot","eaten");
+    bar.classList.remove("hot","eaten","choosing");
     var t=frogToday();
     bar.appendChild(el("span","femoji","🐸"));
     if(!t){
+      // the frog is nearly always an existing task you've decided to front-load,
+      // so lead with your open tasks; typing stays available for anything new.
+      bar.classList.add("choosing");
       var main=el("div","fmain");
-      main.appendChild(el("span","fsub","today's frog — the task you're avoiding"));
+      main.appendChild(el("span","fsub","today's frog — pick the one you're avoiding"));
       bar.appendChild(main);
+      var setb=el("button","sm","Set");
       var inp=document.createElement("input");
-      inp.type="text"; inp.placeholder="name it…"; inp.autocapitalize="off"; inp.id="frogInp";
+      inp.type="text"; inp.placeholder="or type one…"; inp.autocapitalize="off"; inp.id="frogInp";
       inp.addEventListener("keydown", function(e){ if(e.key==="Enter") setFrog(inp.value); });
-      bar.appendChild(inp);
+      setb.addEventListener("click", function(){ setFrog(inp.value); });
+
+      var picker=el("div","fpick");
       var y=frogYesterday();
-      if(y && !y.done){
-        var carry=el("button","xs","↻ "+(y.title.length>18?y.title.slice(0,18)+"…":y.title));
+      if(y && !y.done){                                  // unfinished frog leads
+        var carry=el("span","pick frogpick","↻ "+(y.title.length>28?y.title.slice(0,28)+"…":y.title));
         carry.title="carry over yesterday's frog";
         carry.addEventListener("click", function(){ setFrog(y.title); });
-        bar.appendChild(carry);
+        picker.appendChild(carry);
       }
-      var setb=el("button","sm","Set");
-      setb.addEventListener("click", function(){ setFrog(inp.value); });
-      bar.appendChild(setb);
+      var seenF={}; if(y && !y.done) seenF[y.title.toLowerCase()]=1;
+      TASKS.forEach(function(k){
+        if(k.status!=="open") return;
+        var lo=(k.name||"").toLowerCase(); if(!lo || seenF[lo]) return;
+        seenF[lo]=1;
+        if(picker.querySelectorAll(".pick").length>=6) return;
+        var c=el("span","pick");
+        if(k.tag){ var d=el("span","pdot"); d.style.background=areaColor(k.tag); c.appendChild(d); }
+        c.appendChild(document.createTextNode(k.name.length>30?k.name.slice(0,30)+"…":k.name));
+        c.addEventListener("click", function(){ setFrog(k.name); });
+        picker.appendChild(c);
+      });
+      picker.appendChild(inp);
+      picker.appendChild(setb);
+      bar.appendChild(picker);
       return;
     }
     var main2=el("div","fmain");
@@ -2677,6 +2713,21 @@
   // missions
   $("mAddBtn").addEventListener("click", addMission);
   $("mAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") addMission(); });
+
+  // capture a task without starting a block (parses #area like the omnibox)
+  function tkSubmit(){
+    var raw=$("tkAdd").value.trim(); if(!raw || !EXT) return;
+    var p=parseNL(raw);
+    var name=cap(p.desc)||raw, area=p.area||"";
+    $("tkAdd").value="";
+    run(async function(){
+      await resolveTask(name, area);
+      await refreshExt();
+      toast("Task added — it's in your up-next picks.");
+    });
+  }
+  $("tkAddBtn").addEventListener("click", tkSubmit);
+  $("tkAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") tkSubmit(); });
 
   // today's mini list
   function tdSubmit(){ var v=$("tdInp").value.trim(); if(!v) return; $("tdInp").value=""; todoAdd(v); }
