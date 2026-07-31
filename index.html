@@ -364,6 +364,10 @@
   .tdel{background:none;border:none;color:var(--faint);font-size:13px;padding:2px 6px;cursor:pointer}
   .tdel:hover{color:var(--danger);border:none}
   .tempty{color:var(--faint);font-size:12.5px;padding:2px 0 8px}
+  .docket{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent2);
+          border:1px solid var(--line2);border-radius:999px;padding:3px 8px;white-space:nowrap}
+  .docket.queued{color:var(--muted);border-style:dashed}
+  .hint{font-size:11.5px;color:var(--faint);margin-top:7px;line-height:1.45}
   .gnote{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5}
   .gnote b{color:var(--ink)}
   .skiplink{display:block;margin:14px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
@@ -625,7 +629,9 @@
             <div class="row" style="margin-top:8px">
               <input type="text" id="tkAdd" placeholder="add a task — &quot;chase the mill quote #vix&quot;" autocomplete="off" style="flex:1">
               <button class="sm" id="tkAddBtn">Add</button>
+              <button class="sm hidden" id="tkActiveBtn" title="Also put it on the VIX Active docket">＋Active</button>
             </div>
+            <div class="hint" id="tkHint">Tasks are only created here — starting a block on something ad-hoc just logs the time.</div>
           </div></div></div>
         </div>
 
@@ -819,6 +825,7 @@
   var FROG = false;                // true once the frogs table exists
   var FROGS = [];                  // yesterday + today's frog rows
   var TODO = false;                // true once the todos table exists
+  var ACTIVE_PUSH = false;         // true once tasks.to_active exists (push to VIX Active)
   var TODOS = [];                  // yesterday + today's mini to-do rows
   var sheetMeta = "";              // metatag selected on the capture sheet
   var sheetNextMin = 0;            // duration chosen for the next block
@@ -878,6 +885,7 @@
     $("card-tasks").classList.toggle("off", !prefs.show.tasks || !EXT);
     $("card-missions").classList.toggle("off", !prefs.show.missions || !EXT);
     $("card-todos").classList.toggle("off", !prefs.show.todos || !TODO);
+    $("tkActiveBtn").classList.toggle("hidden", !ACTIVE_PUSH);
     document.querySelectorAll(".sect").forEach(function(s){
       var h=s.querySelector(".shead"); if(!h || !h.dataset.sect) return;
       s.classList.toggle("open", !prefs.collapsed[h.dataset.sect]);
@@ -1057,6 +1065,7 @@
     EXT = !!(MIRROR.flags && MIRROR.flags.ext); META = !!(MIRROR.flags && MIRROR.flags.meta);
     FROG = !!(MIRROR.flags && MIRROR.flags.frog);
     TODO = !!(MIRROR.flags && MIRROR.flags.todo);
+    ACTIVE_PUSH = !!(MIRROR.flags && MIRROR.flags.push);
     st = MIRROR.st || { interval_min:20, block_index:0 };
     rebuildFromMirror(true);
     extFromMirror();
@@ -1121,7 +1130,10 @@
     try{ var r4 = await SB.from("todos").select("id").limit(1);
       TODO = r4.error ? (netErr(r4.error) ? !!mf.todo : false) : true; }
     catch(e){ TODO = netErr(e) ? !!mf.todo : false; }
-    MIRROR.flags = { ext:EXT, meta:META, frog:FROG, todo:TODO }; saveMirror();
+    try{ var r5 = await SB.from("tasks").select("to_active").limit(1);
+      ACTIVE_PUSH = r5.error ? (netErr(r5.error) ? !!mf.push : false) : true; }
+    catch(e){ ACTIVE_PUSH = netErr(e) ? !!mf.push : false; }
+    MIRROR.flags = { ext:EXT, meta:META, frog:FROG, todo:TODO, push:ACTIVE_PUSH }; saveMirror();
   }
 
   // =============== [OB-BEGIN] offline data layer ===============
@@ -1648,6 +1660,22 @@
       row.appendChild(nm);
       if(t.tag) row.appendChild(el("span","area", t.tag));
       row.appendChild(el("span","mins", hmin(TASK_MIN[t.id]||0)));
+      if(ACTIVE_PUSH){
+        if(t.pushed_at){
+          var mark=el("span","docket","● docket");
+          mark.title="on your VIX Active list";
+          row.appendChild(mark);
+        } else if(t.to_active){
+          var q=el("span","docket queued","○ queued");
+          q.title="will be added to TASKS.md Active on the next sync";
+          row.appendChild(q);
+        } else {
+          var up=el("button","xs","↑");
+          up.title="Put on my VIX Active docket";
+          up.addEventListener("click", function(){ pushToActive(t); });
+          row.appendChild(up);
+        }
+      }
       var done=el("button","xs","✓");
       done.title="Mark task finished";
       done.addEventListener("click", function(){ finishTask(t); });
@@ -1692,7 +1720,11 @@
   // ---------------- actions ----------------
   async function run(fn){ if(busy) return; busy=true; try{ await fn(); }catch(e){ console.log(e); } busy=false; await refresh(); }
 
-  async function resolveTask(name, tag){
+  // create=false (the default) means: link this block to a task ONLY if one
+  // already exists. Starting a block on something ad-hoc logs the time without
+  // adding anything to the docket — tasks are created deliberately, not as a
+  // side effect of working.
+  async function resolveTask(name, tag, create){
     if(!EXT) return null;
     name=(name||"").trim();
     if(!name || name==="(past entry)") return null;
@@ -1705,6 +1737,7 @@
         }
         return open[0].id;
       }
+      if(!create) return null;                    // ad-hoc work: time only, no task
       var r=await dbIns("tasks", { name:name, tag:(tag||"")||null, status:"open" });
       if(r.data){
         if(!TASKS.some(function(x){ return x.id===r.data.id; })){
@@ -1840,6 +1873,18 @@
     name=(name||"").trim().toLowerCase(); if(!name) return;
     var t=TASKS.filter(function(x){return x.status==="open" && x.name.toLowerCase()===name;});
     if(t.length){ await dbUpd("tasks", {status:"done", completed_at:new Date().toISOString()}, {id:t[0].id}); }
+  }
+  // explicit promotion to the VIX Active docket. The web app can't touch a file
+  // on the Mac, so it flags the row; the local sync agent writes the line into
+  // TASKS.md and stamps pushed_at.
+  function pushToActive(t){
+    if(!ACTIVE_PUSH || !t || t.to_active) return;
+    run(async function(){
+      await dbUpd("tasks", {to_active:true}, {id:t.id});
+      t.to_active=true;
+      await refreshExt();
+      toast("Queued for your VIX Active docket ✓");
+    });
   }
   function finishTask(t){ run(async function(){
     await dbUpd("tasks", {status:"done", completed_at:new Date().toISOString()}, {id:t.id});
@@ -2714,20 +2759,27 @@
   $("mAddBtn").addEventListener("click", addMission);
   $("mAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") addMission(); });
 
-  // capture a task without starting a block (parses #area like the omnibox)
-  function tkSubmit(){
+  // capture a task without starting a block (parses #area like the omnibox).
+  // toActive=true also queues it for the VIX Active docket — never automatic.
+  function tkSubmit(toActive){
     var raw=$("tkAdd").value.trim(); if(!raw || !EXT) return;
     var p=parseNL(raw);
     var name=cap(p.desc)||raw, area=p.area||"";
     $("tkAdd").value="";
     run(async function(){
-      await resolveTask(name, area);
+      var id=await resolveTask(name, area, true);      // explicit creation
+      if(id && toActive && ACTIVE_PUSH){
+        await dbUpd("tasks", {to_active:true}, {id:id});
+        var lt=TASKS.filter(function(x){ return x.id===id; })[0]; if(lt) lt.to_active=true;
+      }
       await refreshExt();
-      toast("Task added — it's in your up-next picks.");
+      toast(toActive && ACTIVE_PUSH ? "Task added → queued for your VIX Active docket."
+                                    : "Task added — it's in your up-next picks.");
     });
   }
-  $("tkAddBtn").addEventListener("click", tkSubmit);
-  $("tkAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") tkSubmit(); });
+  $("tkAddBtn").addEventListener("click", function(){ tkSubmit(false); });
+  $("tkActiveBtn").addEventListener("click", function(){ tkSubmit(true); });
+  $("tkAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") tkSubmit(false); });
 
   // today's mini list
   function tdSubmit(){ var v=$("tdInp").value.trim(); if(!v) return; $("tdInp").value=""; todoAdd(v); }
