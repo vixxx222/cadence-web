@@ -1347,7 +1347,15 @@
     }catch(e){}
     if(!EXT) return;
     try{
-      var t = await SB.from("tasks").select("*").order("id", {ascending:false}).limit(60);
+      // Order by explicit priority (1 = top), unranked tasks after, newest first.
+      // Falls back to the old id-DESC ordering if the priority column isn't there
+      // yet, so the app keeps working before the migration is run.
+      var t = await SB.from("tasks").select("*")
+                .order("priority", {ascending:true, nullsFirst:false})
+                .order("id", {ascending:false}).limit(60);
+      if(t.error && /priority/i.test(t.error.message||"")){
+        t = await SB.from("tasks").select("*").order("id", {ascending:false}).limit(60);
+      }
       if(t.error) throw t.error;
       TASKS = (t.data||[]);
       var ids = TASKS.filter(function(x){return x.status==="open";}).map(function(x){return x.id;});
