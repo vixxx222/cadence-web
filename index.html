@@ -351,6 +351,20 @@
   .pick:hover{border-color:var(--accent);color:var(--accent)}
   .pick.frogpick{border-color:rgba(232,163,61,.6)}
   .pick .pdot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+  /* a pick is two targets: body starts a session, ✓ just completes it */
+  .pick{padding-right:4px}
+  .pick .pbody{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .pick .pdone{display:inline-flex;align-items:center;justify-content:center;
+    margin-left:8px;padding:0 7px;min-width:22px;height:22px;border-radius:999px;
+    font-size:12px;line-height:1;opacity:.5;cursor:pointer;
+    border:1px solid transparent;background:var(--line2)}
+  .pick .pdone:hover{opacity:1;color:#fff;background:var(--accent);border-color:var(--accent)}
+  /* pomodoro break nudge */
+  .pomobar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;
+    padding:8px 12px;border:1px solid var(--line2);border-radius:12px;
+    background:color-mix(in srgb, var(--accent2, var(--accent)) 8%, transparent)}
+  .pomobar .pomotxt{flex:1 1 auto;font-size:13px;opacity:.9}
+  .modeRow{margin-top:8px}
   #nextPicks{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
   /* today's mini list */
   .trow{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--line)}
@@ -500,6 +514,12 @@
             <button class="primary" id="startBtn">Go</button>
           </div>
           <div id="nlPreview" class="hidden"></div>
+          <div class="pillsrow modeRow hidden" id="modeWrap">
+            <span class="row" id="modeSeg" style="gap:6px">
+              <button class="sm on" data-mode="timer" title="Count down from a set length">⏱ Timer</button>
+              <button class="sm" data-mode="stopwatch" title="Count up — open-ended, stop when you're done">⏲ Stopwatch</button>
+            </span>
+          </div>
           <div class="pillsrow" id="ivsegWrap">
             <span class="row" id="ivseg" style="gap:6px">
               <button class="sm" data-min="10">10</button>
@@ -509,6 +529,7 @@
             <input type="number" id="ivcustom" min="1" max="180" placeholder="custom">
             <span class="sep">min</span>
           </div>
+          <div class="pomobar hidden" id="pomoBar"></div>
           <div class="upnext hidden" id="upNext"></div>
           <div class="suggs" id="planSuggs"></div>
           <div class="chips" id="chips"></div>
@@ -821,6 +842,7 @@
   var AREA_HIST = {};              // areas used in the last 14 days: {key:{name,last,min14}}
   var sheetArea = "";              // area chip selected on the capture sheet
   var META = false;                // true once blocks.meta column exists
+  var MODEC = false;               // true once state.mode / blocks.mode exist (stopwatch)
   var META_TAGS = ["work","rest","personal","distraction"];
   var FROG = false;                // true once the frogs table exists
   var FROGS = [];                  // yesterday + today's frog rows
@@ -1127,13 +1149,16 @@
     try{ var r3 = await SB.from("frogs").select("id").limit(1);
       FROG = r3.error ? (netErr(r3.error) ? !!mf.frog : false) : true; }
     catch(e){ FROG = netErr(e) ? !!mf.frog : false; }
+    try{ var r5 = await SB.from("state").select("mode").limit(1);
+      MODEC = r5.error ? (netErr(r5.error) ? !!mf.modec : false) : true; }
+    catch(e){ MODEC = netErr(e) ? !!mf.modec : false; }
     try{ var r4 = await SB.from("todos").select("id").limit(1);
       TODO = r4.error ? (netErr(r4.error) ? !!mf.todo : false) : true; }
     catch(e){ TODO = netErr(e) ? !!mf.todo : false; }
     try{ var r5 = await SB.from("tasks").select("to_active").limit(1);
       ACTIVE_PUSH = r5.error ? (netErr(r5.error) ? !!mf.push : false) : true; }
     catch(e){ ACTIVE_PUSH = netErr(e) ? !!mf.push : false; }
-    MIRROR.flags = { ext:EXT, meta:META, frog:FROG, todo:TODO, push:ACTIVE_PUSH }; saveMirror();
+    MIRROR.flags = { ext:EXT, meta:META, frog:FROG, todo:TODO, push:ACTIVE_PUSH, modec:MODEC }; saveMirror();
   }
 
   // =============== [OB-BEGIN] offline data layer ===============
@@ -1421,6 +1446,39 @@
   }
 
   // ---------------- derived status ----------------
+  // ---------------- modes ----------------
+  // 'timer'     — count DOWN from interval_min, auto-prompts at zero (original)
+  // 'stopwatch' — count UP, open-ended: say what you're doing, stop when done
+  function isStopwatch(){ return MODEC && (st && st.mode) === "stopwatch"; }
+  function setMode(m){ run(async function(){
+    if(st && st.active_session_id){ toast("Finish the current block before switching modes."); return; }
+    await dbUpd("state", {mode:m}, {user_id:UID});
+  }); }
+
+  // ---------------- pomodoro ----------------
+  // Derived, no schema: how many work blocks have been logged since the last
+  // break today. Classic Pomodoro is a short break each cycle and a long one
+  // every 4th — adapted to whatever interval length is actually in use.
+  var POMO_CYCLE = 4;
+  function pomodoro(){
+    // TODAY is a flat, time-sorted list of today's work blocks AND breaks.
+    // Walk it forward: every break resets the counter, every work block adds.
+    var items=(TODAY||[]).slice().sort(function(a,b){
+      return String(a.sort||"").localeCompare(String(b.sort||""));
+    });
+    var total=0, since=0;
+    items.forEach(function(it){
+      if(it.kind==="break"){ since=0; return; }
+      if(it.kind==="work"){ total++; since++; }
+    });
+    var iv=(st&&st.interval_min)||20;
+    var longBreak = since>0 && since%POMO_CYCLE===0;
+    return { blocksToday: total, sinceBreak: since, due: since>=1, longBreak: longBreak,
+             cycle: POMO_CYCLE,
+             minutes: longBreak ? Math.max(15, Math.round(iv*0.75))
+                                : Math.max(5,  Math.round(iv*0.25)) };
+  }
+
   function status(){
     var now=Date.now();
     if(st && st.break_due){
@@ -1429,6 +1487,17 @@
               remainingSec:Math.max(0,Math.round((new Date(st.break_due).getTime()-now)/1000)), totalSec:bt};
     }
     if(st && st.active_session_id){
+      // STOPWATCH: open-ended, counts UP. `due_at` holds the START anchor here
+      // (in timer mode it holds the end), so elapsed = now - due_at. Nothing
+      // auto-fires; the block ends only when you stop it.
+      if(isStopwatch()){
+        var el0=Math.max(0, Math.round((now-new Date(st.due_at).getTime())/1000));
+        if(st.paused){ return {mode:"work", paused:true, countUp:true, elapsedSec:st.pause_remaining||0,
+                               remainingSec:st.pause_remaining||0, totalSec:3600, stateText:"Paused · stopwatch",
+                               subPlan:st.block_plan||""}; }
+        return {mode:"work", paused:false, countUp:true, elapsedSec:el0, remainingSec:el0, totalSec:3600,
+                stateText:"Stopwatch · running", subPlan:st.block_plan||""};
+      }
       var tot=Math.max(1, st.block_total||((st.interval_min||20)*60));
       if(st.paused){ return {mode:"work", paused:true, remainingSec:st.pause_remaining||0, totalSec:tot, stateText:"Paused", subPlan:st.block_plan||""}; }
       return {mode:"work", paused:false, totalSec:tot, stateText:"Block "+(st.block_index||1)+" · Focus", subPlan:st.block_plan||"",
@@ -1448,12 +1517,15 @@
   }
   function updateStatus(s){
     var total=s.totalSec||1, rem=s.remainingSec, frac=Math.max(0,Math.min(1,(rem||0)/total));
+    // Stopwatch: the ring FILLS as time accumulates (there's no "remaining"),
+    // wrapping every hour so it stays a live indicator on long sessions.
+    if(s.countUp){ frac = ((s.elapsedSec||0)%3600)/3600; }
     var ring=$("ring");
     ring.style.strokeDashoffset=(RING_CIRC*(1-frac)).toFixed(1);
-    ring.setAttribute("class", ringClass(s.mode, frac));
+    ring.setAttribute("class", s.countUp ? "ring-focus" : ringClass(s.mode, frac));
     ring.style.opacity = s.paused ? 0.35 : 1;
-    var clock=$("clock"); clock.textContent=fmt(rem);
-    clock.classList.toggle("pulse", s.mode==="work" && !s.paused && frac<=0.0001);
+    var clock=$("clock"); clock.textContent=fmt(s.countUp ? (s.elapsedSec||0) : rem);
+    clock.classList.toggle("pulse", !s.countUp && s.mode==="work" && !s.paused && frac<=0.0001);
     $("stateline").textContent=s.stateText||"Ready";
     $("subplan").textContent=s.subPlan||"";
     var mode=s.mode||"idle";
@@ -1465,6 +1537,48 @@
     $("breakActive").classList.toggle("hidden", !onBreak);
     if(onBreak) $("breakActiveLabel").textContent = s.breakLabel || "Break";
     syncBreaksCard();
+    renderModeSeg();
+    renderPomo(s);
+  }
+
+  // Mode switch only makes sense before a session starts; a stopwatch has no
+  // length, so the interval pills are irrelevant while it's selected.
+  function renderModeSeg(){
+    var wrap=$("modeWrap"); if(!wrap) return;
+    wrap.classList.toggle("hidden", !MODEC);
+    if(!MODEC) return;
+    var sw=isStopwatch();
+    document.querySelectorAll("#modeSeg button").forEach(function(b){
+      b.classList.toggle("on", (b.dataset.mode==="stopwatch")===sw);
+    });
+    var iv=$("ivsegWrap"); if(iv) iv.classList.toggle("hidden", sw);
+    var hint=$("nlHint");
+    if(hint) hint.textContent = sw
+      ? "Stopwatch: say what you're doing and hit Go — it counts up until you stop it."
+      : "Understands plain language — \"worked out 8:00–8:35\" logs it, \"deep work for the next 30\" starts it.";
+  }
+
+  // Pomodoro nudge: after a work block ends, suggest the break the cadence says
+  // is due. Suggestion only — one tap to take it, and it never blocks anything.
+  function renderPomo(s){
+    var bar=$("pomoBar"); if(!bar) return;
+    var p=pomodoro();
+    var show = (s.mode==="idle") && prefs.pomodoro!==false && p.due;
+    bar.classList.toggle("hidden", !show);
+    if(!show) return;
+    bar.innerHTML="";
+    var txt = p.longBreak
+      ? ("🍅 " + p.sinceBreak + " blocks straight — take a longer " + p.minutes + " min break.")
+      : ("🍅 " + p.sinceBreak + (p.sinceBreak===1?" block":" blocks") + " since your last break — " + p.minutes + " min?");
+    bar.appendChild(el("span","pomotxt", txt));
+    var go=el("button","sm","Take it");
+    go.addEventListener("click", function(){
+      startBreak(p.longBreak?"Long break":"Break", "Break", p.minutes);
+    });
+    bar.appendChild(go);
+    var skip=el("button","sm ghost","Skip");
+    skip.addEventListener("click", function(){ bar.classList.add("hidden"); });
+    bar.appendChild(skip);
   }
   function stat(v, k, cls){
     var d=el("div","stat"); var vv=el("div","v"+(cls?" "+cls:""), v); d.appendChild(vv); d.appendChild(el("div","k",k)); return d;
@@ -1660,7 +1774,14 @@
     var open=TASKS.filter(function(t){return t.status==="open";});
     var box=$("taskList"); box.innerHTML="";
     if(!open.length){ box.appendChild(el("div","empty","No ongoing tasks yet — they appear when you start blocks (or mark one 'Continuing')." )); }
-    open.sort(function(a,b){ return (TASK_MIN[b.id]||0)-(TASK_MIN[a.id]||0); });
+    // Priority wins. Ranked tasks first (1 = top), then unranked ones by the
+    // old heuristic (most time invested). Sorting by minutes alone would throw
+    // away the ranking the query just fetched.
+    open.sort(function(a,b){
+      var pa=(a.priority==null?Infinity:a.priority), pb=(b.priority==null?Infinity:b.priority);
+      if(pa!==pb) return pa-pb;
+      return (TASK_MIN[b.id]||0)-(TASK_MIN[a.id]||0);
+    });
     open.slice(0,8).forEach(function(t){
       var row=el("div","trow");
       var nm=el("div","nm", t.name);
@@ -1721,7 +1842,8 @@
   function tick(){
     if(!st) return;
     var s=status(); updateStatus(s);
-    if(s.mode==="work" && !s.paused && s.remainingSec<=0 && $("sheet").classList.contains("hidden") && !busy && Date.now()>_sheetGrace){ openSheet(false, true); }
+    // A stopwatch never runs out, so it must never auto-open the capture sheet.
+    if(s.mode==="work" && !s.countUp && !s.paused && s.remainingSec<=0 && $("sheet").classList.contains("hidden") && !busy && Date.now()>_sheetGrace){ openSheet(false, true); }
     if(s.mode==="break" && s.remainingSec<=0 && !busy){ endBreak(); }
   }
 
@@ -1792,8 +1914,12 @@
     reallyStart(plan, mins, area, meta);
   }
   function reallyStart(plan, mins, area, meta){ run(async function(){
+    var sw=isStopwatch();
     var iv=(mins&&mins>0)?Math.min(240,Math.round(mins)):(st.interval_min||20);
     var now=new Date(), due=new Date(now.getTime()+iv*60000);
+    // In stopwatch mode `due_at` carries the START anchor instead of the end,
+    // and block_total is 0 (open-ended). status() reads it that way.
+    var anchor = sw ? now : due;
     area=(area||"").trim() || taskTagFor(plan);   // inherit the task's area when none given
     var taskId=await resolveTask(plan, area);
     var s=await dbIns("sessions", { interval_min:iv, started_at:now.toISOString() });
@@ -1801,9 +1927,10 @@
       planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv, tag:area||null };
     if(EXT && taskId) payload.task_id=taskId;
     if(META && meta) payload.meta=meta;
+    if(MODEC) payload.mode = sw ? "stopwatch" : "timer";
     var bid=await insertBlock(payload);
     await dbUpd("state", { active_session_id:s.data.id, active_block_id:bid, block_index:1,
-      block_plan:plan, block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0,
+      block_plan:plan, block_total: sw?0:iv*60, due_at:anchor.toISOString(), paused:false, pause_remaining:0,
       break_due:null, break_label:null, break_tag:null, break_start:null, break_min:0 }, {user_id:UID});
   }); }
 
@@ -1814,6 +1941,13 @@
     var upd={ actual:actual, rating:rating, status:"logged", logged_at:now.toISOString(), tag:area||null };
     if(EXT && notes) upd.notes=notes;
     if(META) upd.meta=(meta||"")||null;
+    // A stopwatch block's real length is however long it actually ran, not the
+    // nominal interval - write the measured elapsed minutes so time-by-tag,
+    // insights, and the timeline stay truthful.
+    if(isStopwatch()){
+      upd.interval_min=Math.max(1, Math.round((now.getTime()-new Date(st.due_at).getTime())/60000));
+      if(MODEC) upd.mode="stopwatch";
+    }
     await dbUpd("blocks", upd, {id:st.active_block_id});
     if(EXT && area){ await resolveTask(st.block_plan, area); }   // task learns the area
     if(EXT && doneSel==="done"){ await finishTaskByName(st.block_plan); }
@@ -2106,23 +2240,38 @@
     var picks=[], seen={};
     var ex=(excludeName||"").trim().toLowerCase();
     var t=frogToday();
-    if(t && !t.done && t.title.toLowerCase()!==ex){ picks.push({name:t.title, frog:true}); seen[t.title.toLowerCase()]=1; }
+    if(t && !t.done && t.title.toLowerCase()!==ex){ picks.push({name:t.title, frog:true, ref:t}); seen[t.title.toLowerCase()]=1; }
     TASKS.forEach(function(k){
       if(picks.length>=7) return;
       if(k.status!=="open") return;
       var lo=(k.name||"").toLowerCase();
       if(!lo || lo===ex || seen[lo]) return;
       seen[lo]=1;
-      picks.push({name:k.name, tag:k.tag||""});
+      picks.push({name:k.name, tag:k.tag||"", ref:k});
     });
     return picks;
   }
-  function mkPick(p, act){
+  // A pick is two affordances, not one: tapping the BODY starts a session on it,
+  // tapping the ✓ just marks it finished. Finishing something you already did
+  // shouldn't force you to start (and then abandon) a timer.
+  function mkPick(p, act, onDone){
     var c=el("span","pick"+(p.frog?" frogpick":""));
-    if(p.frog){ c.appendChild(document.createTextNode("🐸 ")); }
-    else if(p.tag){ var d=el("span","pdot"); d.style.background=areaColor(p.tag); c.appendChild(d); }
-    c.appendChild(document.createTextNode(p.name.length>34 ? p.name.slice(0,34)+"…" : p.name));
-    c.addEventListener("click", function(){ act(p); });
+    var body=el("span","pbody");
+    if(p.frog){ body.appendChild(document.createTextNode("🐸 ")); }
+    else if(p.tag){ var d=el("span","pdot"); d.style.background=areaColor(p.tag); body.appendChild(d); }
+    body.appendChild(document.createTextNode(p.name.length>34 ? p.name.slice(0,34)+"…" : p.name));
+    body.title="Start a session on this";
+    body.addEventListener("click", function(){ act(p); });
+    c.appendChild(body);
+    if(onDone){
+      var ck=el("span","pdone","✓");
+      ck.title="Mark finished (no session)";
+      ck.addEventListener("click", function(ev){
+        ev.stopPropagation(); ev.preventDefault();
+        onDone(p);
+      });
+      c.appendChild(ck);
+    }
     return c;
   }
   function renderUpNext(){
@@ -2136,6 +2285,9 @@
       box.appendChild(mkPick(p, function(pp){
         if(pp.frog) frogStart();
         else startSession(pp.name, undefined, pp.tag||"");
+      }, function(pp){
+        if(pp.frog) frogEaten();
+        else if(pp.ref) finishTask(pp.ref);
       }));
     });
   }
@@ -2632,6 +2784,7 @@
   });
 
   document.querySelectorAll("#ivseg button").forEach(function(b){ b.addEventListener("click", function(){ setIntervalMin(parseInt(b.dataset.min,10)); }); });
+  document.querySelectorAll("#modeSeg button").forEach(function(b){ b.addEventListener("click", function(){ setMode(b.dataset.mode); }); });
   $("ivcustom").addEventListener("change", function(){ var v=parseInt(this.value,10); if(v>0) setIntervalMin(v); });
   $("startBtn").addEventListener("click", omniGo);
   $("plan").addEventListener("keydown", function(e){
