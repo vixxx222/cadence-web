@@ -2,7 +2,7 @@
 // Strategy: network-FIRST for the page (so new deploys always show when online,
 // never stuck on a cached version), cache as the offline fallback. The Supabase
 // API is never cached (always live); the supabase-js library is cache-first.
-const CACHE = "cadence-shell-v2";
+const CACHE = "cadence-shell-v3";
 const SHELL = [
   "./",
   "./index.html",

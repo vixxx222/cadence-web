@@ -352,8 +352,12 @@
   .pick.frogpick{border-color:rgba(232,163,61,.6)}
   .pick .pdot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
   /* a pick is two targets: body starts a session, ✓ just completes it */
+  /* The ✓ sits AFTER the label, and .pick clips at max-width — so the label is
+     what must truncate, never the button. min-width:0 lets the flex child shrink. */
   .pick{padding-right:4px}
-  .pick .pbody{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .pick .pbody{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pick .pdone{flex:0 0 auto}
   .pick .pdone{display:inline-flex;align-items:center;justify-content:center;
     margin-left:8px;padding:0 7px;min-width:22px;height:22px;border-radius:999px;
     font-size:12px;line-height:1;opacity:.5;cursor:pointer;
