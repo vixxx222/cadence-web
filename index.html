@@ -346,8 +346,13 @@
   .upnext{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 0}
   .unlabel{font-size:10px;color:var(--faint);letter-spacing:.09em;text-transform:uppercase;flex:0 0 auto}
   .pick{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--line2);
-        border-radius:999px;font-size:12.5px;cursor:pointer;max-width:240px;overflow:hidden;
+        border-radius:999px;font-size:12.5px;cursor:pointer;max-width:min(420px,92vw);overflow:hidden;
         text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+  #upNext .pick{touch-action:none}                    /* long-press drags instead of scrolling */
+  .pick.dragging{opacity:.65;transform:scale(1.05);border-color:var(--accent);
+                 box-shadow:0 8px 22px rgba(0,0,0,.35);cursor:grabbing}
+  .upnext.reordering{cursor:grabbing}
+  .upnmore{align-self:center}
   .pick:hover{border-color:var(--accent);color:var(--accent)}
   .pick.frogpick{border-color:rgba(232,163,61,.6)}
   .pick .pdot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
@@ -861,7 +866,7 @@
 
   // ---------------- prefs ----------------
   var DEFAULT_PREFS = {theme:"dark", sound:true, compact:false, sarah:false,
-    goalHrs:4, routineTime:"08:00",
+    goalHrs:4, routineTime:"08:00", upNextAll:false, upNextOrder:[],
     show:{stats:true, areas:true, chips:true, routine:true, length:true, breaks:true, past:true, tasks:true, missions:true, timeline:true, todos:true},
     collapsed:{routine:false, breaks:true, past:true, tasks:false, missions:true, todos:false}};
   var prefs = loadPrefs();
@@ -875,6 +880,8 @@
       if(typeof p.sarah==="boolean") out.sarah=p.sarah;
       if(typeof p.goalHrs==="number" && p.goalHrs>0) out.goalHrs=p.goalHrs;
       if(typeof p.routineTime==="string" && /^\d\d:\d\d$/.test(p.routineTime)) out.routineTime=p.routineTime;
+      if(typeof p.upNextAll==="boolean") out.upNextAll=p.upNextAll;
+      if(Array.isArray(p.upNextOrder)) out.upNextOrder=p.upNextOrder.slice(0,300).map(String);
       if(p.show){ for(var k in out.show){ if(typeof p.show[k]==="boolean") out.show[k]=p.show[k]; } }
       if(p.collapsed){ for(var k2 in out.collapsed){ if(typeof p.collapsed[k2]==="boolean") out.collapsed[k2]=p.collapsed[k2]; } }
       return out;
@@ -1725,17 +1732,32 @@
     var tl=$("timeline"); tl.innerHTML="";
     var nowH=new Date().getHours();
     var byHour={};
-    (items||[]).forEach(function(it){ var h=(typeof it.startHour==="number")?it.startHour:8; if(h<8)h=8; if(h>20)h=20; (byHour[h]=byHour[h]||[]).push(it); });
+    // entries sit in their real hour — an early start belongs at 5 AM, not
+    // squashed into the 8 AM row
+    (items||[]).forEach(function(it){
+      var h=(typeof it.startHour==="number")?it.startHour:8;
+      h=Math.max(0, Math.min(23, h));
+      (byHour[h]=byHour[h]||[]).push(it);
+    });
     // ghost slot for the morning routine until it's done
     if(EXT && prefs.show.routine && !(ROUTINE && ROUTINE.done_movement && ROUTINE.done_mind)){
       var rh = parseInt((prefs.routineTime||"08:00").split(":")[0],10);
-      if(rh>=8 && rh<=20){
+      if(rh>=0 && rh<=23){
         (byHour[rh]=byHour[rh]||[]).unshift({ghost:true, startHM:prefs.routineTime, endHM:"", minutes:30,
           kind:"break", planned:"Morning routine (reserved)", actual:"", tag:"", rating:"", notes:""});
       }
     }
+    // the window covers the usual working day, then stretches to fit whatever
+    // actually happened (early mornings, late nights) and the current hour
+    var lo=8, hi=20;
+    Object.keys(byHour).forEach(function(k){
+      var h=parseInt(k,10); if(h<lo) lo=h; if(h>hi) hi=h;
+    });
+    if(nowH<lo) lo=nowH;
+    if(nowH>hi) hi=nowH;
+    lo=Math.max(0,lo); hi=Math.min(23,hi);
     var nowRow=null;
-    for(var h=8;h<=20;h++){
+    for(var h=lo;h<=hi;h++){
       var row=el("div","hour"+(h===nowH?" now":""));
       if(h===nowH) nowRow=row;
       row.appendChild(el("div","hlabel", hourLabel(h)));
@@ -2240,19 +2262,35 @@
   // ---------------- up next: pick, don't ponder ----------------
   // the void between blocks is where sessions die — always offer the next
   // block as a one-tap menu (frog first, then open tasks by recent activity)
+  function pickKey(p){ return ((p && p.name)||"").trim().toLowerCase(); }
+  // the manual drag order lives in prefs, keyed by NAME (offline temp ids get
+  // remapped on sync, names don't). Anything new lands at the end.
+  function applyPickOrder(picks){
+    var ord = prefs.upNextOrder || [];
+    if(!ord.length) return picks;
+    var idx={}; ord.forEach(function(k,i){ idx[k]=i; });
+    return picks.slice().sort(function(a,b){
+      var ia=idx[pickKey(a)], ib=idx[pickKey(b)];
+      if(ia===undefined && ib===undefined) return 0;   // stable sort keeps these as-is
+      if(ia===undefined) return 1;
+      if(ib===undefined) return -1;
+      return ia-ib;
+    });
+  }
   function pickList(excludeName){
-    var picks=[], seen={};
+    var picks=[], seen={}, frogPick=null;
     var ex=(excludeName||"").trim().toLowerCase();
     var t=frogToday();
-    if(t && !t.done && t.title.toLowerCase()!==ex){ picks.push({name:t.title, frog:true, ref:t}); seen[t.title.toLowerCase()]=1; }
-    TASKS.forEach(function(k){
-      if(picks.length>=7) return;
+    if(t && !t.done && t.title.toLowerCase()!==ex){ frogPick={name:t.title, frog:true, ref:t}; seen[t.title.toLowerCase()]=1; }
+    TASKS.forEach(function(k){                    // every open task, no cap
       if(k.status!=="open") return;
       var lo=(k.name||"").toLowerCase();
       if(!lo || lo===ex || seen[lo]) return;
       seen[lo]=1;
       picks.push({name:k.name, tag:k.tag||"", ref:k});
     });
+    picks = applyPickOrder(picks);
+    if(frogPick) picks.unshift(frogPick);         // the frog is the point: always first
     return picks;
   }
   // A pick is two affordances, not one: tapping the BODY starts a session on it,
@@ -2263,9 +2301,9 @@
     var body=el("span","pbody");
     if(p.frog){ body.appendChild(document.createTextNode("🐸 ")); }
     else if(p.tag){ var d=el("span","pdot"); d.style.background=areaColor(p.tag); body.appendChild(d); }
-    body.appendChild(document.createTextNode(p.name.length>34 ? p.name.slice(0,34)+"…" : p.name));
+    body.appendChild(document.createTextNode(p.name.length>52 ? p.name.slice(0,52)+"…" : p.name));
     body.title="Start a session on this";
-    body.addEventListener("click", function(){ act(p); });
+    body.addEventListener("click", function(){ if(Date.now() < _pickDragUntil) return; act(p); });
     c.appendChild(body);
     if(onDone){
       var ck=el("span","pdone","✓");
@@ -2278,6 +2316,7 @@
     }
     return c;
   }
+  var UPN_CONDENSED = 6;
   function renderUpNext(){
     var box=$("upNext"); if(!box) return;
     var picks=pickList("");
@@ -2285,21 +2324,68 @@
     if(!picks.length){ box.classList.add("hidden"); return; }
     box.classList.remove("hidden");
     box.appendChild(el("span","unlabel","up next"));
-    picks.slice(0,5).forEach(function(p){
-      box.appendChild(mkPick(p, function(pp){
+    var all = !!prefs.upNextAll;
+    var shown = all ? picks : picks.slice(0, UPN_CONDENSED);
+    shown.forEach(function(p){
+      var pill = mkPick(p, function(pp){
         if(pp.frog) frogStart();
         else startSession(pp.name, undefined, pp.tag||"");
       }, function(pp){
         if(pp.frog) frogEaten();
         else if(pp.ref) finishTask(pp.ref);
-      }));
+      });
+      if(!p.frog) pill.dataset.key = pickKey(p);      // frog stays pinned, not draggable
+      box.appendChild(pill);
+    });
+    if(picks.length > UPN_CONDENSED){
+      var more = el("button","xs upnmore", all ? "show less" : ("+"+(picks.length-UPN_CONDENSED)+" more"));
+      more.addEventListener("click", function(){ prefs.upNextAll=!all; savePrefs(); renderUpNext(); });
+      box.appendChild(more);
+    }
+  }
+
+  // ---- long-press to drag a pick into a new position (mouse + touch) ----
+  var _pickDragUntil = 0;
+  function initReorder(box){
+    var dragEl=null, hold=null, sx=0, sy=0;
+    function clearHold(){ if(hold){ clearTimeout(hold); hold=null; } }
+    box.addEventListener("pointerdown", function(e){
+      var pill = e.target && e.target.closest ? e.target.closest(".pick") : null;
+      if(!pill || !pill.dataset.key) return;
+      sx=e.clientX; sy=e.clientY; clearHold();
+      hold=setTimeout(function(){
+        hold=null; dragEl=pill;
+        pill.classList.add("dragging"); box.classList.add("reordering");
+      }, 220);
+    });
+    document.addEventListener("pointermove", function(e){
+      if(hold && (Math.abs(e.clientX-sx)>8 || Math.abs(e.clientY-sy)>8)){ clearHold(); return; }
+      if(!dragEl) return;
+      e.preventDefault();
+      var over = document.elementFromPoint(e.clientX, e.clientY);
+      var target = over && over.closest ? over.closest(".pick") : null;
+      if(!target || target===dragEl || !target.dataset.key || target.parentElement!==box) return;
+      var r = target.getBoundingClientRect();
+      box.insertBefore(dragEl, (e.clientX > r.left + r.width/2) ? target.nextSibling : target);
+    }, {passive:false});
+    document.addEventListener("pointerup", function(){
+      clearHold();
+      if(!dragEl) return;
+      _pickDragUntil = Date.now() + 350;           // the release must not start a session
+      dragEl.classList.remove("dragging"); box.classList.remove("reordering");
+      dragEl=null;
+      var keys=[];
+      [].forEach.call(box.querySelectorAll(".pick"), function(p){ if(p.dataset.key) keys.push(p.dataset.key); });
+      (prefs.upNextOrder||[]).forEach(function(k){ if(keys.indexOf(k)<0) keys.push(k); });  // keep hidden ones
+      prefs.upNextOrder = keys; savePrefs();
+      renderUpNext();
     });
   }
   function renderNextPicks(){
     var box=$("nextPicks"); if(!box) return;
     box.innerHTML="";
     var picks=pickList(st && st.block_plan);
-    picks.slice(0,6).forEach(function(p){
+    picks.slice(0,8).forEach(function(p){
       box.appendChild(mkPick(p, function(pp){
         $("sheetNext").value = pp.name;
         if(pp.frog){ var t=frogToday(); if(t) $("sheetNext").value=t.title; }
@@ -2942,6 +3028,7 @@
                                     : "Task added — it's in your up-next picks.");
     });
   }
+  initReorder($("upNext"));   // long-press a pick to drag it
   $("tkAddBtn").addEventListener("click", function(){ tkSubmit(false); });
   $("tkActiveBtn").addEventListener("click", function(){ tkSubmit(true); });
   $("tkAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") tkSubmit(false); });
