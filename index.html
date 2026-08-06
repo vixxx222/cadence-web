@@ -324,6 +324,9 @@
   .fnbtns button{flex:1;padding:14px 10px;font-size:14px;font-weight:650;border-radius:12px}
   .fcont{background:var(--accent);border-color:var(--accent);color:#06131A}
   .fchange{background:transparent;border-color:var(--line2);color:var(--ink)}
+  .fstop{display:block;width:100%;margin-top:8px;padding:10px;font-size:12.5px;font-weight:600;
+         background:transparent;border:1px dashed var(--line2);color:var(--muted);border-radius:11px}
+  .fstop:hover{border-color:var(--accent2);color:var(--accent2);border-style:solid}
   .fchange:hover{border-color:var(--accent);color:var(--accent)}
   #detWrap{margin-top:10px}
   #sheetNotes{width:100%;min-height:60px;margin-bottom:10px}
@@ -706,6 +709,7 @@
           <button class="fcont" id="fCont">⟳ Same task</button>
           <button class="fchange" id="fChange">→ New task</button>
         </div>
+        <button class="fstop" id="fSaveStop">■ Save this block · nothing next</button>
       </div>
 
       <!-- new-task reveal: pick from your list, or type -->
@@ -2841,6 +2845,11 @@
     closeSheet();
     logBlock(sheetRating, actual, st.block_plan||"", notes, "cont", sheetArea, sheetMeta, sheetNextMin||0, "", sheetMeta);
   }
+  // save the block and stop there — no next focus required
+  function fastSaveStop(){
+    if(!sheetRating) return;
+    commitStop(sheetRating);                       // logs this block, ends the session
+  }
   function fastChange(){                           // reveal the pick list — tap a task, done
     if(!sheetRating) return;
     renderNextPicks();
@@ -2907,6 +2916,7 @@
   $("fDidnt").addEventListener("click", function(){ fastRate("Didn't"); });
   $("fCont").addEventListener("click", fastContinue);
   $("fChange").addEventListener("click", fastChange);
+  $("fSaveStop").addEventListener("click", fastSaveStop);
   $("fStartNew").addEventListener("click", fastStartNew);
   $("sheetNext").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); fastStartNew(); } });
   $("detToggle").addEventListener("click", function(){ $("detWrap").classList.toggle("hidden"); });
