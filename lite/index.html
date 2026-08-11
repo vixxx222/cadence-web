@@ -1,0 +1,1041 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0D12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cadence Lite">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Cadence Lite</title>
+<style>
+  :root{
+    --bg:#0B0D12; --panel:#12151D; --panel2:#171B25;
+    --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.17);
+    --ink:#E9ECF4; --muted:#98A0B3; --faint:#5C6577;
+    --accent:#35E0C6; --accent-ink:#06131A; --amber:#E8A33D;
+    --ok:#4CC98B; --danger:#FF6B5E; --scrim:rgba(4,6,10,.72);
+  }
+  :root[data-theme="light"]{
+    --bg:#F5F4F1; --panel:#FFFFFF; --panel2:#EFEDE8;
+    --line:#E4E1D9; --line2:#CFCABD;
+    --ink:#1D2129; --muted:#5F6674; --faint:#9AA0AC;
+    --accent:#0E9E8B; --accent-ink:#FFFFFF; --amber:#B4761B;
+    --ok:#1F8A55; --danger:#C0392B; --scrim:rgba(20,22,26,.42);
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#F5F4F1; --panel:#FFFFFF; --panel2:#EFEDE8;
+      --line:#E4E1D9; --line2:#CFCABD;
+      --ink:#1D2129; --muted:#5F6674; --faint:#9AA0AC;
+      --accent:#0E9E8B; --accent-ink:#FFFFFF; --amber:#B4761B;
+      --ok:#1F8A55; --danger:#C0392B; --scrim:rgba(20,22,26,.42);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink)}
+  body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       padding:0 16px calc(28px + env(safe-area-inset-bottom));
+       padding-top:env(safe-area-inset-top);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:520px;margin:0 auto}
+  .hidden{display:none !important}
+  button{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line2);
+         border-radius:10px;padding:9px 14px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:650}
+  button.on{border-color:var(--accent);color:var(--accent);font-weight:650}
+  button:disabled{opacity:.45;cursor:default}
+  input{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line2);
+        border-radius:10px;padding:10px 12px;width:100%}
+  input:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:8px;align-items:center}
+  .linky{background:none;border:none;color:var(--faint);font-size:12px;padding:2px 0;text-decoration:underline}
+  .linky:hover{color:var(--accent);border:none}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:20px 0 6px}
+  .mark{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.26em;font-size:12px}
+  .mark i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  .hr{display:flex;align-items:center;gap:9px}
+  .pill{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;
+        border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+  .pill.amber{color:var(--amber);border-color:var(--amber)}
+  .iconbtn{background:none;border:none;color:var(--muted);padding:4px}
+  .iconbtn:hover{color:var(--accent);border:none}
+
+  /* frog */
+  .frog{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding:11px 13px;
+        border:1px solid var(--line2);border-radius:13px;background:var(--panel)}
+  .frog.hot{border-color:var(--amber);box-shadow:0 0 20px -8px var(--amber)}
+  .frog.eaten{opacity:.75;border-color:var(--ok)}
+  .frog .em{font-size:18px;line-height:1}
+  .frog .ft{flex:1;min-width:0;font-weight:650;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .frog.eaten .ft{text-decoration:line-through;color:var(--muted)}
+  .frog .sub{flex-basis:100%;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+  .fpick{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+  /* timer */
+  .hero{display:flex;flex-direction:column;align-items:center;padding:14px 0 4px}
+  .ring{position:relative;width:190px;height:190px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .bg{stroke:var(--line);fill:none;stroke-width:9}
+  .ring .fg{stroke:var(--accent);fill:none;stroke-width:9;stroke-linecap:round;
+            transition:stroke-dashoffset .9s linear, stroke .3s}
+  .ring.over .fg{stroke:var(--danger)}
+  .ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .clock{font-size:40px;font-weight:250;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .state{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-top:2px}
+  .nowtask{margin-top:10px;font-size:15px;color:var(--muted);text-align:center;
+           max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nowtask b{color:var(--ink);font-weight:600}
+
+  .lens{display:flex;gap:7px;justify-content:center;margin:12px 0 0}
+  .lens button{padding:7px 15px;font-size:13px}
+  .go{display:flex;gap:8px;margin:12px 0 0}
+  .picks{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+  .pick{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line2);
+        border-radius:999px;font-size:13px;cursor:pointer;max-width:100%;
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pick:hover{border-color:var(--accent);color:var(--accent)}
+  .pick.frogpick{border-color:var(--amber)}
+  .runbtns{display:flex;gap:8px;margin-top:12px}
+  .runbtns button{flex:1}
+  .stopbtn{color:var(--danger);border-color:transparent;background:transparent}
+  .stopbtn:hover{border-color:var(--danger)}
+
+  /* sections */
+  h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+     margin:26px 0 8px;display:flex;justify-content:space-between;align-items:baseline}
+  h2 span{color:var(--muted);letter-spacing:0;text-transform:none;font-size:12px}
+  .card{border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow:hidden}
+  .item{display:flex;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid var(--line)}
+  .item:last-child{border-bottom:none}
+  .item .t{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;flex:0 0 auto;width:42px}
+  .item .n{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .item .m{font-size:11.5px;color:var(--muted);flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .item .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+  .item.did .dot{background:var(--ok)} .item.didnt .dot{background:var(--danger)}
+  .item.un .dot{background:var(--faint)}
+  .item .x{background:none;border:none;color:var(--faint);padding:2px 4px;font-size:12px}
+  .item .x:hover{color:var(--danger);border:none}
+  .empty{padding:14px 13px;color:var(--faint);font-size:12.5px}
+  .chk{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--line2);background:none;
+       color:transparent;display:flex;align-items:center;justify-content:center;font-size:11px;padding:0;flex:0 0 auto}
+  .chk:hover{border-color:var(--ok)}
+  .addrow{display:flex;gap:8px;padding:10px 13px;border-top:1px solid var(--line)}
+  .foot{display:flex;justify-content:space-between;align-items:center;margin-top:22px}
+
+  /* past entry */
+  .past{margin-top:10px;padding:12px 13px;border:1px dashed var(--line2);border-radius:13px}
+  .past .g{display:flex;gap:8px;margin-top:8px}
+  .past .g input{flex:1}
+  .past .seg{display:flex;gap:8px;margin-top:8px}
+  .past .seg button{flex:1}
+
+  /* sheet */
+  #sheet{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
+         justify-content:center;z-index:40}
+  .sbox{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);
+        border-bottom:none;border-radius:18px 18px 0 0;
+        padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+        animation:up .26s cubic-bezier(.2,.8,.2,1)}
+  @keyframes up{from{transform:translateY(36px);opacity:.4}to{transform:none;opacity:1}}
+  .sbox.alarm{animation:up .26s cubic-bezier(.2,.8,.2,1), pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,94,0)}50%{box-shadow:0 -4px 44px 2px rgba(255,107,94,.4)}}
+  .sbox h3{margin:0 0 3px;font-size:16px}
+  .sbox .p{margin:0 0 14px;color:var(--muted);font-size:13px;
+           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rate{display:flex;gap:10px;margin-bottom:12px}
+  .rate button{flex:1;padding:16px;font-size:15px;font-weight:700;border-radius:12px}
+  .yes{background:var(--ok);border-color:var(--ok);color:#04140D}
+  .no{background:var(--danger);border-color:var(--danger);color:#fff}
+  .rate button:not(.sel){opacity:.82}
+  .rate button.sel{outline:2.5px solid var(--ink);outline-offset:2px}
+  .nxt{transition:opacity .15s}
+  .nxt.locked{opacity:.3;pointer-events:none;filter:grayscale(.6)}
+  .nlab{font-size:12px;color:var(--muted);margin-bottom:7px}
+  .nbtns{display:flex;gap:10px}
+  .nbtns button{flex:1;padding:14px 8px;font-size:14px;font-weight:650;border-radius:12px}
+  .savestop{display:block;width:100%;margin-top:8px;padding:11px;font-size:12.5px;font-weight:600;
+            background:transparent;border:1px dashed var(--line2);color:var(--muted);border-radius:11px}
+  .savestop:hover{border-color:var(--amber);color:var(--amber);border-style:solid}
+  #newWrap{margin-top:12px}
+  .scancel{display:block;margin:14px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
+  .sdiscard{display:block;margin:8px auto 0;background:none;border:none;color:var(--danger);font-size:12px;opacity:.85}
+
+  /* settings */
+  #settings{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
+            justify-content:center;z-index:50}
+  .opt{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+  .opt:last-of-type{border-bottom:none}
+  .sw{position:relative;width:42px;height:24px;flex:0 0 auto}
+  .sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;z-index:2}
+  .sw i{position:absolute;inset:0;background:var(--panel2);border:1px solid var(--line2);border-radius:999px;transition:.15s}
+  .sw i::after{content:"";position:absolute;width:17px;height:17px;border-radius:50%;background:var(--muted);
+               top:2.5px;left:3px;transition:.15s}
+  .sw input:checked + i{background:var(--accent);border-color:var(--accent)}
+  .sw input:checked + i::after{transform:translateX(18px);background:var(--accent-ink)}
+  .seg{display:flex;gap:6px}
+  .seg button{padding:6px 12px;font-size:12.5px}
+
+  #login{min-height:82vh;display:flex;align-items:center;justify-content:center}
+  .lbox{width:100%;max-width:330px;text-align:center;display:flex;flex-direction:column;gap:10px}
+  .lbox p{color:var(--muted);font-size:13px;margin:0 0 4px}
+  .err{color:var(--danger);font-size:12.5px;min-height:16px}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);
+         background:var(--panel);border:1px solid var(--line2);border-radius:11px;
+         padding:10px 16px;font-size:13px;opacity:0;transition:.24s;z-index:60;max-width:88vw;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%)}
+</style>
+
+<div id="login">
+  <div class="lbox">
+    <div class="mark" style="justify-content:center"><i></i>CADENCE LITE</div>
+    <p>Same account as Cadence.</p>
+    <input type="email" id="email" placeholder="email" autocapitalize="off" autocorrect="off">
+    <input type="password" id="password" placeholder="password">
+    <button class="primary" id="loginBtn">Sign in</button>
+    <div class="err" id="loginErr"></div>
+    <button class="linky hidden" id="offBoot">continue offline with cached data</button>
+  </div>
+</div>
+
+<div id="app" class="hidden"><div class="wrap">
+  <header>
+    <div class="mark"><i></i>CADENCE LITE</div>
+    <div class="hr">
+      <span class="pill hidden" id="syncPill"></span>
+      <span class="pill" id="today"></span>
+      <button class="iconbtn" id="gear" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="frog hidden" id="frogBar"></div>
+
+  <div class="hero">
+    <div class="ring" id="ring">
+      <svg width="190" height="190" viewBox="0 0 190 190">
+        <circle class="bg" cx="95" cy="95" r="86"></circle>
+        <circle class="fg" cx="95" cy="95" r="86" id="arc" stroke-dasharray="540" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="mid">
+        <div class="clock" id="clock">20:00</div>
+        <div class="state" id="stateTxt">Ready</div>
+      </div>
+    </div>
+    <div class="nowtask" id="nowTask"></div>
+  </div>
+
+  <div id="idleBox">
+    <div class="go">
+      <input type="text" id="plan" placeholder="What are you working on?" autocomplete="off">
+      <button class="primary" id="goBtn">Go</button>
+    </div>
+    <div class="lens" id="lens">
+      <button data-min="10">10</button>
+      <button data-min="20" class="on">20</button>
+      <button data-min="30">30</button>
+    </div>
+    <div class="picks" id="picks"></div>
+  </div>
+
+  <div id="runBox" class="hidden">
+    <div class="runbtns">
+      <button id="pauseBtn">Pause</button>
+      <button id="logBtn">Log now</button>
+      <button class="stopbtn" id="stopBtn">Stop</button>
+    </div>
+    <div style="text-align:center"><button class="linky" id="discardBtn" style="margin-top:9px">discard — don't record</button></div>
+  </div>
+
+  <h2>Today <span id="todayTotal"></span></h2>
+  <div class="card" id="todayCard"></div>
+
+  <h2>Tasks <span id="taskCount"></span></h2>
+  <div class="card">
+    <div id="taskList"></div>
+    <div class="addrow">
+      <input type="text" id="taskAdd" placeholder="add a task" autocomplete="off">
+      <button id="taskAddBtn">Add</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button class="linky" id="pastToggle">+ log time already spent</button>
+    <span style="font-size:11px;color:var(--faint)" id="acct"></span>
+  </div>
+  <div class="past hidden" id="pastBox">
+    <input type="text" id="pDesc" placeholder="What did you do?">
+    <div class="g">
+      <input type="time" id="pStart"><input type="time" id="pEnd">
+    </div>
+    <div class="seg">
+      <button class="yes" id="pDid">✓ Did it</button>
+      <button class="no" id="pDidnt">✕ Didn't</button>
+    </div>
+    <div style="text-align:center"><button class="linky" id="pCancel" style="margin-top:9px">cancel</button></div>
+  </div>
+</div></div>
+
+<div id="sheet" class="hidden">
+  <div class="sbox" id="sbox">
+    <h3 id="sTitle">Block done — did you do it?</h3>
+    <p class="p" id="sPlanned"></p>
+    <div class="rate">
+      <button class="yes" id="rYes">✓ Did it</button>
+      <button class="no" id="rNo">✕ Didn't</button>
+    </div>
+    <div class="nxt locked" id="nxt">
+      <div class="nlab">Next block —</div>
+      <div class="nbtns">
+        <button class="primary" id="nSame">⟳ Same task</button>
+        <button id="nNew">→ New task</button>
+      </div>
+      <button class="savestop" id="nStop">■ Save this block · nothing next</button>
+    </div>
+    <div id="newWrap" class="hidden">
+      <div class="picks" id="newPicks" style="margin:0 0 9px"></div>
+      <input type="text" id="sNext" placeholder="Or type it…" autocomplete="off">
+      <div class="lens" id="nLens" style="justify-content:flex-start;margin-top:9px">
+        <button data-nmin="10">10</button><button data-nmin="20">20</button><button data-nmin="30">30</button>
+      </div>
+      <button class="primary" id="nStart" style="width:100%;margin-top:10px">Start next block →</button>
+    </div>
+    <button class="linky" id="sDetail" style="display:block;margin-top:12px">+ what you actually did</button>
+    <input type="text" id="sActual" class="hidden" placeholder="optional" style="margin-top:8px">
+    <button class="scancel" id="sCancel">snooze 1 min</button>
+    <button class="sdiscard" id="sDiscard">discard — don't record</button>
+  </div>
+</div>
+
+<div id="settings" class="hidden">
+  <div class="sbox">
+    <h3>Settings</h3>
+    <div class="opt"><span>Theme</span>
+      <div class="seg"><button id="thDark">Dark</button><button id="thLight">Light</button></div>
+    </div>
+    <div class="opt"><span>Alarm sound</span><label class="sw"><input type="checkbox" id="swSound"><i></i></label></div>
+    <div class="opt"><span>Daily goal</span>
+      <div class="row" style="gap:6px"><input type="number" id="goalHrs" min="1" max="16" style="width:64px"><span style="color:var(--muted);font-size:13px">hours</span></div>
+    </div>
+    <div class="opt"><span>Account</span><button class="linky" id="signOut">Sign out</button></div>
+    <button class="primary" id="setDone" style="width:100%;margin-top:14px">Done</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  var SUPABASE_URL = "https://snglqwfngmkhxtsvxuvp.supabase.co";
+  var SUPABASE_KEY = "sb_publishable_HHHnwWx1BJ8l4uMbxt1XjQ_Mfwekcod";
+  var SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  var RING = 540;
+  var UID = null, EMAIL = "", st = null, TODAY = [], TASKS = [], FROGS = [], busy = false;
+  var FROG_OK = false;                 // frogs table present
+  var tickTimer = null, pollTimer = null, audioCtx = null;
+  var sheetIsStop = false, sheetRating = "", sheetNextMin = 0, _grace = 0;
+  var OFFBOOT = false;
+
+  function $(id){ return document.getElementById(id); }
+  function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
+  function hm(ts){ var d=new Date(ts); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+  function hmin(m){ m=Math.round(m||0); var h=Math.floor(m/60); return h>0?(h+"h "+String(m%60).padStart(2,"0")+"m"):(m+"m"); }
+  function clock(s){ s=Math.max(0,Math.round(s)); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
+  function dayKey(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function todayStartISO(){ var d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
+  function cap(s){ s=(s||"").trim(); return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+
+  // ---------------- prefs ----------------
+  var DEF = {theme:"dark", sound:true, goalHrs:4, len:20};
+  var prefs = (function(){
+    try{ var p=JSON.parse(localStorage.getItem("cadlite_prefs")||"{}"), o=JSON.parse(JSON.stringify(DEF));
+      if(p.theme==="light"||p.theme==="dark") o.theme=p.theme;
+      if(typeof p.sound==="boolean") o.sound=p.sound;
+      if(typeof p.goalHrs==="number" && p.goalHrs>0) o.goalHrs=p.goalHrs;
+      if(typeof p.len==="number" && p.len>0) o.len=p.len;
+      return o;
+    }catch(e){ return JSON.parse(JSON.stringify(DEF)); }
+  })();
+  function savePrefs(){ try{ localStorage.setItem("cadlite_prefs", JSON.stringify(prefs)); }catch(e){} }
+  function applyPrefs(){
+    document.documentElement.setAttribute("data-theme", prefs.theme);
+    var tc=document.querySelector('meta[name="theme-color"]');
+    if(tc) tc.setAttribute("content", prefs.theme==="light" ? "#F5F4F1" : "#0B0D12");
+    $("thDark").classList.toggle("on", prefs.theme==="dark");
+    $("thLight").classList.toggle("on", prefs.theme==="light");
+    $("swSound").checked = prefs.sound;
+    $("goalHrs").value = prefs.goalHrs;
+    document.querySelectorAll("#lens button").forEach(function(b){
+      b.classList.toggle("on", parseInt(b.dataset.min,10)===prefs.len);
+    });
+  }
+
+  // ---------------- alarm ----------------
+  function unlockAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+  function chime(){
+    if(!prefs.sound || !audioCtx) return;
+    try{ if(audioCtx.state==="suspended") audioCtx.resume(); }catch(e){}
+    try{
+      var t=audioCtx.currentTime;
+      [880,1174.7].forEach(function(f,i){
+        var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+        o.frequency.value=f; o.type="sine";
+        g.gain.setValueAtTime(0.0001, t+i*0.16);
+        g.gain.exponentialRampToValueAtTime(0.18, t+i*0.16+0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t+i*0.16+0.32);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(t+i*0.16); o.stop(t+i*0.16+0.36);
+      });
+    }catch(e){}
+  }
+  var alarmT=null, titleT=null, oldTitle=null;
+  function startAlarm(){
+    stopAlarm(); chime();
+    alarmT=setInterval(chime, 2500);
+    $("sbox").classList.add("alarm");
+    oldTitle=document.title; var f=false;
+    titleT=setInterval(function(){ f=!f; document.title=f?"⏰ BLOCK DONE":(oldTitle||"Cadence Lite"); }, 1000);
+  }
+  function stopAlarm(){
+    if(alarmT){ clearInterval(alarmT); alarmT=null; }
+    if(titleT){ clearInterval(titleT); titleT=null; }
+    if(oldTitle!=null){ document.title=oldTitle; oldTitle=null; }
+    $("sbox").classList.remove("alarm");
+  }
+  var toastT=null;
+  function toast(m,ms){ var t=$("toast"); t.textContent=m; t.classList.add("show");
+    clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("show"); }, ms||3000); }
+
+  // =============== [OB-BEGIN] offline data layer ===============
+  // MIRROR: local copy of everything the UI shows, so the app renders offline.
+  // OB: outbox of writes made offline, replayed in order on reconnect.
+  // Offline inserts get temporary NEGATIVE ids; replay maps them to real ids
+  // (OB.map) and substitutes them in later ops' foreign keys.
+  var MIRROR = { st:null, blocks:[], tasks:[], frogs:[], flags:null };
+  var OB = { ops:[], map:{}, seq:-2 };
+  var DRAINING = false;
+  var ID_KEYS = { id:1, session_id:1, block_id:1, task_id:1, active_session_id:1, active_block_id:1 };
+
+  function mirKey(){ return "cadlite_mir_" + (UID||"anon"); }
+  function obKey(){ return "cadlite_ob_" + (UID||"anon"); }
+  function saveMirror(){ try{ localStorage.setItem(mirKey(), JSON.stringify(MIRROR)); }catch(e){} }
+  function loadMirror(){ try{ var m=JSON.parse(localStorage.getItem(mirKey())||"null");
+    if(m){ MIRROR=m; MIRROR.blocks=MIRROR.blocks||[]; MIRROR.tasks=MIRROR.tasks||[]; MIRROR.frogs=MIRROR.frogs||[]; return true; } }catch(e){} return false; }
+  function saveOB(){ try{ localStorage.setItem(obKey(), JSON.stringify(OB)); }catch(e){} }
+  function loadOB(){ try{ var o=JSON.parse(localStorage.getItem(obKey())||"null");
+    if(o && o.ops){ OB=o; OB.map=OB.map||{}; if(typeof OB.seq!=="number") OB.seq=-2; } }catch(e){} }
+
+  function netErr(e){
+    if(navigator.onLine === false) return true;
+    var m=((e&&e.message)||String(e||"")).toLowerCase();
+    return /failed to fetch|networkerror|network request failed|load failed|fetch failed|timed?[ -]?out|abort|connection|err_internet/.test(m);
+  }
+  function authErr(e){
+    var c=e&&(e.status||e.code), m=((e&&e.message)||"").toLowerCase();
+    return c===401||c===403||/jwt|token|not.?authenticated|authorization/.test(m);
+  }
+  function offlineNow(){ return navigator.onLine === false || OB.ops.length > 0; }
+
+  function mMatch(r,match){ for(var k in match){ if(r[k]!==match[k]) return false; } return true; }
+  function mApply(op){
+    if(op.table==="state"){ MIRROR.st = Object.assign({}, MIRROR.st||st||{}, op.row||op.patch||{}); st=MIRROR.st; return; }
+    var arr=MIRROR[op.table]; if(!arr) return;      // sessions: not mirrored as an array
+    if(op.kind==="ins"){ if(!arr.some(function(r){ return r.id===op.row.id; })) arr.push(op.row); }
+    else if(op.kind==="upd"){ arr.forEach(function(r){ if(mMatch(r,op.match)) Object.assign(r,op.patch); }); }
+    else if(op.kind==="del"){ MIRROR[op.table]=arr.filter(function(r){ return !mMatch(r,op.match); }); }
+  }
+  function rebuildFromMirror(renderIt){
+    if(MIRROR.st) st=MIRROR.st;
+    var iso=todayStartISO();
+    TODAY=(MIRROR.blocks||[]).filter(function(b){ return b.status==="logged" && (b.planned_at||"")>=iso; })
+      .map(toItem).sort(function(a,b){ return a.sort<b.sort?-1:1; });
+    if(renderIt) render();
+  }
+  function extFromMirror(){
+    // .slice(): these get mutated in place, so never alias the mirror's arrays
+    TASKS=(MIRROR.tasks||[]).slice();
+    FROGS=(MIRROR.frogs||[]).slice();
+  }
+  function obBadge(){
+    var e=$("syncPill"); if(!e) return;
+    var n=OB.ops.length;
+    if(n){ e.textContent="⇡ "+n; e.classList.remove("hidden"); e.classList.add("amber"); }
+    else if(navigator.onLine===false){ e.textContent="offline"; e.classList.remove("hidden"); e.classList.remove("amber"); }
+    else e.classList.add("hidden");
+  }
+  function enqueue(kind,table,row,patch,match){
+    var op={kind:kind,table:table};
+    if(row)op.row=row; if(patch)op.patch=patch; if(match)op.match=match;
+    OB.ops.push(op); saveOB(); mApply(op); saveMirror(); rebuildFromMirror(false); obBadge();
+  }
+  async function dbIns(table,row){
+    if(!offlineNow()){
+      try{ var q=await SB.from(table).insert(row).select().single();
+        if(!q.error){ mApply({kind:"ins",table:table,row:q.data}); saveMirror(); return q; }
+        if(!netErr(q.error)) return q;
+      }catch(e){ if(!netErr(e)) throw e; }
+    }
+    var r=Object.assign({},row); r.id=OB.seq--;
+    enqueue("ins",table,r); return {data:r,error:null,offline:true};
+  }
+  async function dbUpd(table,patch,match){
+    if(!offlineNow()){
+      try{ var q=await SB.from(table).update(patch).match(match);
+        if(!q.error){ mApply({kind:"upd",table:table,patch:patch,match:match}); saveMirror(); return q; }
+        if(!netErr(q.error)) return q;
+      }catch(e){ if(!netErr(e)) throw e; }
+    }
+    enqueue("upd",table,null,patch,match); return {data:null,error:null,offline:true};
+  }
+  async function dbDel(table,match){
+    if(!offlineNow()){
+      try{ var q=await SB.from(table).delete().match(match);
+        if(!q.error){ mApply({kind:"del",table:table,match:match}); saveMirror(); return q; }
+        if(!netErr(q.error)) return q;
+      }catch(e){ if(!netErr(e)) throw e; }
+    }
+    enqueue("del",table,null,null,match); return {data:null,error:null,offline:true};
+  }
+  function obResolveVal(v){ return (typeof v==="number" && v<0 && OB.map[v]!==undefined) ? OB.map[v] : v; }
+  function obResolveObj(o){ if(!o) return o; var out={}; for(var k in o){ out[k]=ID_KEYS[k]?obResolveVal(o[k]):o[k]; } return out; }
+
+  async function drainOutbox(){
+    if(DRAINING || !OB.ops.length || navigator.onLine===false || !UID) return;
+    try{ var s=await SB.auth.getSession(); if(!(s.data && s.data.session)) return; }catch(e){ return; }
+    DRAINING=true;
+    var synced=0, dropped=0;
+    try{
+      while(OB.ops.length){
+        var op=OB.ops[0], res=null;
+        try{
+          if(op.kind==="ins"){
+            var row=obResolveObj(op.row), tid=op.row.id;
+            if(typeof row.id==="number" && row.id<0) delete row.id;
+            res=await SB.from(op.table).insert(row).select().single();
+            if(!res.error && typeof tid==="number" && tid<0) OB.map[tid]=res.data.id;
+          } else if(op.kind==="upd"){
+            res=await SB.from(op.table).update(obResolveObj(op.patch)).match(obResolveObj(op.match));
+          } else if(op.kind==="del"){
+            res=await SB.from(op.table).delete().match(obResolveObj(op.match));
+          }
+        }catch(e){ res={error:e}; }
+        if(res && res.error){
+          if(netErr(res.error) || authErr(res.error)) break;   // retry forever on these
+          op.fails=(op.fails||0)+1;
+          if(op.fails>=3){ OB.ops.shift(); dropped++; } else break;
+        } else { OB.ops.shift(); synced++; }
+        saveOB();
+      }
+    } finally { DRAINING=false; }
+    saveOB(); obBadge();
+    if(!OB.ops.length && (synced||dropped)){
+      OB.map={}; saveOB();
+      toast(dropped ? ("Synced "+synced+" — "+dropped+" couldn't be saved") : "Offline work synced ✓");
+      await refresh(); await refreshExt();
+    }
+  }
+  // =============== [OB-END] offline data layer ===============
+
+  // ---------------- auth ----------------
+  async function init(){
+    applyPrefs();
+    var res=null; try{ res=await SB.auth.getSession(); }catch(e){}
+    var sess=res && res.data && res.data.session;
+    if(sess) onLogin(sess);
+    else{
+      var cu=null; try{ cu=localStorage.getItem("cadlite_uid"); }catch(e){}
+      if(cu && navigator.onLine===false) bootOffline(cu); else showLogin();
+    }
+    SB.auth.onAuthStateChange(function(_e,s){ if(s) onLogin(s); else if(!OFFBOOT) showLogin(); });
+  }
+  function showLogin(){
+    $("app").classList.add("hidden"); $("login").classList.remove("hidden");
+    var cu=null; try{ cu=localStorage.getItem("cadlite_uid"); }catch(e){}
+    if(cu) $("offBoot").classList.remove("hidden");
+  }
+  function bootOffline(uid){
+    OFFBOOT=true; UID=uid;
+    try{ EMAIL=localStorage.getItem("cadlite_email")||""; }catch(e){ EMAIL=""; }
+    $("acct").textContent=EMAIL+" (offline)";
+    $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+    loadOB(); loadMirror();
+    FROG_OK=!!(MIRROR.flags && MIRROR.flags.frog);
+    st=MIRROR.st||{interval_min:prefs.len, block_index:0};
+    rebuildFromMirror(false); extFromMirror(); render(); obBadge();
+    startTimers();
+  }
+  async function onLogin(session){
+    OFFBOOT=false;
+    UID=session.user.id; EMAIL=session.user.email||"";
+    try{ localStorage.setItem("cadlite_uid",UID); localStorage.setItem("cadlite_email",EMAIL); }catch(e){}
+    $("acct").textContent=EMAIL;
+    $("login").classList.add("hidden"); $("app").classList.remove("hidden");
+    loadOB(); loadMirror();
+    await ensureState(); await probe(); await refresh(); await refreshExt();
+    applyPrefs(); obBadge(); render();
+    startTimers();
+  }
+  function startTimers(){
+    if(!tickTimer) tickTimer=setInterval(tick,1000);
+    if(!pollTimer) pollTimer=setInterval(function(){ refresh(); }, 6000);
+  }
+  async function doLogin(){
+    $("loginErr").textContent="";
+    var r=await SB.auth.signInWithPassword({email:$("email").value.trim(), password:$("password").value});
+    if(r.error) $("loginErr").textContent=r.error.message;
+  }
+  async function ensureState(){
+    var r=null;
+    try{ r=await SB.from("state").select("*").eq("user_id",UID).maybeSingle(); }catch(e){ r={error:e}; }
+    if(r && r.data){ st=r.data; MIRROR.st=st; saveMirror(); return; }
+    if(r && r.error){ st=MIRROR.st||{interval_min:prefs.len, block_index:0}; return; }
+    await SB.from("state").insert({user_id:UID, interval_min:prefs.len});
+    r=await SB.from("state").select("*").eq("user_id",UID).maybeSingle();
+    st=(r&&r.data)||{interval_min:prefs.len, block_index:0};
+    MIRROR.st=st; saveMirror();
+  }
+  async function probe(){
+    var mf=MIRROR.flags||{};
+    try{ var r=await SB.from("frogs").select("id").limit(1);
+      FROG_OK = r.error ? (netErr(r.error) ? !!mf.frog : false) : true; }
+    catch(e){ FROG_OK = netErr(e) ? !!mf.frog : false; }
+    MIRROR.flags={frog:FROG_OK}; saveMirror();
+  }
+
+  // ---------------- read ----------------
+  function toItem(b){
+    return {id:b.id, sort:b.planned_at, startHM:hm(b.planned_at), endHM:hm(b.logged_at||b.planned_at),
+            planned:(b.planned||"").trim(), rating:(b.rating||"").trim(), minutes:b.interval_min||0};
+  }
+  async function refresh(){
+    if(busy) return;
+    drainOutbox();
+    if(OB.ops.length || navigator.onLine===false){ rebuildFromMirror(true); obBadge(); return; }
+    var sr=await SB.from("state").select("*").eq("user_id",UID).maybeSingle();
+    if(sr.error){ rebuildFromMirror(true); obBadge(); return; }
+    if(sr.data){ st=sr.data; MIRROR.st=st; }
+    var b=await SB.from("blocks").select("*").gte("planned_at", todayStartISO()).order("id");
+    if(b.error){ rebuildFromMirror(true); obBadge(); return; }
+    MIRROR.blocks=b.data||[];
+    TODAY=MIRROR.blocks.filter(function(x){ return x.status==="logged"; }).map(toItem);
+    saveMirror(); obBadge(); render();
+  }
+  async function refreshExt(){
+    if(offlineNow()){ extFromMirror(); render(); return; }
+    try{
+      var t=await SB.from("tasks").select("*").eq("status","open").order("id",{ascending:false}).limit(40);
+      if(!t.error){ TASKS=t.data||[]; MIRROR.tasks=TASKS.slice(); }
+    }catch(e){}
+    if(FROG_OK){
+      try{
+        var y=new Date(Date.now()-864e5);
+        var yk=y.getFullYear()+"-"+String(y.getMonth()+1).padStart(2,"0")+"-"+String(y.getDate()).padStart(2,"0");
+        var f=await SB.from("frogs").select("*").gte("day",yk).order("day");
+        if(!f.error){ FROGS=f.data||[]; MIRROR.frogs=FROGS.slice(); }
+      }catch(e){}
+    }
+    saveMirror(); render();
+  }
+
+  // ---------------- derived ----------------
+  function status(){
+    var now=Date.now();
+    if(!st || !st.active_session_id) return {mode:"idle", remainingSec:(st&&st.interval_min||prefs.len)*60, totalSec:(st&&st.interval_min||prefs.len)*60};
+    if(st.paused) return {mode:"work", paused:true, remainingSec:st.pause_remaining||0, totalSec:st.block_total||1200};
+    var rem=st.due_at ? (new Date(st.due_at).getTime()-now)/1000 : 0;
+    return {mode:"work", paused:false, remainingSec:rem, totalSec:st.block_total||1200};
+  }
+
+  // ---------------- render ----------------
+  function render(){
+    if(!st) return;
+    var s=status();
+    $("today").textContent=new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+    $("clock").textContent = s.mode==="idle" ? clock(s.remainingSec) : clock(Math.max(0,s.remainingSec));
+    $("stateTxt").textContent = s.mode==="idle" ? "Ready" : (s.paused ? "Paused" : (s.remainingSec<=0 ? "Overdue" : "Focus"));
+    var frac = s.totalSec>0 ? Math.max(0,Math.min(1,s.remainingSec/s.totalSec)) : 0;
+    $("arc").setAttribute("stroke-dashoffset", String(RING*(1-frac)));
+    $("ring").classList.toggle("over", s.mode==="work" && s.remainingSec<=0);
+    $("nowTask").innerHTML = s.mode==="work" && st.block_plan ? ("<b>"+esc(st.block_plan)+"</b>") : "";
+    $("idleBox").classList.toggle("hidden", s.mode!=="idle");
+    $("runBox").classList.toggle("hidden", s.mode!=="work");
+    $("pauseBtn").textContent = st.paused ? "Resume" : "Pause";
+    renderFrog(); renderToday(); renderTasks(); renderPicks();
+  }
+  function esc(t){ var d=document.createElement("div"); d.textContent=t||""; return d.innerHTML; }
+
+  function frogToday(){ var k=dayKey(); return FROGS.filter(function(f){ return f.day===k; })[0]||null; }
+  function renderFrog(){
+    var bar=$("frogBar");
+    if(!FROG_OK){ bar.classList.add("hidden"); return; }
+    bar.classList.remove("hidden","hot","eaten"); bar.innerHTML="";
+    var t=frogToday();
+    bar.appendChild(el("span","em","🐸"));
+    if(!t){
+      bar.appendChild(el("div","ft","Pick today's frog"));
+      var pick=el("div","fpick");
+      var y=(function(){ var d=new Date(Date.now()-864e5);
+        var k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+        return FROGS.filter(function(f){ return f.day===k && !f.done; })[0]||null; })();
+      var seen={};
+      if(y){ var c0=el("span","pick frogpick","↻ "+trunc(y.title,26)); seen[y.title.toLowerCase()]=1;
+        c0.addEventListener("click", function(){ setFrog(y.title); }); pick.appendChild(c0); }
+      TASKS.slice(0,5).forEach(function(k){
+        var lo=(k.name||"").toLowerCase(); if(!lo||seen[lo]) return; seen[lo]=1;
+        var c=el("span","pick",trunc(k.name,28));
+        c.addEventListener("click", function(){ setFrog(k.name); });
+        pick.appendChild(c);
+      });
+      bar.appendChild(pick);
+      return;
+    }
+    bar.classList.add(t.done ? "eaten" : "hot");
+    bar.appendChild(el("div","ft",t.title));
+    if(!t.done){
+      var go=el("button","", "▶");
+      go.title="Start a block on the frog";
+      go.addEventListener("click", function(){ startSession(t.title, prefs.len); });
+      bar.appendChild(go);
+      var dn=el("button","","✓");
+      dn.title="Frog swallowed";
+      dn.addEventListener("click", eatFrog);
+      bar.appendChild(dn);
+    } else {
+      bar.appendChild(el("span","sub","swallowed ✓"));
+    }
+  }
+  function trunc(s,n){ s=s||""; return s.length>n ? s.slice(0,n)+"…" : s; }
+
+  function renderToday(){
+    var box=$("todayCard"); box.innerHTML="";
+    var mins=TODAY.reduce(function(a,b){ return a+(b.minutes||0); },0);
+    $("todayTotal").textContent = TODAY.length ? (hmin(mins)+" · "+TODAY.length+" block"+(TODAY.length===1?"":"s")) : "";
+    if(!TODAY.length){ box.appendChild(el("div","empty","Nothing logged yet today.")); return; }
+    TODAY.slice().sort(function(a,b){ return a.sort<b.sort?-1:1; }).forEach(function(it){
+      var cls = it.rating==="Did it" ? "did" : (it.rating==="Didn't" ? "didnt" : "un");
+      var row=el("div","item "+cls);
+      row.appendChild(el("span","dot"));
+      row.appendChild(el("span","t",it.startHM));
+      row.appendChild(el("span","n",it.planned||"(untitled)"));
+      row.appendChild(el("span","m",it.minutes+"m"));
+      var x=el("button","x","✕"); x.title="delete";
+      x.addEventListener("click", function(){ if(confirm('Delete "'+(it.planned||"entry")+'"?')) delEntry(it); });
+      row.appendChild(x);
+      box.appendChild(row);
+    });
+  }
+
+  function renderTasks(){
+    var box=$("taskList"); box.innerHTML="";
+    $("taskCount").textContent = TASKS.length ? (TASKS.length+" open") : "";
+    if(!TASKS.length){ box.appendChild(el("div","empty","No open tasks. Add one below, or they sync in from your list.")); return; }
+    TASKS.slice(0,12).forEach(function(t){
+      var row=el("div","item");
+      var c=el("button","chk","✓"); c.title="Mark finished";
+      c.addEventListener("click", function(){ finishTask(t); });
+      row.appendChild(c);
+      var n=el("span","n",t.name); n.style.cursor="pointer";
+      n.addEventListener("click", function(){ startSession(t.name, prefs.len); });
+      row.appendChild(n);
+      box.appendChild(row);
+    });
+  }
+
+  function pickList(exclude){
+    var out=[], seen={}, ex=(exclude||"").trim().toLowerCase();
+    var f=frogToday();
+    if(f && !f.done && f.title.toLowerCase()!==ex){ out.push({name:f.title, frog:true}); seen[f.title.toLowerCase()]=1; }
+    TASKS.forEach(function(t){
+      if(out.length>=6) return;
+      var lo=(t.name||"").toLowerCase(); if(!lo||lo===ex||seen[lo]) return;
+      seen[lo]=1; out.push({name:t.name});
+    });
+    return out;
+  }
+  function mkPick(p, act){
+    var c=el("span","pick"+(p.frog?" frogpick":""), (p.frog?"🐸 ":"")+trunc(p.name,34));
+    c.addEventListener("click", function(){ act(p); });
+    return c;
+  }
+  function renderPicks(){
+    var box=$("picks"); box.innerHTML="";
+    pickList("").forEach(function(p){ box.appendChild(mkPick(p, function(pp){ startSession(pp.name, prefs.len); })); });
+  }
+
+  // ---------------- tick ----------------
+  function tick(){
+    if(!st) return;
+    var s=status();
+    render();
+    if(s.mode==="work" && !s.paused && s.remainingSec<=0 && $("sheet").classList.contains("hidden")
+       && !busy && Date.now()>_grace){ openSheet(false,true); }
+  }
+
+  // ---------------- actions ----------------
+  async function run(fn){ if(busy) return; busy=true; try{ await fn(); }catch(e){ console.log(e); } busy=false; await refresh(); }
+
+  async function findTask(name){
+    name=(name||"").trim().toLowerCase(); if(!name) return null;
+    var t=TASKS.filter(function(x){ return (x.name||"").toLowerCase()===name; })[0];
+    return t ? t.id : null;                       // link only; never auto-create
+  }
+
+  function startSession(plan, mins){
+    plan=(plan||"").trim(); if(!plan) return;
+    run(async function(){
+      var iv=Math.min(240, Math.max(1, Math.round(mins||prefs.len)));
+      var now=new Date(), due=new Date(now.getTime()+iv*60000);
+      var taskId=await findTask(plan);
+      var s=await dbIns("sessions", {interval_min:iv, started_at:now.toISOString()});
+      var payload={session_id:s.data.id, block_index:1, planned:plan, status:"open",
+        planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv};
+      if(taskId) payload.task_id=taskId;
+      var b=await dbIns("blocks", payload);
+      await dbUpd("state", {active_session_id:s.data.id, active_block_id:b.data.id, block_index:1,
+        block_plan:plan, block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0,
+        interval_min:iv}, {user_id:UID});
+      $("plan").value="";
+    });
+  }
+  function logBlock(rating, actual, nextPlan, nextMins){
+    run(async function(){
+      var nv=Math.min(240, Math.max(1, Math.round(nextMins||prefs.len)));
+      var now=new Date(), due=new Date(now.getTime()+nv*60000), idx=(st.block_index||1)+1;
+      await dbUpd("blocks", {actual:actual||null, rating:rating, status:"logged", logged_at:now.toISOString()},
+                  {id:st.active_block_id});
+      var taskId=await findTask(nextPlan);
+      var payload={session_id:st.active_session_id, block_index:idx, planned:nextPlan, status:"open",
+        planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:nv};
+      if(taskId) payload.task_id=taskId;
+      var nb=await dbIns("blocks", payload);
+      await dbUpd("state", {active_block_id:nb.data.id, block_index:idx, block_plan:nextPlan,
+        block_total:nv*60, due_at:due.toISOString(), paused:false, pause_remaining:0}, {user_id:UID});
+      await refreshExt();
+    });
+  }
+  function stopSession(rating, actual){
+    run(async function(){
+      var now=new Date();
+      await dbUpd("blocks", {actual:actual||null, rating:rating, status:"logged", logged_at:now.toISOString()},
+                  {id:st.active_block_id});
+      await dbUpd("sessions", {ended_at:now.toISOString()}, {id:st.active_session_id});
+      await dbUpd("state", {active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
+        block_total:0, due_at:null, paused:false, pause_remaining:0}, {user_id:UID});
+      await refreshExt();
+    });
+  }
+  function discardSession(){
+    if(!st || !st.active_session_id) return;
+    if(!confirm("Discard this block? Nothing will be recorded.")) return;
+    closeSheet();
+    run(async function(){
+      var sid=st.active_session_id, bid=st.active_block_id;
+      if(bid) await dbDel("blocks", {id:bid});
+      var rest;
+      if(offlineNow()) rest=(MIRROR.blocks||[]).filter(function(x){ return x.session_id===sid; });
+      else { var r=await SB.from("blocks").select("id").eq("session_id",sid).limit(1); rest=r.data||[]; }
+      if(!rest.length) await dbDel("sessions", {id:sid});
+      else await dbUpd("sessions", {ended_at:new Date().toISOString()}, {id:sid});
+      await dbUpd("state", {active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
+        block_total:0, due_at:null, paused:false, pause_remaining:0}, {user_id:UID});
+      toast("Discarded — nothing recorded.");
+    });
+  }
+  function togglePause(){
+    run(async function(){
+      var now=Date.now();
+      if(st.paused) await dbUpd("state", {paused:false, due_at:new Date(now+(st.pause_remaining||0)*1000).toISOString()}, {user_id:UID});
+      else await dbUpd("state", {paused:true, pause_remaining:Math.max(0,Math.round((new Date(st.due_at).getTime()-now)/1000))}, {user_id:UID});
+    });
+  }
+  function delEntry(it){ run(async function(){ await dbDel("blocks", {id:it.id}); }); }
+  function finishTask(t){
+    run(async function(){
+      await dbUpd("tasks", {status:"done", completed_at:new Date().toISOString()}, {id:t.id});
+      TASKS=TASKS.filter(function(x){ return x.id!==t.id; });
+      MIRROR.tasks=TASKS.slice(); saveMirror();
+      render();
+      toast("Task finished ✓");
+    });
+  }
+  function addTask(){
+    var v=$("taskAdd").value.trim(); if(!v) return;
+    $("taskAdd").value="";
+    run(async function(){
+      var r=await dbIns("tasks", {name:cap(v), status:"open"});
+      if(r.data && !TASKS.some(function(x){ return x.id===r.data.id; })) TASKS.unshift(r.data);
+      MIRROR.tasks=TASKS.slice(); saveMirror();
+      render(); toast("Task added");
+    });
+  }
+  async function setFrog(title){
+    title=(title||"").trim(); if(!title || !FROG_OK) return;
+    try{
+      var t=frogToday();
+      if(t){ await dbUpd("frogs", {title:title, done:false, done_at:null}, {id:t.id}); Object.assign(t,{title:title,done:false,done_at:null}); }
+      else { var r=await dbIns("frogs", {day:dayKey(), title:title, done:false});
+             if(r.data && !FROGS.some(function(f){ return f.id===r.data.id; })) FROGS.push(r.data); }
+      MIRROR.frogs=FROGS.slice(); saveMirror(); render();
+      toast("🐸 Frog set — eat it early.");
+    }catch(e){ console.log(e); }
+  }
+  async function eatFrog(){
+    var t=frogToday(); if(!t) return;
+    try{
+      await dbUpd("frogs", {done:true, done_at:new Date().toISOString()}, {id:t.id});
+      t.done=true; t.done_at=new Date().toISOString();
+      MIRROR.frogs=FROGS.slice(); saveMirror(); render();
+      toast("🐸 Frog swallowed — the worst is behind you.");
+    }catch(e){ console.log(e); }
+  }
+  function addPast(desc, startHM, endHM, rating){
+    run(async function(){
+      var s=hhmm(startHM), e=hhmm(endHM);
+      if(!s||!e||e<=s){ toast("Check the start and end times."); return; }
+      var mins=Math.max(1, Math.round((e.getTime()-s.getTime())/60000));
+      var taskId=await findTask(desc);
+      var ses=await dbIns("sessions", {started_at:s.toISOString(), ended_at:e.toISOString(), interval_min:mins});
+      var payload={session_id:ses.data.id, block_index:1, planned:desc||"(past entry)", status:"logged",
+        planned_at:s.toISOString(), due_at:e.toISOString(), logged_at:e.toISOString(),
+        interval_min:mins, rating:rating||null};
+      if(taskId) payload.task_id=taskId;
+      await dbIns("blocks", payload);
+      toast("Logged "+hmin(mins)+" ✓");
+    });
+  }
+  function hhmm(v){ if(!v) return null; var p=v.split(":"); if(p.length<2) return null;
+    var d=new Date(); d.setHours(parseInt(p[0],10), parseInt(p[1],10), 0, 0); return d; }
+
+  // ---------------- capture sheet ----------------
+  function openSheet(isStop, auto){
+    sheetIsStop=isStop; sheetRating=""; sheetNextMin=st.interval_min||prefs.len;
+    $("sbox").classList.remove("alarm");
+    $("rYes").classList.remove("sel"); $("rNo").classList.remove("sel");
+    $("nxt").classList.add("locked");
+    $("newWrap").classList.add("hidden");
+    $("sActual").classList.add("hidden"); $("sActual").value=""; $("sNext").value="";
+    $("sTitle").textContent = isStop ? "Stopping — did you do it?" : "Block done — did you do it?";
+    $("sPlanned").textContent = st.block_plan ? ("Planned: "+st.block_plan) : "No plan set";
+    $("nxt").classList.toggle("hidden", isStop);
+    $("sCancel").textContent = isStop ? "cancel" : "snooze 1 min";
+    setNextLen(sheetNextMin);
+    $("sheet").classList.remove("hidden");
+    if(auto) startAlarm();
+  }
+  function closeSheet(){ stopAlarm(); $("sheet").classList.add("hidden"); }
+  function setNextLen(m){
+    sheetNextMin=m;
+    document.querySelectorAll("#nLens button").forEach(function(b){
+      b.classList.toggle("on", parseInt(b.dataset.nmin,10)===m); });
+  }
+  function rate(r){
+    sheetRating=r; stopAlarm();
+    $("rYes").classList.toggle("sel", r==="Did it");
+    $("rNo").classList.toggle("sel", r==="Didn't");
+    if(sheetIsStop){ closeSheet(); stopSession(r, $("sActual").value); return; }
+    $("nxt").classList.remove("locked");
+  }
+  function sameTask(){
+    if(!sheetRating) return;
+    var a=$("sActual").value; closeSheet();
+    logBlock(sheetRating, a, st.block_plan||"", sheetNextMin);
+  }
+  function saveStop(){
+    if(!sheetRating) return;
+    var a=$("sActual").value; closeSheet();
+    stopSession(sheetRating, a);
+  }
+  function newTask(){
+    if(!sheetRating) return;
+    var box=$("newPicks"); box.innerHTML="";
+    pickList(st && st.block_plan).forEach(function(p){
+      box.appendChild(mkPick(p, function(pp){ $("sNext").value=pp.name; startNext(); }));
+    });
+    $("newWrap").classList.remove("hidden");
+    setTimeout(function(){ $("sNext").focus(); }, 30);
+  }
+  function startNext(){
+    if(!sheetRating) return;
+    var v=$("sNext").value.trim();
+    if(!v){ $("sNext").focus(); return; }
+    var a=$("sActual").value; closeSheet();
+    logBlock(sheetRating, a, cap(v), sheetNextMin);
+  }
+
+  // ---------------- wiring ----------------
+  document.addEventListener("click", unlockAudio);
+  document.addEventListener("touchstart", unlockAudio, {once:true});
+
+  $("loginBtn").addEventListener("click", doLogin);
+  $("password").addEventListener("keydown", function(e){ if(e.key==="Enter") doLogin(); });
+  $("offBoot").addEventListener("click", function(){
+    var cu=null; try{ cu=localStorage.getItem("cadlite_uid"); }catch(e){}
+    if(cu) bootOffline(cu);
+  });
+  $("signOut").addEventListener("click", function(){
+    try{ localStorage.removeItem("cadlite_uid"); }catch(e){}
+    OFFBOOT=false; $("settings").classList.add("hidden"); SB.auth.signOut();
+  });
+
+  $("goBtn").addEventListener("click", function(){ startSession($("plan").value, prefs.len); });
+  $("plan").addEventListener("keydown", function(e){ if(e.key==="Enter") startSession($("plan").value, prefs.len); });
+  document.querySelectorAll("#lens button").forEach(function(b){
+    b.addEventListener("click", function(){
+      prefs.len=parseInt(b.dataset.min,10); savePrefs(); applyPrefs();
+      if(st && !st.active_session_id) render();
+    });
+  });
+  $("pauseBtn").addEventListener("click", togglePause);
+  $("logBtn").addEventListener("click", function(){ openSheet(false,false); });
+  $("stopBtn").addEventListener("click", function(){ openSheet(true,false); });
+  $("discardBtn").addEventListener("click", discardSession);
+
+  $("taskAddBtn").addEventListener("click", addTask);
+  $("taskAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") addTask(); });
+
+  $("rYes").addEventListener("click", function(){ rate("Did it"); });
+  $("rNo").addEventListener("click", function(){ rate("Didn't"); });
+  $("nSame").addEventListener("click", sameTask);
+  $("nNew").addEventListener("click", newTask);
+  $("nStop").addEventListener("click", saveStop);
+  $("nStart").addEventListener("click", startNext);
+  $("sNext").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); startNext(); } });
+  document.querySelectorAll("#nLens button").forEach(function(b){
+    b.addEventListener("click", function(){ setNextLen(parseInt(b.dataset.nmin,10)); });
+  });
+  $("sDetail").addEventListener("click", function(){ $("sActual").classList.toggle("hidden"); $("sActual").focus(); });
+  $("sCancel").addEventListener("click", function(){ if(!sheetIsStop) _grace=Date.now()+60000; closeSheet(); });
+  $("sDiscard").addEventListener("click", discardSession);
+
+  $("pastToggle").addEventListener("click", function(){ $("pastBox").classList.toggle("hidden"); });
+  $("pCancel").addEventListener("click", function(){ $("pastBox").classList.add("hidden"); });
+  function pastSubmit(r){
+    var d=$("pDesc").value.trim();
+    addPast(d, $("pStart").value, $("pEnd").value, r);
+    $("pDesc").value=""; $("pStart").value=""; $("pEnd").value="";
+    $("pastBox").classList.add("hidden");
+  }
+  $("pDid").addEventListener("click", function(){ pastSubmit("Did it"); });
+  $("pDidnt").addEventListener("click", function(){ pastSubmit("Didn't"); });
+
+  $("gear").addEventListener("click", function(){ $("settings").classList.remove("hidden"); });
+  $("setDone").addEventListener("click", function(){ $("settings").classList.add("hidden"); });
+  $("thDark").addEventListener("click", function(){ prefs.theme="dark"; savePrefs(); applyPrefs(); });
+  $("thLight").addEventListener("click", function(){ prefs.theme="light"; savePrefs(); applyPrefs(); });
+  $("swSound").addEventListener("change", function(){ prefs.sound=this.checked; savePrefs(); });
+  $("goalHrs").addEventListener("change", function(){
+    var v=parseFloat(this.value); if(v>0){ prefs.goalHrs=v; savePrefs(); } });
+
+  window.addEventListener("online", function(){
+    toast("Back online — syncing…"); obBadge();
+    drainOutbox().then(function(){ if(!OB.ops.length){ refresh(); refreshExt(); } });
+  });
+  window.addEventListener("offline", obBadge);
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  }
+  init();
+</script>
