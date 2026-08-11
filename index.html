@@ -770,6 +770,14 @@
         </button>
       </div>
 
+      <div class="dsec">Version</div>
+      <div class="opt"><span>Which Cadence</span>
+        <div class="themeseg">
+          <button class="sm on" id="vFull">Full</button>
+          <button class="sm" id="vLite">Lite</button>
+        </div>
+      </div>
+
       <div class="dsec">Appearance</div>
       <div class="opt"><span>Theme</span>
         <div class="themeseg">
@@ -843,6 +851,28 @@
   var SUPABASE_URL = "https://snglqwfngmkhxtsvxuvp.supabase.co";
   var SUPABASE_KEY = "sb_publishable_HHHnwWx1BJ8l4uMbxt1XjQ_Mfwekcod";
   var SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ---- one Dock icon, two versions ----
+  // Lite lives at /cadence-web/lite/, inside this app's installed PWA scope, so
+  // switching navigates within the same window instead of opening a second app.
+  // localStorage is per-origin, so both versions read the same preference; the
+  // sessionStorage guard permits at most ONE redirect per launch (no ping-pong).
+  var VIEW = "full";
+  var REDIRECTING = (function(){
+    try{
+      var want = localStorage.getItem("cadence_view");
+      if(want && want !== VIEW && !sessionStorage.getItem("cad_switched")){
+        sessionStorage.setItem("cad_switched", "1");
+        location.replace(want === "lite" ? "lite/" : "../");
+        return true;
+      }
+    }catch(e){}
+    return false;
+  })();
+  function switchVersion(v){
+    try{ localStorage.setItem("cadence_view", v); sessionStorage.setItem("cad_switched","1"); }catch(e){}
+    if(v !== VIEW) location.href = (v === "lite" ? "lite/" : "../");
+  }
 
   var RING_CIRC = 565;
   var RATING_CLASS = {"Did it":"r-did", "Didn't":"r-didnt", "":"r-un"};
@@ -3063,6 +3093,8 @@
   $("settingsBtn").addEventListener("click", openDrawer);
   $("drawerClose").addEventListener("click", closeDrawer);
   $("drawerScrim").addEventListener("click", closeDrawer);
+  $("vFull").addEventListener("click", function(){ switchVersion("full"); });
+  $("vLite").addEventListener("click", function(){ switchVersion("lite"); });
   $("thDark").addEventListener("click", function(){ prefs.theme="dark"; savePrefs(); applyPrefs(); });
   $("thLight").addEventListener("click", function(){ prefs.theme="light"; savePrefs(); applyPrefs(); });
   $("swCompact").addEventListener("change", function(){ prefs.compact=this.checked; savePrefs(); applyPrefs(); });
@@ -3097,7 +3129,7 @@
     if(cu) bootOffline(cu);
   });
 
-  init();
+  if(!REDIRECTING) init();
 </script>
 </body>
 </html>
