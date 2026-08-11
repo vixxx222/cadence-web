@@ -318,6 +318,9 @@
     <div class="opt"><span>Daily goal</span>
       <div class="row" style="gap:6px"><input type="number" id="goalHrs" min="1" max="16" style="width:64px"><span style="color:var(--muted);font-size:13px">hours</span></div>
     </div>
+    <div class="opt"><span>Version</span>
+      <div class="seg"><button id="vFull">Full</button><button id="vLite" class="on">Lite</button></div>
+    </div>
     <div class="opt"><span>Account</span><button class="linky" id="signOut">Sign out</button></div>
     <button class="primary" id="setDone" style="width:100%;margin-top:14px">Done</button>
   </div>
@@ -330,6 +333,28 @@
   var SUPABASE_URL = "https://snglqwfngmkhxtsvxuvp.supabase.co";
   var SUPABASE_KEY = "sb_publishable_HHHnwWx1BJ8l4uMbxt1XjQ_Mfwekcod";
   var SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ---- one Dock icon, two versions ----
+  // Both apps sit inside the installed PWA's scope (/cadence-web/), so switching
+  // navigates within the same window. The choice is remembered in localStorage,
+  // which is shared per-origin, so either app can read it. The sessionStorage
+  // guard allows at most ONE redirect per launch — no ping-pong loops.
+  var VIEW = "lite";
+  var REDIRECTING = (function(){
+    try{
+      var want = localStorage.getItem("cadence_view");
+      if(want && want !== VIEW && !sessionStorage.getItem("cad_switched")){
+        sessionStorage.setItem("cad_switched", "1");
+        location.replace(want === "lite" ? "lite/" : "../");
+        return true;
+      }
+    }catch(e){}
+    return false;
+  })();
+  function switchVersion(v){
+    try{ localStorage.setItem("cadence_view", v); sessionStorage.setItem("cad_switched","1"); }catch(e){}
+    if(v !== VIEW) location.href = (v === "lite" ? "lite/" : "../");
+  }
 
   var RING = 540;
   var UID = null, EMAIL = "", st = null, TODAY = [], TASKS = [], FROGS = [], busy = false;
@@ -1022,6 +1047,8 @@
 
   $("gear").addEventListener("click", function(){ $("settings").classList.remove("hidden"); });
   $("setDone").addEventListener("click", function(){ $("settings").classList.add("hidden"); });
+  $("vFull").addEventListener("click", function(){ switchVersion("full"); });
+  $("vLite").addEventListener("click", function(){ switchVersion("lite"); });
   $("thDark").addEventListener("click", function(){ prefs.theme="dark"; savePrefs(); applyPrefs(); });
   $("thLight").addEventListener("click", function(){ prefs.theme="light"; savePrefs(); applyPrefs(); });
   $("swSound").addEventListener("change", function(){ prefs.sound=this.checked; savePrefs(); });
@@ -1037,5 +1064,5 @@
   if("serviceWorker" in navigator){
     window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
   }
-  init();
+  if(!REDIRECTING) init();
 </script>

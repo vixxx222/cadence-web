@@ -3,7 +3,7 @@
   "short_name": "Lite",
   "description": "The minimal focus timer — start a block, rate it, keep going.",
   "start_url": "./",
-  "scope": "./",
+  "scope": "../",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0B0D12",
