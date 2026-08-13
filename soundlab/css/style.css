@@ -1,0 +1,176 @@
+:root {
+  --bg: #0b0d10;
+  --panel: #14181d;
+  --panel-hi: #1b2129;
+  --text: #d7dde3;
+  --muted: #6b7683;
+  --accent: #7fb4a2;
+  --accent-dim: #45635a;
+  --danger: #c47a6d;
+  --radius: 14px;
+  font-size: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+.screen {
+  display: none;
+  min-height: 100dvh;
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: max(env(safe-area-inset-top), 1.5rem) 1.25rem calc(env(safe-area-inset-bottom) + 1.5rem);
+  flex-direction: column;
+}
+.screen.active { display: flex; }
+
+.hidden { display: none !important; }
+
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+input[type="text"] {
+  font: inherit; color: var(--text);
+  background: var(--panel);
+  border: 1px solid #232a33;
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  width: 100%;
+  outline: none;
+}
+input[type="text"]:focus { border-color: var(--accent-dim); }
+input::placeholder { color: var(--muted); }
+
+.linkish { color: var(--muted); text-decoration: none; padding: 0.4rem 0.2rem; }
+.linkish:hover { color: var(--text); }
+.linkish.danger { color: var(--danger); }
+
+/* ---- home ---- */
+.brand { text-align: center; margin: 1.5rem 0 2rem; }
+.brand h1 { font-size: 1.35rem; font-weight: 600; letter-spacing: 0.16em; }
+.tagline { color: var(--muted); font-size: 0.85rem; margin-top: 0.35rem; }
+
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.tile {
+  background: var(--panel);
+  border: 1px solid #202730;
+  border-radius: var(--radius);
+  padding: 1.4rem 1rem 1.2rem;
+  text-align: left;
+  display: flex; flex-direction: column; gap: 0.45rem;
+  transition: background 0.15s, transform 0.05s;
+  min-height: 6.5rem;
+}
+.tile:hover { background: var(--panel-hi); }
+.tile:active { transform: scale(0.98); }
+.tile-name { font-size: 1.02rem; font-weight: 600; }
+.tile-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.35; }
+
+.duration-row {
+  margin-top: 1.6rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.row-label { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.05em; }
+
+.seg { display: flex; gap: 0.3rem; }
+.seg button {
+  padding: 0.42rem 0.85rem;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid #202730;
+  font-size: 0.85rem;
+}
+.seg button.on { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
+
+.home-foot {
+  margin-top: auto; padding-top: 2.5rem;
+  display: flex; justify-content: center; align-items: center; gap: 0.6rem;
+  font-size: 0.85rem;
+}
+.dot { color: var(--muted); }
+
+/* ---- session ---- */
+#screen-session { text-align: center; justify-content: center; gap: 0.6rem; }
+.session-preset { color: var(--accent); font-size: 0.95rem; letter-spacing: 0.12em; text-transform: lowercase; }
+.session-phase { color: var(--muted); font-size: 0.85rem; min-height: 1.2em; }
+.session-clock {
+  font-size: 4.2rem; font-weight: 200; font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em; margin: 0.5rem 0 1rem;
+}
+.aim-wrap { margin: 0 0 0.5rem; }
+.aim-display { color: var(--muted); font-size: 0.9rem; font-style: italic; margin-bottom: 0.5rem; }
+
+.session-controls {
+  margin-top: 2.2rem;
+  display: flex; flex-direction: column; gap: 1.4rem; align-items: center;
+}
+.vol { display: flex; align-items: center; gap: 0.8rem; width: 100%; max-width: 18rem; color: var(--muted); font-size: 0.8rem; }
+.vol input[type="range"] { flex: 1; accent-color: var(--accent); }
+
+.btn-end {
+  color: var(--muted);
+  border: 1px solid #232a33;
+  border-radius: 999px;
+  padding: 0.65rem 1.6rem;
+  font-size: 0.9rem;
+}
+.btn-end:hover { color: var(--text); border-color: var(--muted); }
+
+/* ---- rating ---- */
+#screen-rating { justify-content: center; text-align: center; gap: 1.5rem; }
+.rating-title { font-weight: 500; font-size: 1.1rem; }
+.rating-dots { display: flex; justify-content: center; gap: 0.7rem; }
+.rating-dots button {
+  width: 3rem; height: 3rem; border-radius: 50%;
+  background: var(--panel); border: 1px solid #232a33;
+  font-size: 1rem; color: var(--muted);
+}
+.rating-dots button.on { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 700; }
+.btn-primary {
+  background: var(--accent); color: var(--bg);
+  border-radius: 999px; padding: 0.7rem 2.2rem; font-weight: 600;
+  align-self: center;
+}
+.btn-primary:disabled { opacity: 0.35; cursor: default; }
+
+/* ---- history & settings ---- */
+.sub-head { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.6rem; }
+.sub-head h2 { font-size: 1.05rem; font-weight: 600; }
+.back { font-size: 0.85rem; }
+
+.history-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;
+  margin-bottom: 1.4rem;
+}
+.stat-card {
+  background: var(--panel); border-radius: 10px; padding: 0.7rem 0.9rem;
+  font-size: 0.8rem; color: var(--muted);
+}
+.stat-card b { display: block; color: var(--text); font-size: 1rem; margin-top: 0.15rem; }
+
+.history-list { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.history-list li {
+  background: var(--panel); border-radius: 10px; padding: 0.7rem 0.9rem;
+  display: flex; justify-content: space-between; gap: 0.8rem;
+  font-size: 0.85rem;
+}
+.hist-main { display: flex; flex-direction: column; gap: 0.2rem; }
+.hist-aim { color: var(--muted); font-size: 0.78rem; font-style: italic; }
+.hist-meta { color: var(--muted); text-align: right; white-space: nowrap; font-size: 0.78rem; }
+.hist-rating { color: var(--accent); font-weight: 600; }
+
+.setting { margin-bottom: 1.8rem; display: flex; flex-direction: column; gap: 0.7rem; }
+.fine { color: var(--muted); font-size: 0.78rem; line-height: 1.55; }
+.about { margin-top: auto; padding-top: 2rem; }
+
+@media (max-width: 360px) {
+  .session-clock { font-size: 3.4rem; }
+}

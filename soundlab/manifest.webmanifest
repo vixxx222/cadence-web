@@ -1,0 +1,12 @@
+{
+  "name": "soundlab",
+  "short_name": "soundlab",
+  "description": "Sound for intentional states — focus, thinking, relaxation, meditation.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
