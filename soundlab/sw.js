@@ -1,11 +1,13 @@
-const CACHE = 'soundlab-v3';
+const CACHE = 'soundlab-v4';
 const SHELL = [
   './',
   './index.html',
   './css/style.css',
   './js/presets.js',
+  './js/insights.js',
   './js/engine.js',
   './js/app.js',
+  './js/lab.js',
   './manifest.webmanifest',
   './icon.svg',
 ];

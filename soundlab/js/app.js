@@ -22,7 +22,24 @@ const store = {
     catch (e) { return []; }
   },
   saveSessions(list) { localStorage.setItem('soundlab.sessions', JSON.stringify(list)); },
+  loadRecipes() {
+    try { return JSON.parse(localStorage.getItem('soundlab.recipes') || '[]'); }
+    catch (e) { return []; }
+  },
+  saveRecipes(list) { localStorage.setItem('soundlab.recipes', JSON.stringify(list)); },
 };
+
+/* Saved lab recipes promoted to a daily state appear as variants of that
+ * state — the settings picker and session log treat them like built-ins.
+ * Must run before loadSettings(), which validates variant ids. */
+function mergeCustomRecipes() {
+  for (const r of store.loadRecipes()) {
+    for (const st of r.states || []) {
+      if (PRESETS[st]) PRESETS[st].variants[r.id] = { label: `${r.name} · lab`, layers: r.layers };
+    }
+  }
+}
+mergeCustomRecipes();
 
 const settings = store.loadSettings();
 
@@ -38,18 +55,22 @@ const app = {
 
   // ------------------------------------------------------------- session
 
-  async start(presetKey) {
+  async start(presetKey, override) {
+    // override ({label, recipe}) lets the lab hand any mix to the normal
+    // session flow — logged with preset 'lab' and the recipe name as variant
     const preset = PRESETS[presetKey];
-    if (!preset) return;
-    const variantId = settings.variants[presetKey] || preset.defaultVariant;
-    const recipe = preset.variants[variantId];
+    if (!preset && !override) return;
+    const variantId = override ? override.label : (settings.variants[presetKey] || preset.defaultVariant);
+    const recipe = override ? override.recipe : preset.variants[variantId];
     if (!recipe) return;
+    const displayName = override ? override.label : preset.name;
     const preRollSec = settings.preRollSec;
     const now = Date.now();
 
     this.session = {
       preset: presetKey,
       variant: variantId,
+      displayName,
       plannedMin: settings.durationMin,
       preRollSec,
       startTs: now,
@@ -57,7 +78,7 @@ const app = {
       phase: preRollSec > 0 ? 'preroll' : 'work',
     };
 
-    $('#session-preset').textContent = preset.name.toLowerCase();
+    $('#session-preset').textContent = displayName.toLowerCase();
     $('#aim-input').value = '';
     $('#aim-wrap').classList.remove('hidden');
     $('#aim-display').classList.add('hidden');
@@ -93,10 +114,10 @@ const app = {
       const left = s.plannedMin * 60 - elapsed;
       if (left <= 0) { this.end(true); return; }
       $('#session-clock').textContent = fmt(left);
-      $('#session-phase').textContent = PRESETS[s.preset].name.toLowerCase();
+      $('#session-phase').textContent = s.displayName.toLowerCase();
     } else {
       $('#session-clock').textContent = fmt(elapsed);
-      $('#session-phase').textContent = `${PRESETS[s.preset].name.toLowerCase()} — open-ended`;
+      $('#session-phase').textContent = `${s.displayName.toLowerCase()} — open-ended`;
     }
   },
 
@@ -176,7 +197,7 @@ const app = {
     const cards = [`<div class="stat-card">sessions<b>${store.loadSessions().length}</b></div>`,
       `<div class="stat-card">avg rating<b>${rated ? (ratingSum / rated).toFixed(1) : '—'}</b></div>`];
     for (const [key, v] of Object.entries(byPreset)) {
-      cards.push(`<div class="stat-card">${PRESETS[key].name.toLowerCase()}<b>${v.rated ? (v.sum / v.rated).toFixed(1) : '—'} <span style="font-weight:400;color:var(--muted)">× ${v.n}</span></b></div>`);
+      cards.push(`<div class="stat-card">${(PRESETS[key]?.name || 'lab').toLowerCase()}<b>${v.rated ? (v.sum / v.rated).toFixed(1) : '—'} <span style="font-weight:400;color:var(--muted)">× ${v.n}</span></b></div>`);
     }
     stats.innerHTML = cards.join('');
 
@@ -185,7 +206,7 @@ const app = {
       const when = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
       return `<li>
         <span class="hist-main">
-          <span>${PRESETS[s.preset]?.name || s.preset} · ${s.actualMin}m${s.completed ? '' : ' (ended early)'}</span>
+          <span>${s.preset === 'lab' ? `lab · ${escapeHtml(s.variant)}` : (PRESETS[s.preset]?.name || s.preset)} · ${s.actualMin}m${s.completed ? '' : ' (ended early)'}</span>
           ${s.aim ? `<span class="hist-aim">${escapeHtml(s.aim)}</span>` : ''}
         </span>
         <span class="hist-meta">${when}<br><span class="hist-rating">${s.rating ? '●'.repeat(s.rating) : 'unrated'}</span></span>

@@ -50,8 +50,51 @@
   <footer class="home-foot">
     <button class="linkish" id="nav-history">history</button>
     <span class="dot">·</span>
+    <button class="linkish accent-link" id="nav-lab">lab</button>
+    <span class="dot">·</span>
     <button class="linkish" id="nav-settings">settings</button>
   </footer>
+</main>
+
+<!-- LAB -->
+<main id="screen-lab" class="screen">
+  <header class="sub-head">
+    <button class="linkish back" data-back>← back</button>
+    <h2>lab</h2>
+    <span class="lab-sub">every control teaches what the evidence says</span>
+  </header>
+
+  <div class="lab-transport">
+    <button id="lab-play" class="lab-play-btn" aria-label="listen">
+      <span class="lab-play-glyph"></span>
+    </button>
+    <span id="lab-play-label" class="lab-play-label">listen</span>
+    <label class="vol lab-vol-wrap">
+      <span>volume</span>
+      <input id="lab-vol" type="range" min="0" max="100" value="50">
+    </label>
+    <button id="lab-session-btn" class="btn-primary btn-small">run as session</button>
+  </div>
+
+  <div id="lab-layers" class="lab-layers"></div>
+
+  <button id="lab-add-toggle" class="lab-add">+ add layer</button>
+  <div id="lab-add-chooser" class="lab-add-chooser hidden"></div>
+
+  <div id="lab-insight" class="lab-insight"></div>
+
+  <section class="lab-section">
+    <span class="row-label">recipes</span>
+    <div class="lab-save-row">
+      <input id="lab-recipe-name" type="text" maxlength="40" placeholder="name this mix" autocomplete="off">
+      <button id="lab-save" class="btn-primary btn-small">save</button>
+    </div>
+    <div id="lab-recipes-list" class="lab-recipes-list"></div>
+    <p class="fine">F / T / R / M sets a recipe as the engine behind that daily tile —
+      the simple screen stays one tap, running your mix.</p>
+  </section>
+
+  <section class="lab-section" id="lab-shelf"></section>
 </main>
 
 <!-- SESSION -->
@@ -142,14 +185,17 @@
   </section>
 
   <footer class="fine about">
-    phase 1 · engines: pink noise + AM · synthesized murmur · pad/drone + theta binaural ·
-    pure tone. Sessions log locally on this device. Presets are labels over swappable
-    engine variants; blinded A/B arrives with the experiment engine.
+    phase 2 · daily mode + lab. Engines: pink noise + AM · binaural / monaural /
+    isochronic · pure tone · pad · synthesized murmur. Sessions log locally on this
+    device, with the engine variant recorded; blinded A/B arrives with the
+    experiment engine.
   </footer>
 </main>
 
 <script src="js/presets.js"></script>
+<script src="js/insights.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/app.js"></script>
+<script src="js/lab.js"></script>
 </body>
 </html>

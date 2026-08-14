@@ -1,6 +1,11 @@
 /* Web Audio synthesis engine. Everything is generated in-browser — no audio
  * assets. One AudioContext lives for the app's lifetime (created on first
  * user gesture, iOS requirement); each session builds a fresh node graph.
+ *
+ * Layers report live setters keyed by param path ('level', 'am.rate',
+ * 'carrier', ...) so the lab mixer can adjust a running graph without
+ * rebuilding it. Structural changes (layer added/removed, voice counts,
+ * chord choices) go through restart(), which crossfades to a new graph.
  */
 
 class AudioEngine {
@@ -46,26 +51,61 @@ class AudioEngine {
     }
   }
 
+  get playing() { return !!this.session; }
+
   async start(recipe, rampSec = 20) {
     this._ensureCtx();
     if (this.ctx.state !== 'running') await this.ctx.resume();
     this.stopNow();
 
-    const bus = this.ctx.createGain();
-    bus.gain.value = 1;
-    bus.connect(this.master);
-
-    const nodes = [];
-    for (const layer of recipe.layers) {
-      const built = this._buildLayer(layer, bus);
-      if (built) nodes.push(built);
-    }
-    this.session = { nodes, bus };
+    this.session = this._buildSession(recipe);
 
     const t = this.ctx.currentTime;
     this.master.gain.cancelScheduledValues(t);
     this.master.gain.setValueAtTime(0.0001, t);
     this.master.gain.setTargetAtTime(this._gainForVolume(this.volume), t, Math.max(rampSec / 4, 0.05));
+  }
+
+  /* Swap the running graph for a new recipe with a short crossfade, keeping
+   * master level steady. Falls back to start() when nothing is playing. */
+  async restart(recipe) {
+    if (!this.session) return this.start(recipe, 2);
+    const old = this.session;
+    this.session = this._buildSession(recipe, { fadeIn: 0.3 });
+    const t = this.ctx.currentTime;
+    old.bus.gain.setTargetAtTime(0.0001, t, 0.08);
+    setTimeout(() => this._teardown(old), 500);
+  }
+
+  _buildSession(recipe, { fadeIn = 0 } = {}) {
+    const bus = this.ctx.createGain();
+    if (fadeIn > 0) {
+      bus.gain.value = 0.0001;
+      bus.gain.setTargetAtTime(1, this.ctx.currentTime, fadeIn / 3);
+    } else {
+      bus.gain.value = 1;
+    }
+    bus.connect(this.master);
+
+    const nodes = [];
+    for (const layer of recipe.layers) {
+      const built = this._buildLayer(layer, bus);
+      if (built) {
+        built.type = layer.type;
+        if (layer.muted && built.set.level) built.set.level(0);
+        nodes.push(built);
+      }
+    }
+    return { nodes, bus };
+  }
+
+  /* Live param update by layer index and param path. Returns false when the
+   * running graph has no setter for that path (i.e. structural change). */
+  updateLayer(i, path, value) {
+    const node = this.session && this.session.nodes[i];
+    if (!node || !node.set[path]) return false;
+    node.set[path](value);
+    return true;
   }
 
   async stop(fadeSec = 2) {
@@ -92,7 +132,7 @@ class AudioEngine {
     try { session.bus.disconnect(); } catch (e) {}
   }
 
-  /* Soft two-partial bell, routed through master so volume applies. */
+  /* Soft two-partial bell, routed through the limiter so volume applies. */
   chime() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
@@ -123,32 +163,66 @@ class AudioEngine {
 
   _buildLayer(layer, bus) {
     switch (layer.type) {
-      case 'noise':    return this._noiseLayer(layer, bus);
-      case 'binaural': return this._binauralLayer(layer, bus);
-      case 'pad':      return this._padLayer(layer, bus);
-      case 'murmur':   return this._murmurLayer(layer, bus);
-      case 'tone':     return this._toneLayer(layer, bus);
+      case 'noise':      return this._noiseLayer(layer, bus);
+      case 'binaural':   return this._beatLayer(layer, bus, true);
+      case 'monaural':   return this._beatLayer(layer, bus, false);
+      case 'isochronic': return this._isochronicLayer(layer, bus);
+      case 'pad':        return this._padLayer(layer, bus);
+      case 'murmur':     return this._murmurLayer(layer, bus);
+      case 'tone':       return this._toneLayer(layer, bus);
       default:
         console.warn('unknown layer type', layer.type);
         return null;
     }
   }
 
+  _levelNode(value, bus) {
+    const g = this.ctx.createGain();
+    g.gain.value = value;
+    g.connect(bus);
+    const set = v => g.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    return { node: g, set };
+  }
+
   /* LFO → depth scaler driving a gain that idles at (1 - depth/2), so the
-   * modulated signal swings [1-depth, 1]. Returns the gain node; caller
-   * routes audio through it. */
-  _amChain(rate, depth, sources) {
+   * modulated signal swings [1-depth, 1]. shape 'square' gates instead of
+   * swelling (isochronic character); its edges are softened by a lowpass on
+   * the control signal so gating doesn't click. */
+  _amChain(rate, depth, sources, shape = 'sine') {
     const amGain = this.ctx.createGain();
     amGain.gain.value = 1 - depth / 2;
     const lfo = this.ctx.createOscillator();
+    lfo.type = shape;
     lfo.frequency.value = rate;
     const scale = this.ctx.createGain();
     scale.gain.value = depth / 2;
     lfo.connect(scale);
-    scale.connect(amGain.gain);
+
+    let smoother = null;
+    if (shape === 'square') {
+      smoother = this.ctx.createBiquadFilter();
+      smoother.type = 'lowpass';
+      smoother.frequency.value = Math.max(rate * 10, 40);
+      scale.connect(smoother);
+      smoother.connect(amGain.gain);
+    } else {
+      scale.connect(amGain.gain);
+    }
     lfo.start();
     sources.push(lfo);
-    return amGain;
+
+    const t = () => this.ctx.currentTime;
+    return {
+      node: amGain,
+      setRate: r => {
+        lfo.frequency.setTargetAtTime(r, t(), 0.05);
+        if (smoother) smoother.frequency.setTargetAtTime(Math.max(r * 10, 40), t(), 0.05);
+      },
+      setDepth: d => {
+        amGain.gain.setTargetAtTime(1 - d / 2, t(), 0.05);
+        scale.gain.setTargetAtTime(d / 2, t(), 0.05);
+      },
+    };
   }
 
   _pinkBuffer(seconds = 8) {
@@ -179,45 +253,95 @@ class AudioEngine {
     src.buffer = this._pinkBuffer();
     src.loop = true;
 
-    const level = this.ctx.createGain();
-    level.gain.value = layer.level;
+    const level = this._levelNode(layer.level, bus);
+    const set = { level: level.set };
 
     let head = src;
     if (layer.am) {
       const am = this._amChain(layer.am.rate, layer.am.depth, sources);
-      src.connect(am);
-      head = am;
+      src.connect(am.node);
+      head = am.node;
+      set['am.rate'] = am.setRate;
+      set['am.depth'] = am.setDepth;
     }
-    head.connect(level);
-    level.connect(bus);
+    head.connect(level.node);
     src.start();
     sources.push(src);
-    return { sources };
+    return { sources, set };
   }
 
-  _binauralLayer(layer, bus) {
+  /* Binaural (dichotic: one carrier per ear, beat constructed in the brain)
+   * or monaural (both tones mixed before the ear, beat physically present —
+   * the stronger cortical driver, and it works on speakers). */
+  _beatLayer(layer, bus, dichotic) {
     const sources = [];
-    const level = this.ctx.createGain();
-    level.gain.value = layer.level;
-    level.connect(bus);
+    const level = this._levelNode(layer.level, bus);
+    const state = { carrier: layer.carrier, beat: layer.beat };
 
-    for (const [freq, pan] of [[layer.carrier, -1], [layer.carrier + layer.beat, 1]]) {
+    const oscs = [];
+    for (const [offset, pan] of [[0, -1], [layer.beat, 1]]) {
       const osc = this.ctx.createOscillator();
-      osc.frequency.value = freq;
-      const p = this.ctx.createStereoPanner();
-      p.pan.value = pan;
-      osc.connect(p);
-      p.connect(level);
+      osc.frequency.value = layer.carrier + offset;
+      if (dichotic) {
+        const p = this.ctx.createStereoPanner();
+        p.pan.value = pan;
+        osc.connect(p);
+        p.connect(level.node);
+      } else {
+        const g = this.ctx.createGain();
+        g.gain.value = 0.5;
+        osc.connect(g);
+        g.connect(level.node);
+      }
       osc.start();
       sources.push(osc);
+      oscs.push(osc);
     }
-    return { sources };
+
+    const t = () => this.ctx.currentTime;
+    const retune = () => {
+      oscs[0].frequency.setTargetAtTime(state.carrier, t(), 0.05);
+      oscs[1].frequency.setTargetAtTime(state.carrier + state.beat, t(), 0.05);
+    };
+    return {
+      sources,
+      set: {
+        level: level.set,
+        carrier: v => { state.carrier = v; retune(); },
+        beat: v => { state.beat = v; retune(); },
+      },
+    };
+  }
+
+  /* Isochronic: a tone gated on/off at a precise rate — the strongest driver
+   * of the auditory steady-state response of the whole beat family. */
+  _isochronicLayer(layer, bus) {
+    const sources = [];
+    const level = this._levelNode(layer.level, bus);
+
+    const osc = this.ctx.createOscillator();
+    osc.frequency.value = layer.freq;
+    const am = this._amChain(layer.rate, layer.depth != null ? layer.depth : 1, sources, 'square');
+    osc.connect(am.node);
+    am.node.connect(level.node);
+    osc.start();
+    sources.push(osc);
+
+    return {
+      sources,
+      set: {
+        level: level.set,
+        freq: v => osc.frequency.setTargetAtTime(v, this.ctx.currentTime, 0.05),
+        rate: am.setRate,
+        depth: am.setDepth,
+      },
+    };
   }
 
   _padLayer(layer, bus) {
     const sources = [];
-    const level = this.ctx.createGain();
-    level.gain.value = layer.level;
+    const level = this._levelNode(layer.level, bus);
+    const set = { level: level.set };
 
     const lp = this.ctx.createBiquadFilter();
     lp.type = 'lowpass';
@@ -227,11 +351,12 @@ class AudioEngine {
     let head = lp;
     if (layer.am) {
       const am = this._amChain(layer.am.rate, layer.am.depth, sources);
-      lp.connect(am);
-      head = am;
+      lp.connect(am.node);
+      head = am.node;
+      set['am.rate'] = am.setRate;
+      set['am.depth'] = am.setDepth;
     }
-    head.connect(level);
-    level.connect(bus);
+    head.connect(level.node);
 
     for (const note of layer.notes) {
       for (const cents of [-4, 4]) {
@@ -246,29 +371,26 @@ class AudioEngine {
         sources.push(osc);
       }
     }
-    return { sources };
+    return { sources, set };
   }
 
-  /* Steady pure tone — the featureless-constant-stimulus family (what the
-   * 10-hour single-frequency videos are). Options soften it without changing
-   * its character: `chorus` cents detunes a second oscillator so the two
-   * beat slowly, `drift` adds a very slow amplitude swell. Both exist purely
-   * to reduce listening fatigue; leave them off for a faithful pure tone.
-   */
+  /* Steady pure tone — the featureless-constant-stimulus family. `chorus`
+   * cents detunes a second oscillator so the two beat slowly; `drift` adds a
+   * very slow swell. Both exist to reduce listening fatigue. */
   _toneLayer(layer, bus) {
     const sources = [];
-    const level = this.ctx.createGain();
-    level.gain.value = layer.level;
-    level.connect(bus);
+    const level = this._levelNode(layer.level, bus);
+    const set = { level: level.set };
 
-    let dest = level;
+    let dest = level.node;
     if (layer.drift) {
       const am = this._amChain(layer.drift.rate, layer.drift.depth, sources);
-      am.connect(level);
-      dest = am;
+      am.node.connect(level.node);
+      dest = am.node;
     }
 
     const detunes = layer.chorus ? [-layer.chorus, layer.chorus] : [0];
+    const oscs = [];
     for (const cents of detunes) {
       const osc = this.ctx.createOscillator();
       osc.type = 'sine';
@@ -279,8 +401,14 @@ class AudioEngine {
       g.connect(dest);
       osc.start();
       sources.push(osc);
+      oscs.push({ osc, cents });
     }
-    return { sources };
+    set.freq = v => {
+      for (const { osc, cents } of oscs) {
+        osc.frequency.setTargetAtTime(v * Math.pow(2, cents / 1200), this.ctx.currentTime, 0.05);
+      }
+    };
+    return { sources, set };
   }
 
   /* Synthesized unintelligible crowd chatter. Each voice: sawtooth with
@@ -290,21 +418,23 @@ class AudioEngine {
    * background-tab throttling. Voices stagger in over the first seconds. */
   _murmurLayer(layer, bus) {
     const sources = [];
+    const level = this._levelNode(layer.level, bus);
+
     const murmurBus = this.ctx.createGain();
-    murmurBus.gain.value = layer.level;
+    murmurBus.gain.value = 1;
 
     const distance = this.ctx.createBiquadFilter();
     distance.type = 'lowpass';
     distance.frequency.value = 2200;
     murmurBus.connect(distance);
-    distance.connect(bus);
+    distance.connect(level.node);
 
     const now = this.ctx.currentTime;
     const voices = layer.voices || 6;
     for (let i = 0; i < voices; i++) {
       this._murmurVoice(murmurBus, sources, now + Math.random() * 4, i);
     }
-    return { sources };
+    return { sources, set: { level: level.set } };
   }
 
   _murmurVoice(out, sources, startAt, idx) {
