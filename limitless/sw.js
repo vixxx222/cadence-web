@@ -1,12 +1,9 @@
-// Cadence Lite service worker — installable + openable offline.
-// Network-FIRST for the page so a deploy is never stuck behind a cached copy;
-// cache is the offline fallback. Supabase is never cached (always live).
-const CACHE = "cadence-lite-v2";
-const SHELL = [
-  "./", "./index.html", "./manifest.webmanifest",
-  "./icon-192.png", "./icon-512.png",
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-];
+// Limitless shell service worker.
+// Scope is the shell folder only — the Cadence and soundlab panes keep their
+// own service workers and offline behaviour untouched. Network-first for HTML
+// so a deploy is never stuck behind a cached shell.
+const CACHE = "limitless-shell-v1";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL).catch(() => {})).then(() => self.skipWaiting()));
@@ -24,7 +21,7 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   let url;
   try { url = new URL(req.url); } catch (_) { return; }
-  if (url.hostname.endsWith("supabase.co")) return;          // always live
+  if (url.hostname.endsWith("supabase.co")) return;
 
   const accept = req.headers.get("accept") || "";
   const isHTML = req.mode === "navigate" || accept.indexOf("text/html") >= 0;

@@ -1,0 +1,204 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0D12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Limitless">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Limitless</title>
+<style>
+  :root{
+    --bg:#0B0D12; --chrome:#0E1118; --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.18);
+    --ink:#E9ECF4; --muted:#98A0B3; --faint:#5C6577;
+    --accent:#35E0C6; --accent-ink:#06131A; --amber:#E8A33D;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overscroll-behavior:none}
+  body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+
+  /* ---- chrome ---- */
+  .bar{flex:0 0 auto;background:var(--chrome);border-bottom:1px solid var(--line);
+       padding:calc(env(safe-area-inset-top) + 9px) 14px 9px;
+       display:flex;align-items:center;gap:10px}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.24em;font-size:11.5px;flex:0 0 auto}
+  .brand i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  .spacer{flex:1}
+  .nowplay{display:none;align-items:center;gap:6px;font-size:11px;color:var(--accent);
+           border:1px solid var(--accent);border-radius:999px;padding:3px 10px;white-space:nowrap;cursor:pointer;
+           background:none}
+  .nowplay.on{display:inline-flex}
+  .nowplay .eq{display:inline-flex;gap:2px;align-items:flex-end;height:10px}
+  .nowplay .eq span{width:2px;background:var(--accent);animation:eq .9s ease-in-out infinite}
+  .nowplay .eq span:nth-child(1){height:5px;animation-delay:0s}
+  .nowplay .eq span:nth-child(2){height:10px;animation-delay:.15s}
+  .nowplay .eq span:nth-child(3){height:7px;animation-delay:.3s}
+  @keyframes eq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+  @media (prefers-reduced-motion: reduce){ .nowplay .eq span{animation:none} }
+
+  .tabs{display:flex;gap:5px;background:rgba(255,255,255,.04);border:1px solid var(--line);
+        border-radius:11px;padding:3px}
+  .tabs button{font:inherit;font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;
+               border-radius:8px;padding:6px 15px;cursor:pointer;white-space:nowrap}
+  .tabs button.on{background:var(--accent);color:var(--accent-ink)}
+  .tabs button:hover:not(.on){color:var(--ink)}
+  .gear{background:none;border:none;color:var(--muted);padding:4px;cursor:pointer;flex:0 0 auto}
+  .gear:hover{color:var(--accent)}
+
+  /* ---- panes: BOTH stay mounted so audio + timers never stop ---- */
+  .stage{flex:1;position:relative;min-height:0}
+  .pane{position:absolute;inset:0;width:100%;height:100%;border:0;
+        opacity:0;pointer-events:none;transition:opacity .16s}
+  .pane.on{opacity:1;pointer-events:auto}
+
+  /* ---- settings ---- */
+  #set{position:fixed;inset:0;background:rgba(4,6,10,.72);display:none;
+       align-items:flex-end;justify-content:center;z-index:60}
+  #set.on{display:flex}
+  .sbox{width:100%;max-width:520px;background:var(--chrome);border:1px solid var(--line);
+        border-bottom:none;border-radius:18px 18px 0 0;
+        padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+  .sbox h3{margin:0 0 14px;font-size:16px}
+  .opt{display:flex;justify-content:space-between;align-items:center;gap:12px;
+       padding:12px 0;border-bottom:1px solid var(--line)}
+  .opt:last-of-type{border-bottom:none}
+  .opt .lab{font-size:14px}
+  .opt .sub{display:block;font-size:11.5px;color:var(--faint);margin-top:2px}
+  .seg{display:flex;gap:6px;flex:0 0 auto}
+  .seg button{font:inherit;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.05);
+              border:1px solid var(--line2);border-radius:9px;padding:7px 13px;cursor:pointer}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:650}
+  .done{width:100%;margin-top:16px;font:inherit;font-weight:650;background:var(--accent);
+        border:1px solid var(--accent);color:var(--accent-ink);border-radius:11px;padding:12px;cursor:pointer}
+</style>
+
+<div class="bar">
+  <div class="brand"><i></i>LIMITLESS</div>
+  <div class="spacer"></div>
+  <button class="nowplay" id="nowPlay" title="Back to Sound">
+    <span class="eq"><span></span><span></span><span></span></span>
+    <span id="nowPlayTxt">playing</span>
+  </button>
+  <div class="tabs">
+    <button id="tabFocus" class="on">Focus</button>
+    <button id="tabSound">Sound</button>
+  </div>
+  <button class="gear" id="gear" aria-label="Settings">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+</div>
+
+<div class="stage">
+  <iframe class="pane on" id="paneFocus" title="Focus"></iframe>
+  <iframe class="pane" id="paneSound" title="Sound" src="../soundlab/"></iframe>
+</div>
+
+<div id="set">
+  <div class="sbox">
+    <h3>Limitless</h3>
+    <div class="opt">
+      <span class="lab">Timer<span class="sub">Full has every feature; Lite is the stripped-down core.</span></span>
+      <div class="seg"><button id="vFull">Full</button><button id="vLite">Lite</button></div>
+    </div>
+    <div class="opt">
+      <span class="lab">Open on<span class="sub">Which tab Limitless starts on.</span></span>
+      <div class="seg"><button id="oFocus">Focus</button><button id="oSound">Sound</button></div>
+    </div>
+    <button class="done" id="setDone">Done</button>
+  </div>
+</div>
+
+<script>
+  // Limitless — one shell, two tools. Both panes stay mounted at all times:
+  // switching only changes opacity, never display, so a running sound session
+  // and a running focus block both survive every tab change.
+  var $ = function(id){ return document.getElementById(id); };
+  var PREF = {
+    get view(){ try{ return localStorage.getItem("ll_timer") === "lite" ? "lite" : "full"; }catch(e){ return "full"; } },
+    set view(v){ try{ localStorage.setItem("ll_timer", v); }catch(e){} },
+    get open(){ try{ return localStorage.getItem("ll_open") === "sound" ? "sound" : "focus"; }catch(e){ return "focus"; } },
+    set open(v){ try{ localStorage.setItem("ll_open", v); }catch(e){} }
+  };
+
+  // ---- timer pane: swap between the full app and lite ----
+  function timerSrc(v){ return v === "lite" ? "../lite/" : "../"; }
+  function loadTimer(v, force){
+    var f = $("paneFocus");
+    var want = timerSrc(v);
+    if(force || !f.getAttribute("src")) f.setAttribute("src", want);
+    $("vFull").classList.toggle("on", v === "full");
+    $("vLite").classList.toggle("on", v === "lite");
+  }
+  function setTimerVersion(v){
+    if(v === PREF.view){ showTab("focus"); return; }
+    PREF.view = v;
+    loadTimer(v, true);          // reload the pane with the other version
+    showTab("focus");
+  }
+
+  // ---- tabs ----
+  var TAB = "focus";
+  function showTab(t){
+    TAB = t;
+    $("paneFocus").classList.toggle("on", t === "focus");
+    $("paneSound").classList.toggle("on", t === "sound");
+    $("tabFocus").classList.toggle("on", t === "focus");
+    $("tabSound").classList.toggle("on", t === "sound");
+    $("nowPlay").classList.toggle("on", t !== "sound" && SOUND_ON);
+  }
+
+  // ---- "now playing" chip: peek into the same-origin sound pane ----
+  // Purely observational and fully guarded — if soundlab's markup ever changes,
+  // the chip just stops showing; nothing breaks.
+  var SOUND_ON = false;
+  function pollSound(){
+    var on = false, label = "playing";
+    try{
+      var d = $("paneSound").contentDocument;
+      if(d){
+        var s = d.querySelector("#screen-session.active");
+        if(s){
+          on = true;
+          var n = d.querySelector("#session-name, #screen-session h1, #screen-session .tile-name");
+          if(n && n.textContent.trim()) label = n.textContent.trim().toLowerCase();
+        }
+      }
+    }catch(e){ on = false; }              // cross-origin or not loaded yet
+    SOUND_ON = on;
+    $("nowPlayTxt").textContent = label.length > 18 ? label.slice(0,18)+"…" : label;
+    $("nowPlay").classList.toggle("on", on && TAB !== "sound");
+  }
+
+  // ---- wiring ----
+  $("tabFocus").addEventListener("click", function(){ showTab("focus"); });
+  $("tabSound").addEventListener("click", function(){ showTab("sound"); });
+  $("nowPlay").addEventListener("click", function(){ showTab("sound"); });
+  $("gear").addEventListener("click", function(){ $("set").classList.add("on"); });
+  $("setDone").addEventListener("click", function(){ $("set").classList.remove("on"); });
+  $("set").addEventListener("click", function(e){ if(e.target === $("set")) $("set").classList.remove("on"); });
+  $("vFull").addEventListener("click", function(){ setTimerVersion("full"); });
+  $("vLite").addEventListener("click", function(){ setTimerVersion("lite"); });
+  $("oFocus").addEventListener("click", function(){ PREF.open="focus"; syncOpen(); });
+  $("oSound").addEventListener("click", function(){ PREF.open="sound"; syncOpen(); });
+  function syncOpen(){
+    $("oFocus").classList.toggle("on", PREF.open === "focus");
+    $("oSound").classList.toggle("on", PREF.open === "sound");
+  }
+
+  // keyboard: ⌘1 / ⌘2 to jump between tools
+  document.addEventListener("keydown", function(e){
+    if(!(e.metaKey || e.ctrlKey)) return;
+    if(e.key === "1"){ e.preventDefault(); showTab("focus"); }
+    if(e.key === "2"){ e.preventDefault(); showTab("sound"); }
+  });
+
+  loadTimer(PREF.view, false);
+  syncOpen();
+  showTab(PREF.open);
+  setInterval(pollSound, 1500);
+
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+  }
+</script>
