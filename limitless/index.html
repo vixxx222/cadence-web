@@ -148,19 +148,28 @@
     $("nowPlay").classList.toggle("on", t !== "sound" && SOUND_ON);
   }
 
-  // ---- "now playing" chip: peek into the same-origin sound pane ----
-  // Purely observational and fully guarded — if soundlab's markup ever changes,
-  // the chip just stops showing; nothing breaks.
+  // ---- "now playing" chip: ask the same-origin sound pane ----
+  // Primary path is soundlab's published status contract (window.soundlabStatus),
+  // so its internal markup can change without breaking this. The DOM sniff is
+  // only a fallback for an older cached soundlab. Fully guarded either way — a
+  // failure just means no chip.
   var SOUND_ON = false;
   function pollSound(){
     var on = false, label = "playing";
     try{
-      var d = $("paneSound").contentDocument;
-      if(d){
-        var s = d.querySelector("#screen-session.active");
+      var pane = $("paneSound");
+      var w = pane.contentWindow;
+      var st = (w && typeof w.soundlabStatus === "function") ? w.soundlabStatus() : null;
+      if(st){
+        on = !!st.playing;
+        if(st.label) label = String(st.label).toLowerCase();
+        if(st.mode === "lab") label = "lab · " + label;
+      }else{
+        var d = pane.contentDocument;                       // legacy fallback
+        var s = d && d.querySelector("#screen-session.active");
         if(s){
           on = true;
-          var n = d.querySelector("#session-name, #screen-session h1, #screen-session .tile-name");
+          var n = d.querySelector("#session-preset");
           if(n && n.textContent.trim()) label = n.textContent.trim().toLowerCase();
         }
       }

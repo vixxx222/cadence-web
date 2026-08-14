@@ -225,6 +225,31 @@ const app = {
   },
 };
 
+/* Stable status contract for host shells.
+ *
+ * soundlab is embedded as a same-origin iframe pane inside Limitless
+ * (/cadence-web/limitless/), which shows a "now playing" chip. The host reads
+ * THIS function rather than scraping soundlab's DOM, so internal markup can
+ * change freely without breaking the shell. Keep the returned shape
+ * backwards-compatible; bump `version` if it ever must change.
+ */
+window.soundlabStatus = function () {
+  try {
+    const s = app.session;
+    if (s) {
+      return { playing: true, mode: 'session', label: s.displayName || '', phase: s.phase };
+    }
+    if (typeof lab !== 'undefined' && lab.playing) {
+      return { playing: true, mode: 'lab', label: lab.recipe.name || 'lab preview', phase: 'preview' };
+    }
+    const on = !!(typeof engine !== 'undefined' && engine.playing);
+    return { playing: on, mode: on ? 'other' : null, label: '', phase: null };
+  } catch (e) {
+    return { playing: false, mode: null, label: '', phase: null };
+  }
+};
+window.soundlabStatus.version = 1;
+
 function fmt(totalSec) {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
