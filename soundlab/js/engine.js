@@ -127,6 +127,7 @@ class AudioEngine {
       case 'binaural': return this._binauralLayer(layer, bus);
       case 'pad':      return this._padLayer(layer, bus);
       case 'murmur':   return this._murmurLayer(layer, bus);
+      case 'tone':     return this._toneLayer(layer, bus);
       default:
         console.warn('unknown layer type', layer.type);
         return null;
@@ -244,6 +245,40 @@ class AudioEngine {
         osc.start();
         sources.push(osc);
       }
+    }
+    return { sources };
+  }
+
+  /* Steady pure tone — the featureless-constant-stimulus family (what the
+   * 10-hour single-frequency videos are). Options soften it without changing
+   * its character: `chorus` cents detunes a second oscillator so the two
+   * beat slowly, `drift` adds a very slow amplitude swell. Both exist purely
+   * to reduce listening fatigue; leave them off for a faithful pure tone.
+   */
+  _toneLayer(layer, bus) {
+    const sources = [];
+    const level = this.ctx.createGain();
+    level.gain.value = layer.level;
+    level.connect(bus);
+
+    let dest = level;
+    if (layer.drift) {
+      const am = this._amChain(layer.drift.rate, layer.drift.depth, sources);
+      am.connect(level);
+      dest = am;
+    }
+
+    const detunes = layer.chorus ? [-layer.chorus, layer.chorus] : [0];
+    for (const cents of detunes) {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = layer.freq * Math.pow(2, cents / 1200);
+      const g = this.ctx.createGain();
+      g.gain.value = 1 / detunes.length;
+      osc.connect(g);
+      g.connect(dest);
+      osc.start();
+      sources.push(osc);
     }
     return { sources };
   }

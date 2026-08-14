@@ -168,6 +168,21 @@ input::placeholder { color: var(--muted); }
 .hist-rating { color: var(--accent); font-weight: 600; }
 
 .setting { margin-bottom: 1.8rem; display: flex; flex-direction: column; gap: 0.7rem; }
+
+.engine-picker { display: flex; flex-direction: column; gap: 0.9rem; }
+.engine-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.engine-group > span { font-size: 0.82rem; color: var(--text); }
+.engine-opts { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.engine-opts button {
+  padding: 0.34rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid #202730;
+  text-align: left;
+}
+.engine-opts button.on { color: var(--bg); background: var(--accent); border-color: var(--accent); font-weight: 600; }
 .fine { color: var(--muted); font-size: 0.78rem; line-height: 1.55; }
 .about { margin-top: auto; padding-top: 2rem; }
 

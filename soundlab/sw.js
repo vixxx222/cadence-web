@@ -1,4 +1,4 @@
-const CACHE = 'soundlab-v2';
+const CACHE = 'soundlab-v3';
 const SHELL = [
   './',
   './index.html',

@@ -5,8 +5,16 @@ const $$ = s => [...document.querySelectorAll(s)];
 
 const store = {
   loadSettings() {
-    try { return { preRollSec: 180, volume: 0.5, durationMin: 50, ...JSON.parse(localStorage.getItem('soundlab.settings') || '{}') }; }
-    catch (e) { return { preRollSec: 180, volume: 0.5, durationMin: 50 }; }
+    const defaults = { preRollSec: 180, volume: 0.5, durationMin: 50, variants: {} };
+    let s;
+    try { s = { ...defaults, ...JSON.parse(localStorage.getItem('soundlab.settings') || '{}') }; }
+    catch (e) { s = { ...defaults }; }
+    // drop any variant ids that no longer exist, then fill gaps with defaults
+    s.variants = s.variants || {};
+    for (const [key, preset] of Object.entries(PRESETS)) {
+      if (!preset.variants[s.variants[key]]) s.variants[key] = preset.defaultVariant;
+    }
+    return s;
   },
   saveSettings(s) { localStorage.setItem('soundlab.settings', JSON.stringify(s)); },
   loadSessions() {
@@ -33,8 +41,9 @@ const app = {
   async start(presetKey) {
     const preset = PRESETS[presetKey];
     if (!preset) return;
-    const variantId = preset.defaultVariant;
+    const variantId = settings.variants[presetKey] || preset.defaultVariant;
     const recipe = preset.variants[variantId];
+    if (!recipe) return;
     const preRollSec = settings.preRollSec;
     const now = Date.now();
 
@@ -253,9 +262,41 @@ $('#btn-wipe').addEventListener('click', () => {
   }
 });
 
+// engine picker — built from PRESETS so it can never drift out of sync
+function renderEnginePicker() {
+  $('#engine-picker').innerHTML = Object.entries(PRESETS).map(([key, preset]) => `
+    <div class="engine-group">
+      <span>${preset.name}</span>
+      <div class="engine-opts" data-preset="${key}">
+        ${Object.entries(preset.variants).map(([vid, v]) =>
+          `<button data-variant="${vid}" class="${settings.variants[key] === vid ? 'on' : ''}">${v.label}</button>`
+        ).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function syncTileDescriptions() {
+  for (const [key, preset] of Object.entries(PRESETS)) {
+    const tile = $(`.tile[data-preset="${key}"] .tile-desc`);
+    if (tile) tile.textContent = preset.variants[settings.variants[key]].label;
+  }
+}
+
+$('#engine-picker').addEventListener('click', e => {
+  const btn = e.target.closest('button[data-variant]');
+  if (!btn) return;
+  const presetKey = btn.closest('.engine-opts').dataset.preset;
+  settings.variants[presetKey] = btn.dataset.variant;
+  store.saveSettings(settings);
+  renderEnginePicker();
+  syncTileDescriptions();
+});
+
 // restore persisted choices
 $$('#duration-seg button').forEach(b => b.classList.toggle('on', Number(b.dataset.min) === settings.durationMin));
 $$('#preroll-seg button').forEach(b => b.classList.toggle('on', Number(b.dataset.sec) === settings.preRollSec));
+renderEnginePicker();
+syncTileDescriptions();
 
 // deep-link: soundlab/#focus pulses that tile so open-day / Cadence links
 // land one tap from sound (browsers require a gesture before audio starts)
