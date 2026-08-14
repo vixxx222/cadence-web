@@ -1,9 +1,10 @@
 {
+  "id": "/cadence-web/limitless/",
   "name": "Limitless",
   "short_name": "Limitless",
   "description": "Lock in — focus timer and focus sound in one place.",
   "start_url": "./",
-  "scope": "../",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0B0D12",
