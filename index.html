@@ -376,6 +376,23 @@
     padding:8px 12px;border:1px solid var(--line2);border-radius:12px;
     background:color-mix(in srgb, var(--accent2, var(--accent)) 8%, transparent)}
   .pomobar .pomotxt{flex:1 1 auto;font-size:13px;opacity:.9}
+  /* ghost blocks — the pre-scheduled day, shown as "now" */
+  .plannow{margin-top:10px;padding:11px 13px;border-radius:14px;
+    border:1px solid color-mix(in srgb, var(--accent) 45%, var(--line2));
+    background:color-mix(in srgb, var(--accent) 11%, transparent)}
+  .plannow.off{border-color:var(--line2);background:color-mix(in srgb, var(--warn, #d08b28) 9%, transparent)}
+  .plannow .plhead{display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--faint)}
+  .plannow .pltitle{font-size:14.5px;font-weight:600;margin:4px 0 2px;line-height:1.32}
+  .plannow .plmeta{font-size:11.5px;color:var(--muted)}
+  .plannow .plrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
+  .plannow .plgo{padding:6px 15px;border-radius:999px;border:none;background:var(--accent);
+    color:var(--onaccent, #08120e);font-weight:650;font-size:12.5px;cursor:pointer}
+  .plannow .plelse{background:none;border:none;color:var(--muted);font-size:11.5px;
+    text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:4px 2px}
+  .plannow .plbar{height:3px;border-radius:2px;background:var(--line2);margin-top:9px;overflow:hidden}
+  .plannow .plbar > i{display:block;height:100%;background:var(--accent);border-radius:2px}
+  .plannow.gap{border-color:var(--line2);background:none}
   .modeRow{margin-top:8px}
   #nextPicks{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
   /* today's mini list */
@@ -541,6 +558,7 @@
             <input type="number" id="ivcustom" min="1" max="180" placeholder="custom">
             <span class="sep">min</span>
           </div>
+          <div class="plannow hidden" id="planNow"></div>
           <div class="pomobar hidden" id="pomoBar"></div>
           <div class="upnext hidden" id="upNext"></div>
           <div class="suggs" id="planSuggs"></div>
@@ -886,6 +904,8 @@
   var sheetArea = "";              // area chip selected on the capture sheet
   var META = false;                // true once blocks.meta column exists
   var MODEC = false;               // true once state.mode / blocks.mode exist (stopwatch)
+  var PLAN  = false;               // true once plan_blocks exists (the scheduled day)
+  var PLANB = [];                  // today's ghost blocks, in start order
   var META_TAGS = ["work","rest","personal","distraction"];
   var FROG = false;                // true once the frogs table exists
   var FROGS = [];                  // yesterday + today's frog rows
@@ -1130,6 +1150,7 @@
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
     loadOB(); loadMirror();
     EXT = !!(MIRROR.flags && MIRROR.flags.ext); META = !!(MIRROR.flags && MIRROR.flags.meta);
+    PLAN = !!(MIRROR.flags && MIRROR.flags.plan);
     FROG = !!(MIRROR.flags && MIRROR.flags.frog);
     TODO = !!(MIRROR.flags && MIRROR.flags.todo);
     ACTIVE_PUSH = !!(MIRROR.flags && MIRROR.flags.push);
@@ -1197,13 +1218,16 @@
     try{ var r5 = await SB.from("state").select("mode").limit(1);
       MODEC = r5.error ? (netErr(r5.error) ? !!mf.modec : false) : true; }
     catch(e){ MODEC = netErr(e) ? !!mf.modec : false; }
+    try{ var r6 = await SB.from("plan_blocks").select("id").limit(1);
+      PLAN = r6.error ? (netErr(r6.error) ? !!mf.plan : false) : true; }
+    catch(e){ PLAN = netErr(e) ? !!mf.plan : false; }
     try{ var r4 = await SB.from("todos").select("id").limit(1);
       TODO = r4.error ? (netErr(r4.error) ? !!mf.todo : false) : true; }
     catch(e){ TODO = netErr(e) ? !!mf.todo : false; }
     try{ var r5 = await SB.from("tasks").select("to_active").limit(1);
       ACTIVE_PUSH = r5.error ? (netErr(r5.error) ? !!mf.push : false) : true; }
     catch(e){ ACTIVE_PUSH = netErr(e) ? !!mf.push : false; }
-    MIRROR.flags = { ext:EXT, meta:META, frog:FROG, todo:TODO, push:ACTIVE_PUSH, modec:MODEC }; saveMirror();
+    MIRROR.flags = { ext:EXT, meta:META, frog:FROG, todo:TODO, push:ACTIVE_PUSH, modec:MODEC, plan:PLAN }; saveMirror();
   }
 
   // =============== [OB-BEGIN] offline data layer ===============
@@ -1212,7 +1236,7 @@
   // OB: outbox of writes made while offline, replayed in order on reconnect.
   // Offline inserts get temporary NEGATIVE ids; replay maps them to the real
   // server ids (OB.map) and substitutes them in later ops' foreign keys.
-  var MIRROR = { st:null, blocks:[], breaks:[], tasks:[], roadmap_items:[], frogs:[], todos:[], flags:null };
+  var MIRROR = { st:null, blocks:[], breaks:[], tasks:[], roadmap_items:[], frogs:[], todos:[], plan_blocks:[], flags:null };
   var OB = { ops:[], map:{}, seq:-2 };
   var DRAINING = false;
   var ID_KEYS = { id:1, session_id:1, block_id:1, task_id:1, active_session_id:1, active_block_id:1 };
@@ -1220,7 +1244,7 @@
   function mirKey(){ return "cad_mir_" + (UID||"anon"); }
   function obKey(){ return "cad_ob_" + (UID||"anon"); }
   function saveMirror(){ try{ localStorage.setItem(mirKey(), JSON.stringify(MIRROR)); }catch(e){} }
-  function loadMirror(){ try{ var m=JSON.parse(localStorage.getItem(mirKey())||"null"); if(m){ MIRROR=m; MIRROR.blocks=MIRROR.blocks||[]; MIRROR.breaks=MIRROR.breaks||[]; MIRROR.tasks=MIRROR.tasks||[]; MIRROR.roadmap_items=MIRROR.roadmap_items||[]; MIRROR.frogs=MIRROR.frogs||[]; MIRROR.todos=MIRROR.todos||[]; return true; } }catch(e){} return false; }
+  function loadMirror(){ try{ var m=JSON.parse(localStorage.getItem(mirKey())||"null"); if(m){ MIRROR=m; MIRROR.blocks=MIRROR.blocks||[]; MIRROR.breaks=MIRROR.breaks||[]; MIRROR.tasks=MIRROR.tasks||[]; MIRROR.roadmap_items=MIRROR.roadmap_items||[]; MIRROR.frogs=MIRROR.frogs||[]; MIRROR.todos=MIRROR.todos||[]; MIRROR.plan_blocks=MIRROR.plan_blocks||[]; return true; } }catch(e){} return false; }
   function saveOB(){ try{ localStorage.setItem(obKey(), JSON.stringify(OB)); }catch(e){} }
   function loadOB(){ try{ var o=JSON.parse(localStorage.getItem(obKey())||"null"); if(o && o.ops){ OB=o; OB.map=OB.map||{}; if(typeof OB.seq!=="number") OB.seq=-2; } }catch(e){} }
 
@@ -1268,9 +1292,10 @@
     ROUTINE_STREAK = MIRROR.streak || 0;
     FROGS = (MIRROR.frogs || []).slice();
     TODOS = (MIRROR.todos || []).slice();
+    PLANB = (MIRROR.plan_blocks || []).slice();
     try{ renderAreas(TODAY); }catch(e){}
     if(EXT){ try{ renderExt(); }catch(e){} }
-    try{ renderFrog(); renderUpNext(); renderTodos(); }catch(e){}
+    try{ renderFrog(); renderUpNext(); renderTodos(); renderPlanNow(); }catch(e){}
   }
   function obBadge(){
     var el = $("syncPill"); if(!el) return;
@@ -1459,7 +1484,13 @@
         if(!td.error){ TODOS = td.data||[]; MIRROR.todos=TODOS.slice(); saveMirror(); }
       }catch(e){}
     }
-    renderFrog(); renderUpNext(); renderTodos();
+    if(PLAN){
+      try{
+        var pb = await SB.from("plan_blocks").select("*").eq("day", dayKey()).order("start_at");
+        if(!pb.error){ PLANB = pb.data||[]; MIRROR.plan_blocks=PLANB.slice(); saveMirror(); }
+      }catch(e){}
+    }
+    renderFrog(); renderUpNext(); renderTodos(); renderPlanNow();
   }
   function calcStreak(rows){
     var done={}; rows.forEach(function(r){ if(r.done_movement && r.done_mind) done[r.day]=1; });
@@ -1899,9 +1930,15 @@
   }
 
   // ---------------- tick ----------------
+  var _planKey="";
   function tick(){
     if(!st) return;
     var s=status(); updateStatus(s);
+    try{
+      // cheap guard: only touch the DOM when the minute or the block changes
+      var b=planNow(), k=(b?b.id:"-")+"|"+Math.floor(Date.now()/60000)+"|"+s.mode+"|"+((st&&st.block_plan)||"");
+      if(k!==_planKey){ _planKey=k; renderPlanNow(); }
+    }catch(e){}
     // A stopwatch never runs out, so it must never auto-open the capture sheet.
     if(s.mode==="work" && !s.countUp && !s.paused && s.remainingSec<=0 && $("sheet").classList.contains("hidden") && !busy && Date.now()>_sheetGrace){ openSheet(false, true); }
     if(s.mode==="break" && s.remainingSec<=0 && !busy){ endBreak(); }
@@ -2350,6 +2387,112 @@
     }
     return c;
   }
+  // ================= ghost blocks =================
+  // The day was decided last night. Re-deciding it at 10:05, and again at
+  // 11:25, is the loop that eats the day — so the app just says what the plan
+  // says and offers one tap to start it. Deviating is always allowed, but it
+  // costs a deliberate tap and gets recorded, which is the whole point: the
+  // plan is the default, not a suggestion you have to re-derive.
+  function planNow(at){
+    var t = (at || new Date()).getTime();
+    for(var i=0;i<PLANB.length;i++){
+      var b=PLANB[i];
+      if(t >= Date.parse(b.start_at) && t < Date.parse(b.end_at)) return b;
+    }
+    return null;
+  }
+  function planNext(at){
+    var t = (at || new Date()).getTime();
+    for(var i=0;i<PLANB.length;i++){ if(Date.parse(PLANB[i].start_at) > t) return PLANB[i]; }
+    return null;
+  }
+  function hhmm(iso){
+    var d=new Date(iso);
+    return d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  }
+  // The title carries its scaffolding ("🐸 B2 · SEND the design to Steph") because
+  // the calendar needs it. The app has already told you it's now, so strip it.
+  function planTitle(b){
+    return (b.title||"").replace(/^[^A-Za-z0-9]*(?:B\d+(?:[–-]B\d+)?\s*[·:.-]\s*)?/, "").trim() || (b.title||"");
+  }
+  function renderPlanNow(){
+    var box=$("planNow"); if(!box) return;
+    if(!PLAN || !PLANB.length){ box.classList.add("hidden"); return; }
+    var s=status();
+    var now=new Date(), b=planNow(now), nx=null;
+    box.classList.remove("hidden","off","gap");
+    box.innerHTML="";
+    if(!b){
+      nx=planNext(now);
+      if(!nx){ box.classList.add("hidden"); return; }   // day's plan is spent
+      box.classList.add("gap");
+      box.appendChild(elp("plhead","between blocks"));
+      box.appendChild(elp("pltitle", "Next: " + planTitle(nx)));
+      box.appendChild(elp("plmeta", hhmm(nx.start_at) + " – " + hhmm(nx.end_at) +
+        " · starts in " + Math.max(1, Math.round((Date.parse(nx.start_at)-now)/60000)) + " min"));
+      return;
+    }
+    var mins=Math.max(1, Math.round((Date.parse(b.end_at)-now)/60000));
+    var running=(s.mode==="work");
+    var onPlan=running && sameWork(st && st.block_plan, b);
+    var head=elp("plhead", b.kind==="break" ? "the plan says · break"
+                : onPlan ? "on plan · running"
+                : running ? "off plan" : "on the plan now");
+    if(!onPlan && running) box.classList.add("off");
+    box.appendChild(head);
+    box.appendChild(elp("pltitle", (b.kind==="frog"?"🐸 ":"") + planTitle(b)));
+    box.appendChild(elp("plmeta", hhmm(b.start_at)+" – "+hhmm(b.end_at)+" · "+mins+" min left"
+      + (b.deviated_at ? " · you switched off this one" : "")));
+    var row=el("div","plrow");
+    if(!running && b.kind!=="break"){
+      var go=el("button","plgo","Start this — "+mins+" min");
+      go.addEventListener("click", function(){ startPlanBlock(b, mins); });
+      row.appendChild(go);
+      var other=el("button","plelse","working on something else");
+      other.addEventListener("click", function(){ deviate(b); });
+      row.appendChild(other);
+    } else if(running && !onPlan){
+      var back=el("button","plgo","Back to the plan");
+      back.addEventListener("click", function(){ deviate(b, true); startPlanBlock(b, mins); });
+      row.appendChild(back);
+      var keep=el("button","plelse","no, keep going with this");
+      keep.addEventListener("click", function(){ deviate(b); });
+      row.appendChild(keep);
+    }
+    if(row.childNodes.length) box.appendChild(row);
+    var bar=el("div","plbar"), fill=el("i");
+    var tot=Date.parse(b.end_at)-Date.parse(b.start_at);
+    fill.style.width=Math.min(100, Math.max(0, 100*(now-Date.parse(b.start_at))/tot)).toFixed(1)+"%";
+    bar.appendChild(fill); box.appendChild(bar);
+  }
+  function elp(cls, txt){ return el("div", cls, txt); }
+  // Loose because the session name comes from the plan title, the picker, or
+  // whatever he typed — an exact match would flag half the day as "off plan".
+  function sameWork(a, b){
+    if(!a || !b) return false;
+    var x=String(a).toLowerCase(), y=planTitle(b).toLowerCase();
+    if(!x || !y) return false;
+    return x.indexOf(y)>=0 || y.indexOf(x)>=0 || x.slice(0,18)===y.slice(0,18);
+  }
+  function startPlanBlock(b, mins){
+    if(PLAN && b.id>0){
+      try{ dbUpd("plan_blocks", {started_at:new Date().toISOString()}, {id:b.id}); }catch(e){}
+      b.started_at=new Date().toISOString();
+    }
+    startSession(planTitle(b), mins, b.tag||"");
+  }
+  // A deviation is recorded, not punished. close-day reads these to show the
+  // plan against the day — the ONE thing that turns a missed block from shame
+  // into a block-length data point.
+  function deviate(b, silent){
+    if(PLAN && b.id>0){
+      try{ dbUpd("plan_blocks",
+        {deviated_at:new Date().toISOString(), deviated_to:(st && st.block_plan)||null}, {id:b.id}); }catch(e){}
+      b.deviated_at=new Date().toISOString();
+    }
+    if(!silent) renderPlanNow();
+  }
+
   var UPN_CONDENSED = 6;
   function renderUpNext(){
     var box=$("upNext"); if(!box) return;
