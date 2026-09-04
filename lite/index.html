@@ -1,3 +1,6 @@
+<!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B0D12">
@@ -14,6 +17,7 @@
     --ink:#E9ECF4; --muted:#98A0B3; --faint:#5C6577;
     --accent:#35E0C6; --accent-ink:#06131A; --amber:#E8A33D;
     --ok:#4CC98B; --danger:#FF6B5E; --scrim:rgba(4,6,10,.72);
+    --onbg:rgba(53,224,198,.09);
   }
   :root[data-theme="light"]{
     --bg:#F5F4F1; --panel:#FFFFFF; --panel2:#EFEDE8;
@@ -21,6 +25,7 @@
     --ink:#1D2129; --muted:#5F6674; --faint:#9AA0AC;
     --accent:#0E9E8B; --accent-ink:#FFFFFF; --amber:#B4761B;
     --ok:#1F8A55; --danger:#C0392B; --scrim:rgba(20,22,26,.42);
+    --onbg:rgba(14,158,139,.10);
   }
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
@@ -29,6 +34,7 @@
       --ink:#1D2129; --muted:#5F6674; --faint:#9AA0AC;
       --accent:#0E9E8B; --accent-ink:#FFFFFF; --amber:#B4761B;
       --ok:#1F8A55; --danger:#C0392B; --scrim:rgba(20,22,26,.42);
+      --onbg:rgba(14,158,139,.10);
     }
   }
   *{box-sizing:border-box}
@@ -71,35 +77,28 @@
   .frog.eaten .ft{text-decoration:line-through;color:var(--muted)}
   .frog .sub{flex-basis:100%;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
   .fpick{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-
-  /* timer */
-  .hero{display:flex;flex-direction:column;align-items:center;padding:14px 0 4px}
-  .ring{position:relative;width:190px;height:190px}
-  .ring svg{transform:rotate(-90deg)}
-  .ring .bg{stroke:var(--line);fill:none;stroke-width:9}
-  .ring .fg{stroke:var(--accent);fill:none;stroke-width:9;stroke-linecap:round;
-            transition:stroke-dashoffset .9s linear, stroke .3s}
-  .ring.over .fg{stroke:var(--danger)}
-  .ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-  .clock{font-size:40px;font-weight:250;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-  .state{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-top:2px}
-  .nowtask{margin-top:10px;font-size:15px;color:var(--muted);text-align:center;
-           max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .nowtask b{color:var(--ink);font-weight:600}
-
-  .lens{display:flex;gap:7px;justify-content:center;margin:12px 0 0}
-  .lens button{padding:7px 15px;font-size:13px}
-  .go{display:flex;gap:8px;margin:12px 0 0}
-  .picks{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
   .pick{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line2);
-        border-radius:999px;font-size:13px;cursor:pointer;max-width:100%;
-        overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        border-radius:999px;font-size:12.5px;color:var(--muted);cursor:pointer;background:var(--panel2);
+        max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pick:hover{border-color:var(--accent);color:var(--accent)}
   .pick.frogpick{border-color:var(--amber)}
-  .runbtns{display:flex;gap:8px;margin-top:12px}
-  .runbtns button{flex:1}
-  .stopbtn{color:var(--danger);border-color:transparent;background:transparent}
-  .stopbtn:hover{border-color:var(--danger)}
+
+  /* the now bar - the whole point of the app */
+  .now{margin:12px 0 0;padding:14px 15px 13px;border:1px solid var(--line2);border-radius:14px;background:var(--panel);
+       transition:border-color .2s, box-shadow .2s}
+  .now.on{border-color:var(--accent);box-shadow:0 0 28px -10px var(--accent);background:linear-gradient(180deg,var(--onbg),transparent 70%),var(--panel)}
+  .now .lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .now.on .lbl{color:var(--accent)}
+  .now .top{display:flex;align-items:baseline;gap:12px;margin-top:2px}
+  .now .title{flex:1;min-width:0;font-size:17px;font-weight:650;line-height:1.3;overflow-wrap:anywhere}
+  .now:not(.on) .title{color:var(--muted);font-weight:500}
+  .now .clk{font-size:32px;font-weight:250;letter-spacing:-.02em;font-variant-numeric:tabular-nums;flex:0 0 auto;line-height:1}
+  .now .sub{font-size:12px;color:var(--muted);margin-top:5px}
+  .now .btns{display:flex;gap:8px;margin-top:12px;align-items:center}
+  .now .btns button{flex:1}
+  .now .btns .linky{flex:0 0 auto;padding:0 4px}
+  .go{display:flex;gap:8px;margin:12px 0 0}
+  .go button{flex:0 0 auto;white-space:nowrap}
 
   /* sections */
   h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
@@ -108,20 +107,36 @@
   .card{border:1px solid var(--line);border-radius:13px;background:var(--panel);overflow:hidden}
   .item{display:flex;align-items:center;gap:10px;padding:10px 13px;border-bottom:1px solid var(--line)}
   .item:last-child{border-bottom:none}
-  .item .t{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;flex:0 0 auto;width:42px}
+  .item .t{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;flex:0 0 auto;width:84px}
   .item .n{flex:1;min-width:0;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .item .m{font-size:11.5px;color:var(--muted);flex:0 0 auto;font-variant-numeric:tabular-nums}
-  .item .dot{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
-  .item.did .dot{background:var(--ok)} .item.didnt .dot{background:var(--danger)}
-  .item.un .dot{background:var(--faint)}
+  .item.live{background:var(--onbg)}
+  .item.live .n{color:var(--accent);font-weight:600}
   .item .x{background:none;border:none;color:var(--faint);padding:2px 4px;font-size:12px}
   .item .x:hover{color:var(--danger);border:none}
   .empty{padding:14px 13px;color:var(--faint);font-size:12.5px}
   .chk{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--line2);background:none;
        color:transparent;display:flex;align-items:center;justify-content:center;font-size:11px;padding:0;flex:0 0 auto}
-  .chk:hover{border-color:var(--ok)}
+  .chk:hover{border-color:var(--ok);color:var(--ok)}
   .addrow{display:flex;gap:8px;padding:10px 13px;border-top:1px solid var(--line)}
   .foot{display:flex;justify-content:space-between;align-items:center;margin-top:22px}
+
+  /* task rows: tap = be on it; tap the lit one = off */
+  .task{cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+  .task:hover{background:var(--panel2)}
+  .task .n{font-size:14px;white-space:normal;line-height:1.35}
+  .task .m{color:var(--faint)}
+  .task .pr{font-size:10.5px;color:var(--amber);flex:0 0 auto;font-weight:700;width:20px}
+  .task .go{color:var(--faint);font-size:12px;flex:0 0 auto;width:18px;text-align:center}
+  .task.on{background:var(--onbg);box-shadow:inset 3px 0 0 var(--accent)}
+  .task.on .n{color:var(--accent);font-weight:650}
+  .task.on .go{color:var(--accent);animation:blink 1.6s ease-in-out infinite}
+  @keyframes blink{50%{opacity:.2}}
+  .grp{padding:7px 13px 3px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+       border-bottom:1px solid var(--line);background:var(--panel2)}
+  .more{display:block;width:100%;background:none;border:none;border-top:1px solid var(--line);border-radius:0;
+        color:var(--faint);font-size:12px;padding:9px}
+  .more:hover{color:var(--accent)}
 
   /* past entry */
   .past{margin-top:10px;padding:12px 13px;border:1px dashed var(--line2);border-radius:13px}
@@ -130,68 +145,46 @@
   .past .seg{display:flex;gap:8px;margin-top:8px}
   .past .seg button{flex:1}
 
-  /* sheet */
-  #sheet{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
-         justify-content:center;z-index:40}
-  .sbox{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);
-        border-bottom:none;border-radius:18px 18px 0 0;
-        padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  /* settings sheet */
+  #settings{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center;z-index:40}
+  .sbox{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line2);border-bottom:none;
+        border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));
         animation:up .26s cubic-bezier(.2,.8,.2,1)}
-  @keyframes up{from{transform:translateY(36px);opacity:.4}to{transform:none;opacity:1}}
-  .sbox.alarm{animation:up .26s cubic-bezier(.2,.8,.2,1), pulse 1.1s ease-in-out infinite}
-  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,94,0)}50%{box-shadow:0 -4px 44px 2px rgba(255,107,94,.4)}}
+  @keyframes up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
   .sbox h3{margin:0 0 3px;font-size:16px}
-  .sbox .p{margin:0 0 14px;color:var(--muted);font-size:13px;
-           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rate{display:flex;gap:10px;margin-bottom:12px}
-  .rate button{flex:1;padding:16px;font-size:15px;font-weight:700;border-radius:12px}
-  .yes{background:var(--ok);border-color:var(--ok);color:#04140D}
-  .no{background:var(--danger);border-color:var(--danger);color:#fff}
-  .rate button:not(.sel){opacity:.82}
-  .rate button.sel{outline:2.5px solid var(--ink);outline-offset:2px}
-  .nxt{transition:opacity .15s}
-  .nxt.locked{opacity:.3;pointer-events:none;filter:grayscale(.6)}
-  .nlab{font-size:12px;color:var(--muted);margin-bottom:7px}
-  .nbtns{display:flex;gap:10px}
-  .nbtns button{flex:1;padding:14px 8px;font-size:14px;font-weight:650;border-radius:12px}
-  .savestop{display:block;width:100%;margin-top:8px;padding:11px;font-size:12.5px;font-weight:600;
-            background:transparent;border:1px dashed var(--line2);color:var(--muted);border-radius:11px}
-  .savestop:hover{border-color:var(--amber);color:var(--amber);border-style:solid}
-  #newWrap{margin-top:12px}
-  .scancel{display:block;margin:14px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
-  .sdiscard{display:block;margin:8px auto 0;background:none;border:none;color:var(--danger);font-size:12px;opacity:.85}
-
-  /* settings */
-  #settings{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
-            justify-content:center;z-index:50}
-  .opt{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+  .opt{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);gap:12px}
   .opt:last-of-type{border-bottom:none}
+  .opt .hint{display:block;font-size:11.5px;color:var(--faint)}
   .sw{position:relative;width:42px;height:24px;flex:0 0 auto}
-  .sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;z-index:2}
+  .sw input{position:absolute;opacity:0;width:100%;height:100%;margin:0;z-index:2;cursor:pointer}
   .sw i{position:absolute;inset:0;background:var(--panel2);border:1px solid var(--line2);border-radius:999px;transition:.15s}
-  .sw i::after{content:"";position:absolute;width:17px;height:17px;border-radius:50%;background:var(--muted);
-               top:2.5px;left:3px;transition:.15s}
+  .sw i::after{content:"";position:absolute;width:17px;height:17px;border-radius:50%;background:var(--muted);top:2.5px;left:3px;transition:.15s}
   .sw input:checked + i{background:var(--accent);border-color:var(--accent)}
-  .sw input:checked + i::after{transform:translateX(18px);background:var(--accent-ink)}
+  .sw input:checked + i::after{left:20px;background:var(--accent-ink)}
   .seg{display:flex;gap:6px}
   .seg button{padding:6px 12px;font-size:12.5px}
 
-  #login{min-height:82vh;display:flex;align-items:center;justify-content:center}
-  .lbox{width:100%;max-width:330px;text-align:center;display:flex;flex-direction:column;gap:10px}
+  /* login */
+  #login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+  .lbox{width:100%;max-width:330px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:stretch}
+  .lbox .mark{justify-content:center;margin-bottom:6px}
   .lbox p{color:var(--muted);font-size:13px;margin:0 0 4px}
   .err{color:var(--danger);font-size:12.5px;min-height:16px}
-  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(80px);
-         background:var(--panel);border:1px solid var(--line2);border-radius:11px;
-         padding:10px 16px;font-size:13px;opacity:0;transition:.24s;z-index:60;max-width:88vw;text-align:center}
+
+  #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(16px);
+         background:var(--ink);color:var(--bg);padding:9px 15px;border-radius:999px;font-size:13px;font-weight:600;
+         opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #toast.show{opacity:1;transform:translateX(-50%)}
 </style>
+</head>
+<body>
 
 <div id="login">
   <div class="lbox">
-    <div class="mark" style="justify-content:center"><i></i>CADENCE LITE</div>
-    <p>Same account as Cadence.</p>
-    <input type="email" id="email" placeholder="email" autocapitalize="off" autocorrect="off">
-    <input type="password" id="password" placeholder="password">
+    <div class="mark"><i></i>CADENCE LITE</div>
+    <p>Sign in - the same account as Cadence.</p>
+    <input type="email" id="email" placeholder="email" autocomplete="username">
+    <input type="password" id="password" placeholder="password" autocomplete="current-password">
     <button class="primary" id="loginBtn">Sign in</button>
     <div class="err" id="loginErr"></div>
     <button class="linky hidden" id="offBoot">continue offline with cached data</button>
@@ -212,101 +205,53 @@
 
   <div class="frog hidden" id="frogBar"></div>
 
-  <div class="hero">
-    <div class="ring" id="ring">
-      <svg width="190" height="190" viewBox="0 0 190 190">
-        <circle class="bg" cx="95" cy="95" r="86"></circle>
-        <circle class="fg" cx="95" cy="95" r="86" id="arc" stroke-dasharray="540" stroke-dashoffset="0"></circle>
-      </svg>
-      <div class="mid">
-        <div class="clock" id="clock">20:00</div>
-        <div class="state" id="stateTxt">Ready</div>
-      </div>
+  <div class="now" id="nowBar">
+    <div class="lbl" id="nowLbl">Off</div>
+    <div class="top">
+      <div class="title" id="nowTitle">Not on anything</div>
+      <div class="clk" id="nowClk"></div>
     </div>
-    <div class="nowtask" id="nowTask"></div>
+    <div class="sub" id="nowSub">Tap a task to be on it. Tap another to switch.</div>
+    <div class="btns hidden" id="nowBtns">
+      <button class="primary" id="doneBtn">✓ Done</button>
+      <button id="offBtn">■ Off</button>
+      <button class="linky" id="discardBtn">discard</button>
+    </div>
   </div>
 
-  <div id="idleBox">
-    <div class="go">
-      <input type="text" id="plan" placeholder="What are you working on?" autocomplete="off">
-      <button class="primary" id="goBtn">Go</button>
-    </div>
-    <div class="lens" id="lens">
-      <button data-min="10">10</button>
-      <button data-min="20" class="on">20</button>
-      <button data-min="30">30</button>
-    </div>
-    <div class="picks" id="picks"></div>
+  <div class="go">
+    <input type="text" id="plan" placeholder="On something else? type it" autocomplete="off">
+    <button class="primary" id="goBtn">On it</button>
   </div>
-
-  <div id="runBox" class="hidden">
-    <div class="runbtns">
-      <button id="pauseBtn">Pause</button>
-      <button id="logBtn">Log now</button>
-      <button class="stopbtn" id="stopBtn">Stop</button>
-    </div>
-    <div style="text-align:center"><button class="linky" id="discardBtn" style="margin-top:9px">discard — don't record</button></div>
-  </div>
-
-  <h2>Today <span id="todayTotal"></span></h2>
-  <div class="card" id="todayCard"></div>
 
   <h2>Tasks <span id="taskCount"></span></h2>
   <div class="card">
     <div id="taskList"></div>
+    <button class="more hidden" id="moreBtn"></button>
     <div class="addrow">
-      <input type="text" id="taskAdd" placeholder="add a task" autocomplete="off">
+      <input type="text" id="taskAdd" placeholder="add a task (without starting it)" autocomplete="off">
       <button id="taskAddBtn">Add</button>
     </div>
   </div>
+
+  <h2>Today <span id="todayTotal"></span></h2>
+  <div class="card" id="todayCard"></div>
 
   <div class="foot">
     <button class="linky" id="pastToggle">+ log time already spent</button>
     <span style="font-size:11px;color:var(--faint)" id="acct"></span>
   </div>
   <div class="past hidden" id="pastBox">
-    <input type="text" id="pDesc" placeholder="What did you do?">
+    <input type="text" id="pDesc" placeholder="What were you on?" autocomplete="off">
     <div class="g">
       <input type="time" id="pStart"><input type="time" id="pEnd">
     </div>
     <div class="seg">
-      <button class="yes" id="pDid">✓ Did it</button>
-      <button class="no" id="pDidnt">✕ Didn't</button>
+      <button class="primary" id="pLog">Log it</button>
+      <button id="pCancel">cancel</button>
     </div>
-    <div style="text-align:center"><button class="linky" id="pCancel" style="margin-top:9px">cancel</button></div>
   </div>
 </div></div>
-
-<div id="sheet" class="hidden">
-  <div class="sbox" id="sbox">
-    <h3 id="sTitle">Block done — did you do it?</h3>
-    <p class="p" id="sPlanned"></p>
-    <div class="rate">
-      <button class="yes" id="rYes">✓ Did it</button>
-      <button class="no" id="rNo">✕ Didn't</button>
-    </div>
-    <div class="nxt locked" id="nxt">
-      <div class="nlab">Next block —</div>
-      <div class="nbtns">
-        <button class="primary" id="nSame">⟳ Same task</button>
-        <button id="nNew">→ New task</button>
-      </div>
-      <button class="savestop" id="nStop">■ Save this block · nothing next</button>
-    </div>
-    <div id="newWrap" class="hidden">
-      <div class="picks" id="newPicks" style="margin:0 0 9px"></div>
-      <input type="text" id="sNext" placeholder="Or type it…" autocomplete="off">
-      <div class="lens" id="nLens" style="justify-content:flex-start;margin-top:9px">
-        <button data-nmin="10">10</button><button data-nmin="20">20</button><button data-nmin="30">30</button>
-      </div>
-      <button class="primary" id="nStart" style="width:100%;margin-top:10px">Start next block →</button>
-    </div>
-    <button class="linky" id="sDetail" style="display:block;margin-top:12px">+ what you actually did</button>
-    <input type="text" id="sActual" class="hidden" placeholder="optional" style="margin-top:8px">
-    <button class="scancel" id="sCancel">snooze 1 min</button>
-    <button class="sdiscard" id="sDiscard">discard — don't record</button>
-  </div>
-</div>
 
 <div id="settings" class="hidden">
   <div class="sbox">
@@ -314,10 +259,12 @@
     <div class="opt"><span>Theme</span>
       <div class="seg"><button id="thDark">Dark</button><button id="thLight">Light</button></div>
     </div>
-    <div class="opt"><span>Alarm sound</span><label class="sw"><input type="checkbox" id="swSound"><i></i></label></div>
-    <div class="opt"><span>Daily goal</span>
-      <div class="row" style="gap:6px"><input type="number" id="goalHrs" min="1" max="16" style="width:64px"><span style="color:var(--muted);font-size:13px">hours</span></div>
+    <div class="opt"><span>Chime while on a task<span class="hint">a soft ding at each interval; never blocks</span></span>
+      <div class="seg" id="chimeSeg">
+        <button data-chime="0">Off</button><button data-chime="10">10</button><button data-chime="20">20</button><button data-chime="30">30</button>
+      </div>
     </div>
+    <div class="opt"><span>Sound</span><label class="sw"><input type="checkbox" id="swSound"><i></i></label></div>
     <div class="opt"><span>Version</span>
       <div class="seg"><button id="vFull">Full</button><button id="vLite" class="on">Lite</button></div>
     </div>
@@ -356,30 +303,42 @@
     if(v !== VIEW) location.href = (v === "lite" ? "lite/" : "../");
   }
 
-  var RING = 540;
+  // TRACKER MODE (2026-09-04). Cadence Lite records WHICH task you're on and
+  // WHEN. Tap a task = you're on it; tap another = switch (the previous block
+  // closes with its measured minutes); tap the lit one = off. The timer is now
+  // an optional chime. Rows are the full app's stopwatch shape, so the full app,
+  // the companion and ~/Dev/cadence/track.py all read and write the same thing:
+  //   state.mode = "stopwatch", state.due_at = START anchor, block_total = 0,
+  //   blocks.mode = "stopwatch", interval_min = measured minutes once closed.
   var UID = null, EMAIL = "", st = null, TODAY = [], TASKS = [], FROGS = [], busy = false;
   var FROG_OK = false;                 // frogs table present
   var tickTimer = null, pollTimer = null, audioCtx = null;
-  var sheetIsStop = false, sheetRating = "", sheetNextMin = 0, _grace = 0;
   var OFFBOOT = false;
+  var SHOW_N = 14;                     // task rows before "+N more"
+  var TAG_ORDER = {focus:0, vix:1, adhoc:2, also:3, personal:4, unranked:8};
+  var GROUP_LABEL = {ranked:"Ranked today", focus:"Focus", vix:"VIX", adhoc:"Added on the fly",
+                     also:"Also", personal:"Personal", unranked:"Not ranked", untagged:"Other"};
 
   function $(id){ return document.getElementById(id); }
   function el(t,c,x){ var e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; }
   function hm(ts){ var d=new Date(ts); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
   function hmin(m){ m=Math.round(m||0); var h=Math.floor(m/60); return h>0?(h+"h "+String(m%60).padStart(2,"0")+"m"):(m+"m"); }
-  function clock(s){ s=Math.max(0,Math.round(s)); return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0"); }
+  function clockUp(sec){ sec=Math.max(0,Math.floor(sec)); var h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60;
+    return h>0 ? (h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")) : (String(m).padStart(2,"0")+":"+String(s).padStart(2,"0")); }
   function dayKey(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
   function todayStartISO(){ var d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
   function cap(s){ s=(s||"").trim(); return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+  function trunc(s,n){ s=s||""; return s.length>n ? s.slice(0,n)+"…" : s; }
+  function esc(t){ var d=document.createElement("div"); d.textContent=t||""; return d.innerHTML; }
 
   // ---------------- prefs ----------------
-  var DEF = {theme:"dark", sound:true, goalHrs:4, len:20};
+  var DEF = {theme:"dark", sound:true, chime:20, showAll:false};
   var prefs = (function(){
     try{ var p=JSON.parse(localStorage.getItem("cadlite_prefs")||"{}"), o=JSON.parse(JSON.stringify(DEF));
       if(p.theme==="light"||p.theme==="dark") o.theme=p.theme;
       if(typeof p.sound==="boolean") o.sound=p.sound;
-      if(typeof p.goalHrs==="number" && p.goalHrs>0) o.goalHrs=p.goalHrs;
-      if(typeof p.len==="number" && p.len>0) o.len=p.len;
+      if(typeof p.chime==="number" && p.chime>=0) o.chime=p.chime;
+      if(typeof p.showAll==="boolean") o.showAll=p.showAll;
       return o;
     }catch(e){ return JSON.parse(JSON.stringify(DEF)); }
   })();
@@ -391,13 +350,12 @@
     $("thDark").classList.toggle("on", prefs.theme==="dark");
     $("thLight").classList.toggle("on", prefs.theme==="light");
     $("swSound").checked = prefs.sound;
-    $("goalHrs").value = prefs.goalHrs;
-    document.querySelectorAll("#lens button").forEach(function(b){
-      b.classList.toggle("on", parseInt(b.dataset.min,10)===prefs.len);
+    document.querySelectorAll("#chimeSeg button").forEach(function(b){
+      b.classList.toggle("on", parseInt(b.dataset.chime,10)===prefs.chime);
     });
   }
 
-  // ---------------- alarm ----------------
+  // ---------------- chime ----------------
   function unlockAudio(){ if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
   function chime(){
     if(!prefs.sound || !audioCtx) return;
@@ -415,24 +373,9 @@
       });
     }catch(e){}
   }
-  var alarmT=null, titleT=null, oldTitle=null;
-  function startAlarm(){
-    stopAlarm(); chime();
-    alarmT=setInterval(chime, 2500);
-    $("sbox").classList.add("alarm");
-    oldTitle=document.title; var f=false;
-    titleT=setInterval(function(){ f=!f; document.title=f?"⏰ BLOCK DONE":(oldTitle||"Cadence Lite"); }, 1000);
-  }
-  function stopAlarm(){
-    if(alarmT){ clearInterval(alarmT); alarmT=null; }
-    if(titleT){ clearInterval(titleT); titleT=null; }
-    if(oldTitle!=null){ document.title=oldTitle; oldTitle=null; }
-    $("sbox").classList.remove("alarm");
-  }
   var toastT=null;
   function toast(m,ms){ var t=$("toast"); t.textContent=m; t.classList.add("show");
     clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("show"); }, ms||3000); }
-
   // =============== [OB-BEGIN] offline data layer ===============
   // MIRROR: local copy of everything the UI shows, so the app renders offline.
   // OB: outbox of writes made offline, replayed in order on reconnect.
@@ -587,7 +530,7 @@
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
     loadOB(); loadMirror();
     FROG_OK=!!(MIRROR.flags && MIRROR.flags.frog);
-    st=MIRROR.st||{interval_min:prefs.len, block_index:0};
+    st=MIRROR.st||{interval_min:20, block_index:0};
     rebuildFromMirror(false); extFromMirror(); render(); obBadge();
     startTimers();
   }
@@ -605,6 +548,7 @@
   function startTimers(){
     if(!tickTimer) tickTimer=setInterval(tick,1000);
     if(!pollTimer) pollTimer=setInterval(function(){ refresh(); }, 6000);
+    setInterval(function(){ if(!busy) refreshExt(); }, 30000);   // tasks pushed in by track.py / the syncs
   }
   async function doLogin(){
     $("loginErr").textContent="";
@@ -615,10 +559,10 @@
     var r=null;
     try{ r=await SB.from("state").select("*").eq("user_id",UID).maybeSingle(); }catch(e){ r={error:e}; }
     if(r && r.data){ st=r.data; MIRROR.st=st; saveMirror(); return; }
-    if(r && r.error){ st=MIRROR.st||{interval_min:prefs.len, block_index:0}; return; }
-    await SB.from("state").insert({user_id:UID, interval_min:prefs.len});
+    if(r && r.error){ st=MIRROR.st||{interval_min:20, block_index:0}; return; }
+    await SB.from("state").insert({user_id:UID, interval_min:20});
     r=await SB.from("state").select("*").eq("user_id",UID).maybeSingle();
-    st=(r&&r.data)||{interval_min:prefs.len, block_index:0};
+    st=(r&&r.data)||{interval_min:20, block_index:0};
     MIRROR.st=st; saveMirror();
   }
   async function probe(){
@@ -632,7 +576,8 @@
   // ---------------- read ----------------
   function toItem(b){
     return {id:b.id, sort:b.planned_at, startHM:hm(b.planned_at), endHM:hm(b.logged_at||b.planned_at),
-            planned:(b.planned||"").trim(), rating:(b.rating||"").trim(), minutes:b.interval_min||0};
+            planned:(b.planned||"").trim(), rating:(b.rating||"").trim(), minutes:b.interval_min||0,
+            task_id:b.task_id||null, open:b.status!=="logged"};
   }
   async function refresh(){
     if(busy) return;
@@ -650,7 +595,7 @@
   async function refreshExt(){
     if(offlineNow()){ extFromMirror(); render(); return; }
     try{
-      var t=await SB.from("tasks").select("*").eq("status","open").order("id",{ascending:false}).limit(40);
+      var t=await SB.from("tasks").select("*").eq("status","open").order("id",{ascending:false}).limit(300);
       if(!t.error){ TASKS=t.data||[]; MIRROR.tasks=TASKS.slice(); }
     }catch(e){}
     if(FROG_OK){
@@ -665,12 +610,57 @@
   }
 
   // ---------------- derived ----------------
+  function rankKey(t){
+    var pr=(t.priority==null)?999:t.priority;
+    var tg=TAG_ORDER[(t.tag||"").toLowerCase()]; if(tg==null) tg=6;
+    return [pr, tg, -(t.id||0)];
+  }
+  function sortedTasks(){
+    return TASKS.slice().sort(function(a,b){ var ka=rankKey(a), kb=rankKey(b);
+      for(var i=0;i<3;i++){ if(ka[i]!==kb[i]) return ka[i]-kb[i]; } return 0; });
+  }
+  function groupOf(t){ if(t.priority!=null) return "ranked"; return (t.tag||"").toLowerCase()||"untagged"; }
+  function activeBlock(){
+    if(!st||!st.active_block_id) return null;
+    return (MIRROR.blocks||[]).filter(function(b){ return b.id===st.active_block_id; })[0]||null;
+  }
+  // The one derived fact everything renders from. Timer-mode blocks (started
+  // in the full app) still show, counting up from their real start; nothing
+  // here ever fires a blocking sheet.
   function status(){
     var now=Date.now();
-    if(!st || !st.active_session_id) return {mode:"idle", remainingSec:(st&&st.interval_min||prefs.len)*60, totalSec:(st&&st.interval_min||prefs.len)*60};
-    if(st.paused) return {mode:"work", paused:true, remainingSec:st.pause_remaining||0, totalSec:st.block_total||1200};
-    var rem=st.due_at ? (new Date(st.due_at).getTime()-now)/1000 : 0;
-    return {mode:"work", paused:false, remainingSec:rem, totalSec:st.block_total||1200};
+    if(!st || !st.active_session_id) return {on:false};
+    var anchor = st.due_at ? new Date(st.due_at).getTime() : now;
+    var timer = (st.mode!=="stopwatch") && (st.block_total>0);
+    var b=activeBlock();
+    var startMs = (b && b.planned_at) ? new Date(b.planned_at).getTime() : (timer ? anchor-(st.block_total*1000) : anchor);
+    return {on:true, plan:(st.block_plan||"").trim(), startMs:startMs, elapsedSec:Math.max(0,(now-startMs)/1000),
+            timer:timer, endMs: timer ? anchor : null, blockId:st.active_block_id, taskId:(b&&b.task_id)||null};
+  }
+  function isActiveTask(t,s){
+    if(!s.on) return false;
+    if(s.taskId) return t.id===s.taskId;
+    return (t.name||"").trim().toLowerCase()===s.plan.toLowerCase();
+  }
+  function minutesByTask(){
+    var byId={}, byName={}, s=status();
+    function add(id,name,m){ if(id) byId[id]=(byId[id]||0)+m; var k=(name||"").trim().toLowerCase(); if(k) byName[k]=(byName[k]||0)+m; }
+    TODAY.forEach(function(it){ if(!it.open) add(it.task_id, it.planned, it.minutes); });
+    if(s.on) add(s.taskId, s.plan, s.elapsedSec/60);
+    return {byId:byId, byName:byName};
+  }
+  function findTask(name){
+    name=(name||"").trim().toLowerCase(); if(!name) return null;
+    var t=TASKS.filter(function(x){ return (x.name||"").trim().toLowerCase()===name; })[0];
+    return t ? t.id : null;
+  }
+  // exact -> containing (ranked one wins) -> null. Typed text that matches
+  // nothing becomes a new task, because what you're on must be on the list.
+  function findTaskFuzzy(q){
+    q=(q||"").trim().toLowerCase(); if(!q) return null;
+    var list=sortedTasks();
+    var ex=list.filter(function(x){ return (x.name||"").trim().toLowerCase()===q; })[0]; if(ex) return ex;
+    return list.filter(function(x){ return (x.name||"").toLowerCase().indexOf(q)>=0; })[0]||null;
   }
 
   // ---------------- render ----------------
@@ -678,18 +668,24 @@
     if(!st) return;
     var s=status();
     $("today").textContent=new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
-    $("clock").textContent = s.mode==="idle" ? clock(s.remainingSec) : clock(Math.max(0,s.remainingSec));
-    $("stateTxt").textContent = s.mode==="idle" ? "Ready" : (s.paused ? "Paused" : (s.remainingSec<=0 ? "Overdue" : "Focus"));
-    var frac = s.totalSec>0 ? Math.max(0,Math.min(1,s.remainingSec/s.totalSec)) : 0;
-    $("arc").setAttribute("stroke-dashoffset", String(RING*(1-frac)));
-    $("ring").classList.toggle("over", s.mode==="work" && s.remainingSec<=0);
-    $("nowTask").innerHTML = s.mode==="work" && st.block_plan ? ("<b>"+esc(st.block_plan)+"</b>") : "";
-    $("idleBox").classList.toggle("hidden", s.mode!=="idle");
-    $("runBox").classList.toggle("hidden", s.mode!=="work");
-    $("pauseBtn").textContent = st.paused ? "Resume" : "Pause";
-    renderFrog(); renderToday(); renderTasks(); renderPicks();
+    $("nowBar").classList.toggle("on", s.on);
+    $("nowBtns").classList.toggle("hidden", !s.on);
+    if(s.on){
+      $("nowLbl").textContent = s.timer ? "On · timer block" : "On";
+      $("nowTitle").textContent = s.plan || "(untitled)";
+      $("nowClk").textContent = clockUp(s.elapsedSec);
+      var sub="since "+hm(s.startMs);
+      if(s.timer) sub += (s.endMs>Date.now() ? " · timer ends "+hm(s.endMs) : " · timer ended "+hm(s.endMs));
+      else if(prefs.chime>0 && prefs.sound){ var per=prefs.chime*60; sub += " · chime in "+Math.max(1,Math.ceil((per-(s.elapsedSec%per))/60))+"m"; }
+      $("nowSub").textContent=sub;
+    } else {
+      $("nowLbl").textContent="Off";
+      $("nowTitle").textContent="Not on anything";
+      $("nowClk").textContent="";
+      $("nowSub").textContent = TASKS.length ? "Tap a task to be on it. Tap another to switch." : "Add a task below, then tap it.";
+    }
+    renderFrog(); renderTasks(); renderToday();
   }
-  function esc(t){ var d=document.createElement("div"); d.textContent=t||""; return d.innerHTML; }
 
   function frogToday(){ var k=dayKey(); return FROGS.filter(function(f){ return f.day===k; })[0]||null; }
   function renderFrog(){
@@ -707,7 +703,7 @@
       var seen={};
       if(y){ var c0=el("span","pick frogpick","↻ "+trunc(y.title,26)); seen[y.title.toLowerCase()]=1;
         c0.addEventListener("click", function(){ setFrog(y.title); }); pick.appendChild(c0); }
-      TASKS.slice(0,5).forEach(function(k){
+      sortedTasks().slice(0,5).forEach(function(k){
         var lo=(k.name||"").toLowerCase(); if(!lo||seen[lo]) return; seen[lo]=1;
         var c=el("span","pick",trunc(k.name,28));
         c.addEventListener("click", function(){ setFrog(k.name); });
@@ -719,9 +715,11 @@
     bar.classList.add(t.done ? "eaten" : "hot");
     bar.appendChild(el("div","ft",t.title));
     if(!t.done){
-      var go=el("button","", "▶");
-      go.title="Start a block on the frog";
-      go.addEventListener("click", function(){ startSession(t.title, prefs.len); });
+      var s=status();
+      var onIt = s.on && s.plan.toLowerCase()===t.title.trim().toLowerCase();
+      var go=el("button","", onIt ? "●" : "▶");
+      go.title= onIt ? "You're on it" : "Be on the frog";
+      go.addEventListener("click", function(){ if(!onIt) switchTo(t.title, findTask(t.title)); });
       bar.appendChild(go);
       var dn=el("button","","✓");
       dn.title="Frog swallowed";
@@ -731,165 +729,193 @@
       bar.appendChild(el("span","sub","swallowed ✓"));
     }
   }
-  function trunc(s,n){ s=s||""; return s.length>n ? s.slice(0,n)+"…" : s; }
 
-  function renderToday(){
-    var box=$("todayCard"); box.innerHTML="";
-    var mins=TODAY.reduce(function(a,b){ return a+(b.minutes||0); },0);
-    $("todayTotal").textContent = TODAY.length ? (hmin(mins)+" · "+TODAY.length+" block"+(TODAY.length===1?"":"s")) : "";
-    if(!TODAY.length){ box.appendChild(el("div","empty","Nothing logged yet today.")); return; }
-    TODAY.slice().sort(function(a,b){ return a.sort<b.sort?-1:1; }).forEach(function(it){
-      var cls = it.rating==="Did it" ? "did" : (it.rating==="Didn't" ? "didnt" : "un");
-      var row=el("div","item "+cls);
-      row.appendChild(el("span","dot"));
-      row.appendChild(el("span","t",it.startHM));
-      row.appendChild(el("span","n",it.planned||"(untitled)"));
-      row.appendChild(el("span","m",it.minutes+"m"));
-      var x=el("button","x","✕"); x.title="delete";
-      x.addEventListener("click", function(){ if(confirm('Delete "'+(it.planned||"entry")+'"?')) delEntry(it); });
-      row.appendChild(x);
-      box.appendChild(row);
-    });
+  function taskRow(t, on, mins){
+    var row=el("div","item task"+(on?" on":""));
+    var c=el("button","chk","✓"); c.title="Finished";
+    c.addEventListener("click", function(e){ e.stopPropagation(); finishTask(t); });
+    row.appendChild(c);
+    if(t.priority!=null) row.appendChild(el("span","pr","#"+t.priority));
+    row.appendChild(el("span","n",t.name));
+    var m = mins.byId[t.id]!=null ? mins.byId[t.id] : (mins.byName[(t.name||"").trim().toLowerCase()]||0);
+    if(m>=1) row.appendChild(el("span","m",hmin(m)+" today"));
+    row.appendChild(el("span","go", on?"●":"▶"));
+    row.addEventListener("click", function(){ if(on) goOff(); else switchTo(t.name, t.id); });
+    return row;
   }
-
   function renderTasks(){
     var box=$("taskList"); box.innerHTML="";
-    $("taskCount").textContent = TASKS.length ? (TASKS.length+" open") : "";
-    if(!TASKS.length){ box.appendChild(el("div","empty","No open tasks. Add one below, or they sync in from your list.")); return; }
-    TASKS.slice(0,12).forEach(function(t){
-      var row=el("div","item");
-      var c=el("button","chk","✓"); c.title="Mark finished";
-      c.addEventListener("click", function(){ finishTask(t); });
-      row.appendChild(c);
-      var n=el("span","n",t.name); n.style.cursor="pointer";
-      n.addEventListener("click", function(){ startSession(t.name, prefs.len); });
-      row.appendChild(n);
-      box.appendChild(row);
+    var list=sortedTasks(), s=status(), mins=minutesByTask();
+    $("taskCount").textContent = list.length ? (list.length+" open") : "";
+    if(!list.length){ box.appendChild(el("div","empty","No open tasks. Add one below, or they sync in from your list.")); $("moreBtn").classList.add("hidden"); return; }
+    var shown = prefs.showAll ? list : list.slice(0,SHOW_N);
+    if(!prefs.showAll && s.on){            // the task you're on is always visible
+      var act=list.filter(function(t){ return isActiveTask(t,s); })[0];
+      if(act && shown.indexOf(act)<0) shown.push(act);
+    }
+    var last=null;
+    shown.forEach(function(t){
+      var g=groupOf(t);
+      if(g!==last){ box.appendChild(el("div","grp",GROUP_LABEL[g]||g)); last=g; }
+      box.appendChild(taskRow(t, isActiveTask(t,s), mins));
     });
+    var hidden=list.length-Math.min(list.length,SHOW_N);
+    var mb=$("moreBtn"); mb.classList.toggle("hidden", hidden<=0);
+    mb.textContent = prefs.showAll ? "show less" : ("+"+hidden+" more");
   }
-
-  function pickList(exclude){
-    var out=[], seen={}, ex=(exclude||"").trim().toLowerCase();
-    var f=frogToday();
-    if(f && !f.done && f.title.toLowerCase()!==ex){ out.push({name:f.title, frog:true}); seen[f.title.toLowerCase()]=1; }
-    TASKS.forEach(function(t){
-      if(out.length>=6) return;
-      var lo=(t.name||"").toLowerCase(); if(!lo||lo===ex||seen[lo]) return;
-      seen[lo]=1; out.push({name:t.name});
+  function renderToday(){
+    var box=$("todayCard"); box.innerHTML="";
+    var s=status();
+    var items=TODAY.filter(function(it){ return !it.open; }).sort(function(a,b){ return a.sort<b.sort?1:-1; });
+    var total=items.reduce(function(a,i){ return a+i.minutes; },0) + (s.on ? s.elapsedSec/60 : 0);
+    $("todayTotal").textContent = total>=1 ? hmin(total) : "";
+    if(s.on){
+      var r0=el("div","item live");
+      r0.appendChild(el("span","t",hm(s.startMs)+"–now"));
+      r0.appendChild(el("span","n",s.plan));
+      r0.appendChild(el("span","m",hmin(s.elapsedSec/60)));
+      box.appendChild(r0);
+    }
+    if(!items.length && !s.on){ box.appendChild(el("div","empty","Nothing tracked yet today.")); return; }
+    items.forEach(function(it){
+      var r=el("div","item");
+      r.appendChild(el("span","t",it.startHM+"–"+it.endHM));
+      r.appendChild(el("span","n",it.planned));
+      r.appendChild(el("span","m",hmin(it.minutes)));
+      var x=el("button","x","✕"); x.title="Delete this entry";
+      x.addEventListener("click", function(){ if(confirm("Delete this entry?")) delEntry(it); });
+      r.appendChild(x);
+      box.appendChild(r);
     });
-    return out;
-  }
-  function mkPick(p, act){
-    var c=el("span","pick"+(p.frog?" frogpick":""), (p.frog?"🐸 ":"")+trunc(p.name,34));
-    c.addEventListener("click", function(){ act(p); });
-    return c;
-  }
-  function renderPicks(){
-    var box=$("picks"); box.innerHTML="";
-    pickList("").forEach(function(p){ box.appendChild(mkPick(p, function(pp){ startSession(pp.name, prefs.len); })); });
   }
 
   // ---------------- tick ----------------
+  var _chimed="";
   function tick(){
     if(!st) return;
     var s=status();
     render();
-    if(s.mode==="work" && !s.paused && s.remainingSec<=0 && $("sheet").classList.contains("hidden")
-       && !busy && Date.now()>_grace){ openSheet(false,true); }
+    if(!s.on || !prefs.sound) return;
+    if(s.timer){                              // a full-app timer block: one ding when it ends, nothing modal
+      if(s.endMs && Date.now()>=s.endMs && (Date.now()-s.endMs)<5000 && _chimed!==("t"+s.blockId)){ _chimed="t"+s.blockId; chime(); toast("Timer ended · "+trunc(s.plan,40)); }
+      return;
+    }
+    if(prefs.chime>0){
+      var per=prefs.chime*60, k=Math.floor(s.elapsedSec/per);
+      if(k>=1){ var key=s.blockId+":"+k;
+        if(_chimed!==key && (s.elapsedSec-k*per)<5){ _chimed=key; chime(); toast(hmin(k*prefs.chime)+" on "+trunc(s.plan,40)); } }
+    }
   }
 
   // ---------------- actions ----------------
   async function run(fn){ if(busy) return; busy=true; try{ await fn(); }catch(e){ console.log(e); } busy=false; await refresh(); }
 
-  async function findTask(name){
-    name=(name||"").trim().toLowerCase(); if(!name) return null;
-    var t=TASKS.filter(function(x){ return (x.name||"").toLowerCase()===name; })[0];
-    return t ? t.id : null;                       // link only; never auto-create
+  async function closeActive(at){
+    var s=status(); if(!s.on || !st.active_block_id) return;
+    var mins=Math.max(1, Math.round((at.getTime()-s.startMs)/60000));
+    await dbUpd("blocks", {status:"logged", logged_at:at.toISOString(), actual:s.plan||null, interval_min:mins, mode:"stopwatch"},
+                {id:st.active_block_id});
   }
-
-  function startSession(plan, mins){
+  async function clearState(){
+    await dbUpd("state", {active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
+      block_total:0, due_at:null, paused:false, pause_remaining:0}, {user_id:UID});
+  }
+  // the core: be on `plan` from now. Closes whatever was running first.
+  async function startOn(plan, taskId){
     plan=(plan||"").trim(); if(!plan) return;
+    var at=new Date();
+    var tid = (taskId!=null) ? taskId : findTask(plan);
+    var sid, idx;
+    if(st && st.active_session_id){
+      await closeActive(at);
+      sid=st.active_session_id; idx=(st.block_index||1)+1;
+    } else {
+      var ses=await dbIns("sessions", {interval_min:0, started_at:at.toISOString()});
+      sid=ses.data.id; idx=1;
+    }
+    var payload={session_id:sid, block_index:idx, planned:plan, status:"open",
+      planned_at:at.toISOString(), due_at:at.toISOString(), interval_min:0, mode:"stopwatch"};
+    if(tid) payload.task_id=tid;
+    var b=await dbIns("blocks", payload);
+    await dbUpd("state", {active_session_id:sid, active_block_id:b.data.id, block_index:idx, block_plan:plan,
+      block_total:0, due_at:at.toISOString(), paused:false, pause_remaining:0, mode:"stopwatch"}, {user_id:UID});
+    $("plan").value=""; _chimed="";
+  }
+  function switchTo(plan, taskId){ run(function(){ return startOn(plan, taskId); }); }
+  function startTyped(){
+    var v=$("plan").value.trim(); if(!v) return;
+    var t=findTaskFuzzy(v);
+    if(t){ switchTo(t.name, t.id); return; }
     run(async function(){
-      var iv=Math.min(240, Math.max(1, Math.round(mins||prefs.len)));
-      var now=new Date(), due=new Date(now.getTime()+iv*60000);
-      var taskId=await findTask(plan);
-      var s=await dbIns("sessions", {interval_min:iv, started_at:now.toISOString()});
-      var payload={session_id:s.data.id, block_index:1, planned:plan, status:"open",
-        planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:iv};
-      if(taskId) payload.task_id=taskId;
-      var b=await dbIns("blocks", payload);
-      await dbUpd("state", {active_session_id:s.data.id, active_block_id:b.data.id, block_index:1,
-        block_plan:plan, block_total:iv*60, due_at:due.toISOString(), paused:false, pause_remaining:0,
-        interval_min:iv}, {user_id:UID});
-      $("plan").value="";
+      var r=await dbIns("tasks", {name:cap(v), status:"open", tag:"adhoc"});
+      if(r.data && !TASKS.some(function(x){ return x.id===r.data.id; })) TASKS.unshift(r.data);
+      MIRROR.tasks=TASKS.slice(); saveMirror();
+      await startOn(cap(v), r.data ? r.data.id : null);
     });
   }
-  function logBlock(rating, actual, nextPlan, nextMins){
+  function goOff(){
     run(async function(){
-      var nv=Math.min(240, Math.max(1, Math.round(nextMins||prefs.len)));
-      var now=new Date(), due=new Date(now.getTime()+nv*60000), idx=(st.block_index||1)+1;
-      await dbUpd("blocks", {actual:actual||null, rating:rating, status:"logged", logged_at:now.toISOString()},
-                  {id:st.active_block_id});
-      var taskId=await findTask(nextPlan);
-      var payload={session_id:st.active_session_id, block_index:idx, planned:nextPlan, status:"open",
-        planned_at:now.toISOString(), due_at:due.toISOString(), interval_min:nv};
-      if(taskId) payload.task_id=taskId;
-      var nb=await dbIns("blocks", payload);
-      await dbUpd("state", {active_block_id:nb.data.id, block_index:idx, block_plan:nextPlan,
-        block_total:nv*60, due_at:due.toISOString(), paused:false, pause_remaining:0}, {user_id:UID});
-      await refreshExt();
+      if(!st || !st.active_session_id) return;
+      var at=new Date();
+      await closeActive(at);
+      await dbUpd("sessions", {ended_at:at.toISOString()}, {id:st.active_session_id});
+      await clearState();
+      toast("Off.");
     });
   }
-  function stopSession(rating, actual){
+  function activeTaskRow(s){
+    if(s.taskId){ var byId=TASKS.filter(function(x){ return x.id===s.taskId; })[0]; if(byId) return byId; }
+    return TASKS.filter(function(x){ return (x.name||"").trim().toLowerCase()===s.plan.toLowerCase(); })[0]||null;
+  }
+  function doneNow(){
+    var s=status(); if(!s.on) return;
+    var t=activeTaskRow(s);
     run(async function(){
-      var now=new Date();
-      await dbUpd("blocks", {actual:actual||null, rating:rating, status:"logged", logged_at:now.toISOString()},
-                  {id:st.active_block_id});
-      await dbUpd("sessions", {ended_at:now.toISOString()}, {id:st.active_session_id});
-      await dbUpd("state", {active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
-        block_total:0, due_at:null, paused:false, pause_remaining:0}, {user_id:UID});
-      await refreshExt();
+      var at=new Date();
+      await closeActive(at);
+      await dbUpd("sessions", {ended_at:at.toISOString()}, {id:st.active_session_id});
+      await clearState();
+      if(t){
+        await dbUpd("tasks", {status:"done", completed_at:at.toISOString()}, {id:t.id});
+        TASKS=TASKS.filter(function(x){ return x.id!==t.id; }); MIRROR.tasks=TASKS.slice(); saveMirror();
+        var f=frogToday();
+        if(f && !f.done && f.title.trim().toLowerCase()===t.name.trim().toLowerCase()) await eatFrog();
+      }
+      toast(t ? "Done ✓ "+trunc(t.name,30) : "Done ✓");
     });
   }
   function discardSession(){
     if(!st || !st.active_session_id) return;
     if(!confirm("Discard this block? Nothing will be recorded.")) return;
-    closeSheet();
     run(async function(){
       var sid=st.active_session_id, bid=st.active_block_id;
       if(bid) await dbDel("blocks", {id:bid});
       var rest;
-      if(offlineNow()) rest=(MIRROR.blocks||[]).filter(function(x){ return x.session_id===sid; });
+      if(offlineNow()) rest=(MIRROR.blocks||[]).filter(function(x){ return x.session_id===sid && x.id!==bid; });
       else { var r=await SB.from("blocks").select("id").eq("session_id",sid).limit(1); rest=r.data||[]; }
       if(!rest.length) await dbDel("sessions", {id:sid});
       else await dbUpd("sessions", {ended_at:new Date().toISOString()}, {id:sid});
-      await dbUpd("state", {active_session_id:null, active_block_id:null, block_index:0, block_plan:null,
-        block_total:0, due_at:null, paused:false, pause_remaining:0}, {user_id:UID});
+      await clearState();
       toast("Discarded — nothing recorded.");
-    });
-  }
-  function togglePause(){
-    run(async function(){
-      var now=Date.now();
-      if(st.paused) await dbUpd("state", {paused:false, due_at:new Date(now+(st.pause_remaining||0)*1000).toISOString()}, {user_id:UID});
-      else await dbUpd("state", {paused:true, pause_remaining:Math.max(0,Math.round((new Date(st.due_at).getTime()-now)/1000))}, {user_id:UID});
     });
   }
   function delEntry(it){ run(async function(){ await dbDel("blocks", {id:it.id}); }); }
   function finishTask(t){
+    var s=status();
+    if(s.on && isActiveTask(t,s)){ doneNow(); return; }
     run(async function(){
       await dbUpd("tasks", {status:"done", completed_at:new Date().toISOString()}, {id:t.id});
       TASKS=TASKS.filter(function(x){ return x.id!==t.id; });
       MIRROR.tasks=TASKS.slice(); saveMirror();
       render();
-      toast("Task finished ✓");
+      toast("Done ✓ "+trunc(t.name,30));
     });
   }
   function addTask(){
     var v=$("taskAdd").value.trim(); if(!v) return;
     $("taskAdd").value="";
     run(async function(){
-      var r=await dbIns("tasks", {name:cap(v), status:"open"});
+      var r=await dbIns("tasks", {name:cap(v), status:"open", tag:"adhoc"});
       if(r.data && !TASKS.some(function(x){ return x.id===r.data.id; })) TASKS.unshift(r.data);
       MIRROR.tasks=TASKS.slice(); saveMirror();
       render(); toast("Task added");
@@ -915,78 +941,22 @@
       toast("🐸 Frog swallowed — the worst is behind you.");
     }catch(e){ console.log(e); }
   }
-  function addPast(desc, startHM, endHM, rating){
+  function hhmm(v){ if(!v) return null; var p=v.split(":"); if(p.length<2) return null;
+    var d=new Date(); d.setHours(parseInt(p[0],10), parseInt(p[1],10), 0, 0); return d; }
+  function addPast(desc, startHM, endHM){
     run(async function(){
       var s=hhmm(startHM), e=hhmm(endHM);
       if(!s||!e||e<=s){ toast("Check the start and end times."); return; }
       var mins=Math.max(1, Math.round((e.getTime()-s.getTime())/60000));
-      var taskId=await findTask(desc);
+      var t=findTaskFuzzy(desc);
       var ses=await dbIns("sessions", {started_at:s.toISOString(), ended_at:e.toISOString(), interval_min:mins});
-      var payload={session_id:ses.data.id, block_index:1, planned:desc||"(past entry)", status:"logged",
-        planned_at:s.toISOString(), due_at:e.toISOString(), logged_at:e.toISOString(),
-        interval_min:mins, rating:rating||null};
-      if(taskId) payload.task_id=taskId;
+      var payload={session_id:ses.data.id, block_index:1, planned:t?t.name:(desc||"(past entry)"), status:"logged",
+        planned_at:s.toISOString(), due_at:s.toISOString(), logged_at:e.toISOString(),
+        interval_min:mins, mode:"stopwatch", actual:t?t.name:(desc||null)};
+      if(t) payload.task_id=t.id;
       await dbIns("blocks", payload);
       toast("Logged "+hmin(mins)+" ✓");
     });
-  }
-  function hhmm(v){ if(!v) return null; var p=v.split(":"); if(p.length<2) return null;
-    var d=new Date(); d.setHours(parseInt(p[0],10), parseInt(p[1],10), 0, 0); return d; }
-
-  // ---------------- capture sheet ----------------
-  function openSheet(isStop, auto){
-    sheetIsStop=isStop; sheetRating=""; sheetNextMin=st.interval_min||prefs.len;
-    $("sbox").classList.remove("alarm");
-    $("rYes").classList.remove("sel"); $("rNo").classList.remove("sel");
-    $("nxt").classList.add("locked");
-    $("newWrap").classList.add("hidden");
-    $("sActual").classList.add("hidden"); $("sActual").value=""; $("sNext").value="";
-    $("sTitle").textContent = isStop ? "Stopping — did you do it?" : "Block done — did you do it?";
-    $("sPlanned").textContent = st.block_plan ? ("Planned: "+st.block_plan) : "No plan set";
-    $("nxt").classList.toggle("hidden", isStop);
-    $("sCancel").textContent = isStop ? "cancel" : "snooze 1 min";
-    setNextLen(sheetNextMin);
-    $("sheet").classList.remove("hidden");
-    if(auto) startAlarm();
-  }
-  function closeSheet(){ stopAlarm(); $("sheet").classList.add("hidden"); }
-  function setNextLen(m){
-    sheetNextMin=m;
-    document.querySelectorAll("#nLens button").forEach(function(b){
-      b.classList.toggle("on", parseInt(b.dataset.nmin,10)===m); });
-  }
-  function rate(r){
-    sheetRating=r; stopAlarm();
-    $("rYes").classList.toggle("sel", r==="Did it");
-    $("rNo").classList.toggle("sel", r==="Didn't");
-    if(sheetIsStop){ closeSheet(); stopSession(r, $("sActual").value); return; }
-    $("nxt").classList.remove("locked");
-  }
-  function sameTask(){
-    if(!sheetRating) return;
-    var a=$("sActual").value; closeSheet();
-    logBlock(sheetRating, a, st.block_plan||"", sheetNextMin);
-  }
-  function saveStop(){
-    if(!sheetRating) return;
-    var a=$("sActual").value; closeSheet();
-    stopSession(sheetRating, a);
-  }
-  function newTask(){
-    if(!sheetRating) return;
-    var box=$("newPicks"); box.innerHTML="";
-    pickList(st && st.block_plan).forEach(function(p){
-      box.appendChild(mkPick(p, function(pp){ $("sNext").value=pp.name; startNext(); }));
-    });
-    $("newWrap").classList.remove("hidden");
-    setTimeout(function(){ $("sNext").focus(); }, 30);
-  }
-  function startNext(){
-    if(!sheetRating) return;
-    var v=$("sNext").value.trim();
-    if(!v){ $("sNext").focus(); return; }
-    var a=$("sActual").value; closeSheet();
-    logBlock(sheetRating, a, cap(v), sheetNextMin);
   }
 
   // ---------------- wiring ----------------
@@ -1004,46 +974,24 @@
     OFFBOOT=false; $("settings").classList.add("hidden"); SB.auth.signOut();
   });
 
-  $("goBtn").addEventListener("click", function(){ startSession($("plan").value, prefs.len); });
-  $("plan").addEventListener("keydown", function(e){ if(e.key==="Enter") startSession($("plan").value, prefs.len); });
-  document.querySelectorAll("#lens button").forEach(function(b){
-    b.addEventListener("click", function(){
-      prefs.len=parseInt(b.dataset.min,10); savePrefs(); applyPrefs();
-      if(st && !st.active_session_id) render();
-    });
-  });
-  $("pauseBtn").addEventListener("click", togglePause);
-  $("logBtn").addEventListener("click", function(){ openSheet(false,false); });
-  $("stopBtn").addEventListener("click", function(){ openSheet(true,false); });
+  $("goBtn").addEventListener("click", startTyped);
+  $("plan").addEventListener("keydown", function(e){ if(e.key==="Enter") startTyped(); });
+  $("doneBtn").addEventListener("click", doneNow);
+  $("offBtn").addEventListener("click", goOff);
   $("discardBtn").addEventListener("click", discardSession);
+  $("moreBtn").addEventListener("click", function(){ prefs.showAll=!prefs.showAll; savePrefs(); render(); });
 
   $("taskAddBtn").addEventListener("click", addTask);
   $("taskAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") addTask(); });
 
-  $("rYes").addEventListener("click", function(){ rate("Did it"); });
-  $("rNo").addEventListener("click", function(){ rate("Didn't"); });
-  $("nSame").addEventListener("click", sameTask);
-  $("nNew").addEventListener("click", newTask);
-  $("nStop").addEventListener("click", saveStop);
-  $("nStart").addEventListener("click", startNext);
-  $("sNext").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); startNext(); } });
-  document.querySelectorAll("#nLens button").forEach(function(b){
-    b.addEventListener("click", function(){ setNextLen(parseInt(b.dataset.nmin,10)); });
-  });
-  $("sDetail").addEventListener("click", function(){ $("sActual").classList.toggle("hidden"); $("sActual").focus(); });
-  $("sCancel").addEventListener("click", function(){ if(!sheetIsStop) _grace=Date.now()+60000; closeSheet(); });
-  $("sDiscard").addEventListener("click", discardSession);
-
   $("pastToggle").addEventListener("click", function(){ $("pastBox").classList.toggle("hidden"); });
   $("pCancel").addEventListener("click", function(){ $("pastBox").classList.add("hidden"); });
-  function pastSubmit(r){
+  $("pLog").addEventListener("click", function(){
     var d=$("pDesc").value.trim();
-    addPast(d, $("pStart").value, $("pEnd").value, r);
+    addPast(d, $("pStart").value, $("pEnd").value);
     $("pDesc").value=""; $("pStart").value=""; $("pEnd").value="";
     $("pastBox").classList.add("hidden");
-  }
-  $("pDid").addEventListener("click", function(){ pastSubmit("Did it"); });
-  $("pDidnt").addEventListener("click", function(){ pastSubmit("Didn't"); });
+  });
 
   $("gear").addEventListener("click", function(){ $("settings").classList.remove("hidden"); });
   $("setDone").addEventListener("click", function(){ $("settings").classList.add("hidden"); });
@@ -1051,9 +999,10 @@
   $("vLite").addEventListener("click", function(){ switchVersion("lite"); });
   $("thDark").addEventListener("click", function(){ prefs.theme="dark"; savePrefs(); applyPrefs(); });
   $("thLight").addEventListener("click", function(){ prefs.theme="light"; savePrefs(); applyPrefs(); });
-  $("swSound").addEventListener("change", function(){ prefs.sound=this.checked; savePrefs(); });
-  $("goalHrs").addEventListener("change", function(){
-    var v=parseFloat(this.value); if(v>0){ prefs.goalHrs=v; savePrefs(); } });
+  $("swSound").addEventListener("change", function(){ prefs.sound=this.checked; savePrefs(); render(); });
+  document.querySelectorAll("#chimeSeg button").forEach(function(b){
+    b.addEventListener("click", function(){ prefs.chime=parseInt(b.dataset.chime,10); savePrefs(); applyPrefs(); render(); });
+  });
 
   window.addEventListener("online", function(){
     toast("Back online — syncing…"); obBadge();
@@ -1066,3 +1015,5 @@
   }
   if(!REDIRECTING) init();
 </script>
+</body>
+</html>

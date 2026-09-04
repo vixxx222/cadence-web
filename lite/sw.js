@@ -1,7 +1,7 @@
 // Cadence Lite service worker — installable + openable offline.
 // Network-FIRST for the page so a deploy is never stuck behind a cached copy;
 // cache is the offline fallback. Supabase is never cached (always live).
-const CACHE = "cadence-lite-v2";
+const CACHE = "cadence-lite-v3";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png",
