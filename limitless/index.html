@@ -138,9 +138,9 @@
   };
 
   // ---- audio: the shell owns the one AudioContext ----
-  // A tap grants user activation to the tapped frame and its ANCESTORS, never
-  // to sibling frames. So a context living in the Sound pane can't be
-  // unlocked by the Focus pane's start tap, but one living here can. soundlab
+  // A tap activates the tapped frame and all its ANCESTORS; sibling frames
+  // are not guaranteed it by spec. The shell is every pane's ancestor, so a
+  // context living here is reliably unlocked by the Focus pane's start tap. soundlab
   // builds its graph on this context (engine._ensureCtx asks for it).
   var AC = null, UNLOCKED = false;
   window.limitlessAudio = {
@@ -247,8 +247,8 @@
   }
 
   // ---- sound follows focus ----
-  // The Focus pane publishes window.cadenceFocusStatus() -> {on, paused,
-  // label, endMs}; soundlab publishes window.soundlabFollow. The shell only
+  // The Focus pane publishes window.cadenceFocusStatus() -> {ready, on,
+  // paused, label, endMs}; soundlab publishes window.soundlabFollow. The shell only
   // acts on TRANSITIONS, so ending the sound by hand mid-block sticks, and a
   // block already running when Limitless opens starts the sound (audible
   // after the first tap if the browser wants a gesture).
@@ -263,7 +263,7 @@
   function reconcile(){
     hookGestures($("paneFocus")); hookGestures($("paneSound"));   // idempotent
     var fs = focusStatus(), api = followApi();
-    if(!fs || !api) return;                      // a pane still loading (or an old cached build)
+    if(!fs || !api || fs.ready === false) return;   // a pane still loading its state (or an old cached build)
     var want = !fs.on ? "off" : (fs.paused ? "paused" : "on");
     if(want === FOLLOW) return;
     var prev = FOLLOW; FOLLOW = want;

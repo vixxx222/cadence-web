@@ -1627,7 +1627,7 @@
       var s=status();
       var on = s.mode==="work" && (s.paused || s.countUp || s.remainingSec>0);
       var endMs = (on && !s.countUp && !s.paused && st && st.due_at) ? new Date(st.due_at).getTime() : null;
-      return {version:1, on:!!on, paused:!!(on && s.paused), label:on?(s.subPlan||""):"", endMs:endMs};
+      return {version:1, ready:!!st, on:!!on, paused:!!(on && s.paused), label:on?(s.subPlan||""):"", endMs:endMs};
     }catch(e){ return {version:1, on:false, paused:false, label:"", endMs:null}; }
   };
   function renderModeSeg(){

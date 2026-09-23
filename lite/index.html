@@ -644,7 +644,7 @@
     try{
       var s=status();
       var live = s.on && !(s.timer && s.endMs && Date.now()>=s.endMs);
-      return {version:1, on:!!live, paused:false, label:s.on?(s.plan||""):"", endMs:s.timer?s.endMs:null};
+      return {version:1, ready:!!st, on:!!live, paused:false, label:s.on?(s.plan||""):"", endMs:s.timer?s.endMs:null};
     }catch(e){ return {version:1, on:false, paused:false, label:"", endMs:null}; }
   };
   function isActiveTask(t,s){

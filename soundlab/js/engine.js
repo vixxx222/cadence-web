@@ -21,9 +21,9 @@ class AudioEngine {
   _ensureCtx() {
     if (this.ctx) return;
     // Embedded in Limitless, the shell owns the AudioContext. A tap in ANY
-    // pane grants user activation to the shell (activation propagates to
-    // ancestor frames, never to sibling frames), so only a shell-owned
-    // context can be unlocked by the Focus pane's start tap.
+    // pane activates the shell (activation always propagates to ancestors;
+    // sibling frames are not guaranteed it by spec), so a shell-owned
+    // context is the one the Focus pane's start tap can reliably unlock.
     let host = null;
     try { if (window.parent !== window && window.parent.limitlessAudio) host = window.parent.limitlessAudio; } catch (e) {}
     this.ctx = host ? host.context() : new (window.AudioContext || window.webkitAudioContext)();
