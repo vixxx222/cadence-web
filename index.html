@@ -1619,6 +1619,17 @@
 
   // Mode switch only makes sense before a session starts; a stopwatch has no
   // length, so the interval pills are irrelevant while it's selected.
+  // Host contract for the Limitless shell, which makes sound follow focus:
+  // on = a work block is running (timer with time left, or stopwatch);
+  // breaks, idle, and a timer that has hit zero all count as off.
+  window.cadenceFocusStatus = function(){
+    try{
+      var s=status();
+      var on = s.mode==="work" && (s.paused || s.countUp || s.remainingSec>0);
+      var endMs = (on && !s.countUp && !s.paused && st && st.due_at) ? new Date(st.due_at).getTime() : null;
+      return {version:1, on:!!on, paused:!!(on && s.paused), label:on?(s.subPlan||""):"", endMs:endMs};
+    }catch(e){ return {version:1, on:false, paused:false, label:"", endMs:null}; }
+  };
   function renderModeSeg(){
     var wrap=$("modeWrap"); if(!wrap) return;
     wrap.classList.toggle("hidden", !MODEC);
