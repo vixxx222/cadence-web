@@ -2,7 +2,7 @@
 // Scope is the shell folder only — the Cadence and soundlab panes keep their
 // own service workers and offline behaviour untouched. Network-first for HTML
 // so a deploy is never stuck behind a cached shell.
-const CACHE = "limitless-shell-v1";
+const CACHE = "limitless-shell-v2";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {

@@ -637,6 +637,16 @@
     return {on:true, plan:(st.block_plan||"").trim(), startMs:startMs, elapsedSec:Math.max(0,(now-startMs)/1000),
             timer:timer, endMs: timer ? anchor : null, blockId:st.active_block_id, taskId:(b&&b.task_id)||null};
   }
+  // Host contract for the Limitless shell, which makes sound follow focus.
+  // Being "on" a task counts as focus (tracker blocks have no end, so sound
+  // runs until Off/Done); a full-app timer block counts until its end time.
+  window.cadenceFocusStatus = function(){
+    try{
+      var s=status();
+      var live = s.on && !(s.timer && s.endMs && Date.now()>=s.endMs);
+      return {version:1, on:!!live, paused:false, label:s.on?(s.plan||""):"", endMs:s.timer?s.endMs:null};
+    }catch(e){ return {version:1, on:false, paused:false, label:"", endMs:null}; }
+  };
   function isActiveTask(t,s){
     if(!s.on) return false;
     if(s.taskId) return t.id===s.taskId;

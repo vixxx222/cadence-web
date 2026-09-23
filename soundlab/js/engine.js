@@ -20,7 +20,19 @@ class AudioEngine {
 
   _ensureCtx() {
     if (this.ctx) return;
-    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Embedded in Limitless, the shell owns the AudioContext. A tap in ANY
+    // pane grants user activation to the shell (activation propagates to
+    // ancestor frames, never to sibling frames), so only a shell-owned
+    // context can be unlocked by the Focus pane's start tap.
+    let host = null;
+    try { if (window.parent !== window && window.parent.limitlessAudio) host = window.parent.limitlessAudio; } catch (e) {}
+    this.ctx = host ? host.context() : new (window.AudioContext || window.webkitAudioContext)();
+    // Safari suspends/interrupts a context on output-route changes (AirPods
+    // connecting, calls) and never restarts it on its own: the session kept
+    // "playing" in silence. Resume whenever a live session loses the context.
+    this.ctx.addEventListener('statechange', () => {
+      if (this.session && this.ctx.state !== 'running' && this.ctx.state !== 'closed') this.wake();
+    });
 
     this.limiter = this.ctx.createDynamicsCompressor();
     this.limiter.threshold.value = -12;
@@ -46,16 +58,29 @@ class AudioEngine {
 
   setVolume(v) {
     this.volume = v;
-    if (this.ctx && this.session) {
+    if (this.ctx && this.session && !this.held) {
       this.master.gain.setTargetAtTime(this._gainForVolume(v), this.ctx.currentTime, 0.1);
     }
   }
 
   get playing() { return !!this.session; }
 
+  /* Resume the context without ever blocking: resume() can stay pending
+   * forever while Safari holds the context interrupted, and awaiting it
+   * used to stall start() before any graph was built. */
+  async wake() {
+    this._ensureCtx();
+    if (this.ctx.state === 'running') return true;
+    try { await Promise.race([this.ctx.resume(), new Promise(r => setTimeout(r, 800))]); } catch (e) {}
+    return this.ctx.state === 'running';
+  }
+
+  get audible() { return !!(this.ctx && this.ctx.state === 'running'); }
+
   async start(recipe, rampSec = 20) {
     this._ensureCtx();
-    if (this.ctx.state !== 'running') await this.ctx.resume();
+    clearTimeout(this._idleTimer);
+    const woke = this.wake();
     this.stopNow();
 
     this.session = this._buildSession(recipe);
@@ -64,6 +89,26 @@ class AudioEngine {
     this.master.gain.cancelScheduledValues(t);
     this.master.gain.setValueAtTime(0.0001, t);
     this.master.gain.setTargetAtTime(this._gainForVolume(this.volume), t, Math.max(rampSec / 4, 0.05));
+    this.held = false;
+    await woke;
+  }
+
+  /* Fade to silence but keep the graph (focus block paused). */
+  hold(fadeSec = 1) {
+    if (!this.ctx || !this.session) return;
+    const t = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setTargetAtTime(0.0001, t, fadeSec / 4);
+    this.held = true;
+  }
+
+  release(fadeSec = 2) {
+    if (!this.ctx || !this.session) return;
+    this.wake();
+    const t = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setTargetAtTime(this._gainForVolume(this.volume), t, fadeSec / 4);
+    this.held = false;
   }
 
   /* Swap the running graph for a new recipe with a short crossfade, keeping
@@ -117,6 +162,17 @@ class AudioEngine {
     this.session = null;
     await new Promise(r => setTimeout(r, fadeSec * 1000 + 200));
     this._teardown(session);
+    this._idleSoon();
+  }
+
+  /* A running-but-silent context keeps WebKit's media-playback assertion,
+   * which blocks idle sleep. Suspend once nothing has played for a while;
+   * start() resumes it. */
+  _idleSoon() {
+    clearTimeout(this._idleTimer);
+    this._idleTimer = setTimeout(() => {
+      if (!this.session && this.ctx && this.ctx.state === 'running') this.ctx.suspend().catch(() => {});
+    }, 5000);
   }
 
   stopNow() {

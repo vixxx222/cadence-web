@@ -63,6 +63,8 @@
   .opt{display:flex;justify-content:space-between;align-items:center;gap:12px;
        padding:12px 0;border-bottom:1px solid var(--line)}
   .opt:last-of-type{border-bottom:none}
+  .opt.wrap{flex-wrap:wrap}
+  .seg.wrap{flex-wrap:wrap}
   .opt .lab{font-size:14px}
   .opt .sub{display:block;font-size:11.5px;color:var(--faint);margin-top:2px}
   .seg{display:flex;gap:6px;flex:0 0 auto}
@@ -90,8 +92,8 @@
 </div>
 
 <div class="stage">
-  <iframe class="pane on" id="paneFocus" title="Focus"></iframe>
-  <iframe class="pane" id="paneSound" title="Sound" src="../soundlab/"></iframe>
+  <iframe class="pane on" id="paneFocus" title="Focus" allow="autoplay"></iframe>
+  <iframe class="pane" id="paneSound" title="Sound" src="../soundlab/" allow="autoplay"></iframe>
 </div>
 
 <div id="set">
@@ -100,6 +102,16 @@
     <div class="opt">
       <span class="lab">Timer<span class="sub">Full has every feature; Lite is the stripped-down core.</span></span>
       <div class="seg"><button id="vFull">Full</button><button id="vLite">Lite</button></div>
+    </div>
+    <div class="opt">
+      <span class="lab">Sound follows focus<span class="sub">Starting a focus block starts the sound; pausing or ending it fades the sound out.</span></span>
+      <div class="seg"><button id="fOn">On</button><button id="fOff">Off</button></div>
+    </div>
+    <div class="opt wrap">
+      <span class="lab">Focus sound</span>
+      <div class="seg wrap" id="fPreset">
+        <button data-p="focus">Deep Focus</button><button data-p="think">Deep Think</button><button data-p="relax">Relax</button><button data-p="meditate">Meditate</button>
+      </div>
     </div>
     <div class="opt">
       <span class="lab">Open on<span class="sub">Which tab Limitless starts on.</span></span>
@@ -118,8 +130,63 @@
     get view(){ try{ return localStorage.getItem("ll_timer") === "lite" ? "lite" : "full"; }catch(e){ return "full"; } },
     set view(v){ try{ localStorage.setItem("ll_timer", v); }catch(e){} },
     get open(){ try{ return localStorage.getItem("ll_open") === "sound" ? "sound" : "focus"; }catch(e){ return "focus"; } },
-    set open(v){ try{ localStorage.setItem("ll_open", v); }catch(e){} }
+    set open(v){ try{ localStorage.setItem("ll_open", v); }catch(e){} },
+    get follow(){ try{ return localStorage.getItem("ll_follow") !== "off"; }catch(e){ return true; } },
+    set follow(v){ try{ localStorage.setItem("ll_follow", v ? "on" : "off"); }catch(e){} },
+    get preset(){ try{ return localStorage.getItem("ll_follow_preset") || "focus"; }catch(e){ return "focus"; } },
+    set preset(v){ try{ localStorage.setItem("ll_follow_preset", v); }catch(e){} }
   };
+
+  // ---- audio: the shell owns the one AudioContext ----
+  // A tap grants user activation to the tapped frame and its ANCESTORS, never
+  // to sibling frames. So a context living in the Sound pane can't be
+  // unlocked by the Focus pane's start tap, but one living here can. soundlab
+  // builds its graph on this context (engine._ensureCtx asks for it).
+  var AC = null, UNLOCKED = false;
+  window.limitlessAudio = {
+    context: function(){
+      if(!AC){
+        var C = window.AudioContext || window.webkitAudioContext;
+        AC = new C();
+        // iOS: "playback" keeps Web Audio audible with the silent switch on
+        try{ if(navigator.audioSession) navigator.audioSession.type = "playback"; }catch(e){}
+      }
+      return AC;
+    },
+    // call synchronously inside a user gesture (any tap in any pane)
+    unlock: function(){
+      try{
+        if(UNLOCKED && !soundWantsAudio()) return;
+        var c = window.limitlessAudio.context();
+        if(c.state !== "running"){
+          var first = !UNLOCKED;
+          c.resume().catch(function(){});
+          // the first unlock only registers the gesture; an idle running
+          // context holds a sleep assertion, so park it unless sound started
+          if(first) setTimeout(function(){ if(!soundWantsAudio() && c.state === "running") c.suspend().catch(function(){}); }, 4000);
+        }
+        UNLOCKED = true;
+      }catch(e){}
+    }
+  };
+  function soundWantsAudio(){ var st = soundStatus(); return !!(st && st.playing); }
+  function soundStatus(){
+    try{ var w = $("paneSound").contentWindow; return (w && typeof w.soundlabStatus === "function") ? w.soundlabStatus() : null; }
+    catch(e){ return null; }
+  }
+  // Taps inside a pane never reach this document, but the panes are
+  // same-origin, so listen on their documents directly (re-hooked on every
+  // load: the Full/Lite swap and reloads replace the document).
+  var GESTURES = ["pointerdown", "pointerup", "touchend", "keydown", "click"];
+  function hookGestures(frame){
+    try{
+      var d = frame.contentDocument;
+      if(!d || d.__llHooked) return;
+      d.__llHooked = true;
+      GESTURES.forEach(function(ev){ d.addEventListener(ev, window.limitlessAudio.unlock, true); });
+    }catch(e){}
+  }
+  GESTURES.forEach(function(ev){ document.addEventListener(ev, window.limitlessAudio.unlock, true); });
 
   // ---- timer pane: swap between the full app and lite ----
   function timerSrc(v){ return v === "lite" ? "../lite/" : "../"; }
@@ -179,6 +246,35 @@
     $("nowPlay").classList.toggle("on", on && TAB !== "sound");
   }
 
+  // ---- sound follows focus ----
+  // The Focus pane publishes window.cadenceFocusStatus() -> {on, paused,
+  // label, endMs}; soundlab publishes window.soundlabFollow. The shell only
+  // acts on TRANSITIONS, so ending the sound by hand mid-block sticks, and a
+  // block already running when Limitless opens starts the sound (audible
+  // after the first tap if the browser wants a gesture).
+  var FOLLOW = null;   // last seen focus state: "off" | "on" | "paused"; null = not read yet
+  function focusStatus(){
+    try{ var w = $("paneFocus").contentWindow; return (w && typeof w.cadenceFocusStatus === "function") ? w.cadenceFocusStatus() : null; }
+    catch(e){ return null; }
+  }
+  function followApi(){
+    try{ var w = $("paneSound").contentWindow; return (w && w.soundlabFollow) || null; }catch(e){ return null; }
+  }
+  function reconcile(){
+    hookGestures($("paneFocus")); hookGestures($("paneSound"));   // idempotent
+    var fs = focusStatus(), api = followApi();
+    if(!fs || !api) return;                      // a pane still loading (or an old cached build)
+    var want = !fs.on ? "off" : (fs.paused ? "paused" : "on");
+    if(want === FOLLOW) return;
+    var prev = FOLLOW; FOLLOW = want;
+    if(!PREF.follow) return;
+    try{
+      if(want === "on"){ if(prev === "paused") api.resume(); else api.start(PREF.preset); }
+      else if(want === "paused"){ api.pause(); }
+      else if(prev !== null){ api.stop(); }
+    }catch(e){}
+  }
+
   // ---- wiring ----
   $("tabFocus").addEventListener("click", function(){ showTab("focus"); });
   $("tabSound").addEventListener("click", function(){ showTab("sound"); });
@@ -188,6 +284,20 @@
   $("set").addEventListener("click", function(e){ if(e.target === $("set")) $("set").classList.remove("on"); });
   $("vFull").addEventListener("click", function(){ setTimerVersion("full"); });
   $("vLite").addEventListener("click", function(){ setTimerVersion("lite"); });
+  $("fOn").addEventListener("click", function(){ PREF.follow=true; FOLLOW=null; syncFollow(); });
+  $("fOff").addEventListener("click", function(){
+    PREF.follow=false; syncFollow();
+    var api=followApi(); try{ if(api) api.stop(); }catch(e){}
+  });
+  $("fPreset").addEventListener("click", function(e){
+    var b=e.target.closest("button[data-p]"); if(!b) return;
+    PREF.preset=b.dataset.p; syncFollow();
+  });
+  function syncFollow(){
+    $("fOn").classList.toggle("on", PREF.follow);
+    $("fOff").classList.toggle("on", !PREF.follow);
+    [].forEach.call($("fPreset").querySelectorAll("button"), function(b){ b.classList.toggle("on", b.dataset.p === PREF.preset); });
+  }
   $("oFocus").addEventListener("click", function(){ PREF.open="focus"; syncOpen(); });
   $("oSound").addEventListener("click", function(){ PREF.open="sound"; syncOpen(); });
   function syncOpen(){
@@ -202,10 +312,19 @@
     if(e.key === "2"){ e.preventDefault(); showTab("sound"); }
   });
 
+  $("paneFocus").addEventListener("load", function(){ hookGestures($("paneFocus")); });
+  $("paneSound").addEventListener("load", function(){ hookGestures($("paneSound")); });
+  // coming back to the app: revive a context the system suspended meanwhile
+  document.addEventListener("visibilitychange", function(){
+    if(!document.hidden && AC && AC.state !== "running" && soundWantsAudio()) AC.resume().catch(function(){});
+  });
+
   loadTimer(PREF.view, false);
   syncOpen();
+  syncFollow();
   showTab(PREF.open);
   setInterval(pollSound, 1500);
+  setInterval(reconcile, 1000);
 
   if("serviceWorker" in navigator){
     window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });

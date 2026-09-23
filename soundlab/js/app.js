@@ -55,7 +55,7 @@ const app = {
 
   // ------------------------------------------------------------- session
 
-  async start(presetKey, override) {
+  async start(presetKey, override, opts = {}) {
     // override ({label, recipe}) lets the lab hand any mix to the normal
     // session flow — logged with preset 'lab' and the recipe name as variant
     const preset = PRESETS[presetKey];
@@ -64,14 +64,18 @@ const app = {
     const recipe = override ? override.recipe : preset.variants[variantId];
     if (!recipe) return;
     const displayName = override ? override.label : preset.name;
-    const preRollSec = settings.preRollSec;
+    // following a focus block: no settle-in and no countdown of our own;
+    // the focus timer decides when this ends
+    const follow = !!opts.follow;
+    const preRollSec = follow ? 0 : settings.preRollSec;
     const now = Date.now();
 
     this.session = {
       preset: presetKey,
       variant: variantId,
       displayName,
-      plannedMin: settings.durationMin,
+      follow,
+      plannedMin: follow ? 0 : settings.durationMin,
       preRollSec,
       startTs: now,
       workStartTs: now + preRollSec * 1000,
@@ -110,7 +114,10 @@ const app = {
     }
 
     const elapsed = Math.max(0, Math.floor((now - s.workStartTs) / 1000));
-    if (s.plannedMin > 0) {
+    if (s.follow) {
+      $('#session-clock').textContent = fmt(elapsed);
+      $('#session-phase').textContent = `${s.displayName.toLowerCase()} — ${s.held ? 'paused with focus' : 'following your focus timer'}`;
+    } else if (s.plannedMin > 0) {
       const left = s.plannedMin * 60 - elapsed;
       if (left <= 0) { this.end(true); return; }
       $('#session-clock').textContent = fmt(left);
@@ -133,7 +140,7 @@ const app = {
     engine.chime();
   },
 
-  async end(auto = false) {
+  async end(auto = false, fadeSec = 2) {
     const s = this.session;
     if (!s) return;
     clearInterval(this.tickHandle);
@@ -157,13 +164,15 @@ const app = {
       completed: auto,
       rating: null,
       note: '',
+      ...(s.follow ? { follow: true } : {}),
     });
     store.saveSessions(sessions);
 
-    engine.chime();
-    engine.stop(2);
+    if (!s.follow) engine.chime();   // the focus pane owns block-end sounds
+    engine.stop(fadeSec);
 
-    if (actualMin < 1) { this.show('home'); return; } // bailed during settle-in
+    // one timer to manage: a followed session never asks for a rating
+    if (actualMin < 1 || s.follow) { this.show('home'); return; } // bailed during settle-in
     this.rating = 0;
     $$('#rating-dots button').forEach(b => b.classList.remove('on'));
     $('#rating-note').value = '';
@@ -237,7 +246,8 @@ window.soundlabStatus = function () {
   try {
     const s = app.session;
     if (s) {
-      return { playing: true, mode: 'session', label: s.displayName || '', phase: s.phase };
+      return { playing: true, mode: 'session', label: s.displayName || '', phase: s.held ? 'held' : s.phase,
+               follow: !!s.follow, audible: engine.audible };
     }
     if (typeof lab !== 'undefined' && lab.playing) {
       return { playing: true, mode: 'lab', label: lab.recipe.name || 'lab preview', phase: 'preview' };
@@ -249,6 +259,41 @@ window.soundlabStatus = function () {
   }
 };
 window.soundlabStatus.version = 1;
+
+/* Follow contract for host shells (Limitless): the shell watches the focus
+ * timer and drives sound from it, so there is one timer to manage.
+ *   start(presetKey)  begin an open-ended session (no pre-roll, no rating);
+ *                     if something is already playing, adopt it instead
+ *   pause() / resume() fade out/in, keeping the graph
+ *   stop()            fade out and end, only if the session is a followed one
+ *   wake()            resume the AudioContext (call inside a user gesture)
+ */
+window.soundlabFollow = {
+  version: 1,
+  start(presetKey) {
+    if (app.session) { app.session.follow = true; app.session.plannedMin = 0; this.resume(); return true; }
+    if (typeof lab !== 'undefined' && lab.playing) return false;   // mid-lab: leave it alone
+    if (!PRESETS[presetKey]) presetKey = 'focus';
+    app.start(presetKey, null, { follow: true });
+    return true;
+  },
+  pause() {
+    const s = app.session;
+    if (!s || !s.follow || s.held) return;
+    s.held = true; engine.hold(1.5); app.tick();
+  },
+  resume() {
+    const s = app.session;
+    if (!s || !s.follow) return;
+    s.held = false; engine.release(3); app.tick();
+  },
+  stop() {
+    const s = app.session;
+    if (!s || !s.follow) return;
+    app.end(true, 4);
+  },
+  wake() { return engine.wake(); },
+};
 
 function fmt(totalSec) {
   const m = Math.floor(totalSec / 60);
@@ -353,8 +398,13 @@ if (PRESETS[hash]) {
   tile.style.boxShadow = '0 0 0 1px var(--accent)';
 }
 
-// keep the timer honest after background-tab throttling
-document.addEventListener('visibilitychange', () => { if (app.session) app.tick(); });
+// keep the timer honest after background-tab throttling, and bring the
+// audio back if the system suspended it while we were away
+document.addEventListener('visibilitychange', () => { if (app.session) { app.tick(); engine.wake(); } });
+// any tap here is a user gesture: use it to revive a suspended context
+for (const ev of ['pointerdown', 'keydown', 'touchend']) {
+  document.addEventListener(ev, () => { if (engine.playing && !engine.audible) engine.wake(); }, true);
+}
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
