@@ -175,6 +175,32 @@
          background:var(--ink);color:var(--bg);padding:9px 15px;border-radius:999px;font-size:13px;font-weight:600;
          opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #toast.show{opacity:1;transform:translateX(-50%)}
+
+  /* ---- hub: on a wide window everything sits on one screen ----
+     Left: what you're on + today. Right: the whole task list. The page never
+     scrolls; only the task list and today's entries scroll inside their own
+     boxes when they hold more than fits. Below 760px wide (or under 520px
+     tall) none of this applies and the phone layout is unchanged. */
+  @media (min-width:760px) and (min-height:520px){
+    html,body{height:100%;overflow:hidden}
+    body{padding-left:20px;padding-right:20px;padding-bottom:env(safe-area-inset-bottom)}
+    #app:not(.hidden){height:100%}
+    #app .wrap{max-width:1180px;height:100%;display:grid;column-gap:24px;
+               grid-template-columns:minmax(320px,430px) minmax(0,1fr);
+               grid-template-rows:auto minmax(0,1fr);grid-template-areas:"now tasks" "day tasks"}
+    #lcNow{grid-area:now} #lcTasks{grid-area:tasks} #lcDay{grid-area:day}
+    #lcTasks,#lcDay{min-height:0;display:flex;flex-direction:column}
+    #lcTasks{padding:14px 0 16px}
+    #lcTasks > h2{margin-top:8px}
+    #lcTasks .card{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}
+    #taskList{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+    .task .n{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .frog .ft{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+    #lcDay{padding-bottom:14px}
+    #lcDay > h2{margin-top:20px}
+    #todayCard{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+    #lcDay .foot{margin-top:12px}
+  }
 </style>
 </head>
 <body>
@@ -192,6 +218,9 @@
 </div>
 
 <div id="app" class="hidden"><div class="wrap">
+  <!-- column wrappers: stacked in the same order as ever on a phone, a
+       one-screen two-column hub on a wide window (see "hub" CSS) -->
+  <div class="lcol" id="lcNow">
   <header>
     <div class="mark"><i></i>CADENCE LITE</div>
     <div class="hr">
@@ -223,7 +252,9 @@
     <input type="text" id="plan" placeholder="On something else? type it" autocomplete="off">
     <button class="primary" id="goBtn">On it</button>
   </div>
+  </div>
 
+  <div class="lcol" id="lcTasks">
   <h2>Tasks <span id="taskCount"></span></h2>
   <div class="card">
     <div id="taskList"></div>
@@ -233,7 +264,9 @@
       <button id="taskAddBtn">Add</button>
     </div>
   </div>
+  </div>
 
+  <div class="lcol" id="lcDay">
   <h2>Today <span id="todayTotal"></span></h2>
   <div class="card" id="todayCard"></div>
 
@@ -250,6 +283,7 @@
       <button class="primary" id="pLog">Log it</button>
       <button id="pCancel">cancel</button>
     </div>
+  </div>
   </div>
 </div></div>
 
@@ -746,7 +780,8 @@
     c.addEventListener("click", function(e){ e.stopPropagation(); finishTask(t); });
     row.appendChild(c);
     if(t.priority!=null) row.appendChild(el("span","pr","#"+t.priority));
-    row.appendChild(el("span","n",t.name));
+    var nm=el("span","n",t.name); nm.title=t.name;   // full text when the hub clamps it
+    row.appendChild(nm);
     var m = mins.byId[t.id]!=null ? mins.byId[t.id] : (mins.byName[(t.name||"").trim().toLowerCase()]||0);
     if(m>=1) row.appendChild(el("span","m",hmin(m)+" today"));
     row.appendChild(el("span","go", on?"●":"▶"));

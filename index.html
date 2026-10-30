@@ -130,11 +130,15 @@
   .state{font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:.22em;text-transform:uppercase;font-weight:600}
   .subplan{text-align:center;font-size:15px;font-weight:500;min-height:21px;margin:10px 24px 2px}
 
-  main{padding:4px 16px 30px}
-  main > *{animation:rise .45s ease both}
-  main > *:nth-child(2){animation-delay:.04s} main > *:nth-child(3){animation-delay:.08s}
-  main > *:nth-child(4){animation-delay:.12s} main > *:nth-child(5){animation-delay:.16s}
-  main > *:nth-child(n+6){animation-delay:.2s}
+  main,.main{padding:4px 16px 30px}
+  /* stacked (phone): the three column wrappers read as one continuous page */
+  #colNow main{padding-bottom:0}
+  #colLists .main{padding-top:0;padding-bottom:0}
+  #colDay .main{padding-top:0}
+  main > *,.main > *{animation:rise .45s ease both}
+  main > *:nth-child(2),.main > *:nth-child(2){animation-delay:.04s} main > *:nth-child(3),.main > *:nth-child(3){animation-delay:.08s}
+  main > *:nth-child(4),.main > *:nth-child(4){animation-delay:.12s} main > *:nth-child(5),.main > *:nth-child(5){animation-delay:.16s}
+  main > *:nth-child(n+6),.main > *:nth-child(n+6){animation-delay:.2s}
   @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 
   .stats-row{display:flex;gap:8px;margin:12px 0 2px;overflow-x:auto;scrollbar-width:none}
@@ -479,8 +483,73 @@
   body.compact .shead{padding:7px 0 5px}
   body.compact .sect{margin-top:5px}
   body.compact .stats-row{margin:8px 0 0}
-  body.compact main{padding:2px 12px 20px}
+  body.compact main,body.compact .main{padding:2px 12px 20px}
+  body.compact #colNow main{padding-bottom:0}
+  body.compact #colLists .main{padding-top:0;padding-bottom:0}
+  body.compact #colDay .main{padding-top:0}
   body.compact .subplan{margin-top:6px}
+
+  /* ---- hub: on a wide window everything sits on one screen ----
+     Columns (now · tasks · today) each fit the window height, so the page
+     itself never scrolls. Two columns on a medium window, three on a large
+     one. Only the task list and the timeline scroll, inside their own boxes,
+     when they hold more than fits. Below 760px wide (or under 520px tall)
+     none of this applies and the phone layout above is unchanged. */
+  @media (min-width:760px) and (min-height:520px){
+    html,body{height:100%;overflow:hidden}
+    #app:not(.hidden){height:100%}
+    .shell{max-width:1500px;height:100%;display:grid;
+           grid-template-columns:minmax(330px,390px) minmax(0,1fr);
+           grid-template-rows:minmax(0,1fr) minmax(150px,26%);
+           grid-template-areas:"now lists" "now day"}
+    #colNow{grid-area:now} #colLists{grid-area:lists} #colDay{grid-area:day}
+    .hcol{min-height:0;min-width:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+          display:flex;flex-direction:column}
+    #colLists,#colDay{border-left:1px solid var(--line)}
+    #colDay{border-top:1px solid var(--line)}
+    #colNow main,#colLists .main,#colDay .main,
+    body.compact #colNow main,body.compact #colLists .main,body.compact #colDay .main{
+          flex:1 1 auto;min-height:0;display:flex;flex-direction:column;padding:6px 16px 14px}
+    #colNow main,body.compact #colNow main{display:block;padding-bottom:4px}
+
+    /* now: the ring scales with the window height */
+    #colNow header{padding:10px 16px 0}
+    #colNow .hero{width:clamp(116px,20vh,190px);height:clamp(116px,20vh,190px);margin-top:2px}
+    #colNow .hero svg{width:100%;height:100%}
+    #colNow .clock{font-size:clamp(30px,4.8vh,48px)}
+    #colNow .stat{padding:6px 8px}
+    #colNow .stats-row{margin-top:8px}
+    #colNow .subplan{margin:8px 16px 0}
+    #colNow .subplan:empty{min-height:0;margin-top:2px}
+    #colNow .frogbar{margin-bottom:8px}
+    #colNow .omni{margin-top:10px}
+    #colNow .frogbar .ftitle{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+    #colNow .frogbar .fsub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #nlHint{display:none}
+    #upNext{display:none!important}           /* the full task list sits right beside it */
+
+    /* tasks first and flexible; the occasional tools fold up beneath */
+    #card-tasks{order:-1;border-top:none;margin-top:0}
+    #card-tasks.open{flex:0 1 auto;min-height:150px;display:flex;flex-direction:column}
+    #card-tasks.open .sbody{flex:0 1 auto;min-height:0}
+    #card-tasks .sbody > div{display:flex;flex-direction:column}
+    #card-tasks .pad{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+    #taskList{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+    #taskList .nm{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+    #taskList .trow{padding:6px 2px}
+    #tkHint{display:none}
+    #colLists .sect{margin-top:2px}
+    #colLists .shead{padding:7px 0 5px}
+
+    /* today: the timeline takes the whole column */
+    #colDay .todayhead{margin:12px 2px 8px}
+    #colDay .timeline{flex:1 1 auto;min-height:0;max-height:none}
+  }
+  @media (min-width:1100px) and (min-height:520px){
+    .shell{grid-template-columns:minmax(350px,400px) minmax(0,1fr) minmax(290px,370px);
+           grid-template-rows:minmax(0,1fr);grid-template-areas:"now lists day"}
+    #colDay{border-top:none}
+  }
 </style>
 </head>
 <body>
@@ -499,6 +568,9 @@
 
   <div id="app" class="hidden">
     <div class="shell">
+      <!-- three column wrappers: plain stacked blocks on a phone (same order as
+           ever), side-by-side one-screen hub on a wide window (see "hub" CSS) -->
+      <div class="hcol" id="colNow">
       <header>
         <div class="wordmark"><i></i><span id="brandTxt">CADENCE</span></div>
         <div class="hright">
@@ -574,7 +646,10 @@
           </div>
           <button class="linky discardlink" id="discardBtn">discard session — don't record</button>
         </div>
+      </main>
+      </div>
 
+      <div class="hcol" id="colLists"><div class="main">
         <div class="sect" id="card-todos">
           <div class="shead" data-sect="todos">
             <span class="st">Today's list</span>
@@ -701,11 +776,14 @@
           </div></div></div>
         </div>
 
+      </div></div>
+
+      <div class="hcol" id="colDay"><div class="main">
         <div class="todayhead" id="todayHead">
           <h2>Today</h2><span class="sub">tap an entry to delete</span>
         </div>
         <div class="timeline" id="timeline"></div>
-      </main>
+      </div></div>
     </div>
   </div>
 
@@ -1856,6 +1934,10 @@
     }
     if(!_scrolledOnce && nowRow){ tl.scrollTop = Math.max(0, nowRow.offsetTop - 60); _scrolledOnce = true; }
   }
+  // the one-screen hub layout (same query as the "hub" CSS): Up next is hidden
+  // there, so the task list carries every open task in its own scroll box
+  var HUB = window.matchMedia("(min-width:760px) and (min-height:520px)");
+  try{ HUB.addEventListener("change", function(){ if(EXT){ try{ renderExt(); }catch(e){} } }); }catch(e){}
   function renderExt(){
     // routine
     if(ROUTINE){
@@ -1884,9 +1966,10 @@
       if(pa!==pb) return pa-pb;
       return (TASK_MIN[b.id]||0)-(TASK_MIN[a.id]||0);
     });
-    open.slice(0,8).forEach(function(t){
+    open.slice(0, HUB.matches ? 60 : 8).forEach(function(t){
       var row=el("div","trow");
       var nm=el("div","nm", t.name);
+      nm.title=t.name;                     // full text when the hub clamps it to two lines
       nm.addEventListener("click", function(){ $("plan").value=t.name; $("plan").focus(); window.scrollTo({top:0,behavior:"smooth"}); });
       row.appendChild(nm);
       if(t.tag) row.appendChild(el("span","area", t.tag));

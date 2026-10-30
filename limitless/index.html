@@ -20,7 +20,7 @@
 
   /* ---- chrome ---- */
   .bar{flex:0 0 auto;background:var(--chrome);border-bottom:1px solid var(--line);
-       padding:calc(env(safe-area-inset-top) + 9px) 14px 9px;
+       padding:calc(env(safe-area-inset-top) + 6px) 14px 6px;
        display:flex;align-items:center;gap:10px}
   .brand{display:flex;align-items:center;gap:8px;font-weight:800;letter-spacing:.24em;font-size:11.5px;flex:0 0 auto}
   .brand i{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
@@ -40,7 +40,7 @@
   .tabs{display:flex;gap:5px;background:rgba(255,255,255,.04);border:1px solid var(--line);
         border-radius:11px;padding:3px}
   .tabs button{font:inherit;font-size:13px;font-weight:600;color:var(--muted);background:none;border:none;
-               border-radius:8px;padding:6px 15px;cursor:pointer;white-space:nowrap}
+               border-radius:8px;padding:5px 15px;cursor:pointer;white-space:nowrap}
   .tabs button.on{background:var(--accent);color:var(--accent-ink)}
   .tabs button:hover:not(.on){color:var(--ink)}
   .gear{background:none;border:none;color:var(--muted);padding:4px;cursor:pointer;flex:0 0 auto}
@@ -50,7 +50,11 @@
   .stage{flex:1;position:relative;min-height:0}
   .pane{position:absolute;inset:0;width:100%;height:100%;border:0;
         opacity:0;pointer-events:none;transition:opacity .16s}
-  .pane.on{opacity:1;pointer-events:auto}
+  /* The visible pane must also be on TOP: WebKit routes wheel/trackpad
+     scrolling by stacking order and ignores pointer-events:none, so the
+     invisible Sound pane (later in the DOM) used to swallow every scroll
+     meant for the Focus pane. */
+  .pane.on{opacity:1;pointer-events:auto;z-index:1}
 
   /* ---- settings ---- */
   #set{position:fixed;inset:0;background:rgba(4,6,10,.72);display:none;
