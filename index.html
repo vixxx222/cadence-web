@@ -2074,8 +2074,9 @@
     return r.data ? r.data.id : null;
   }
 
+  var OPEN_DAY_GATE=false;   // retired 2026-11-02 with /open-day; true brings the gate back
   function gateNeeded(){
-    if(!st) return false;
+    if(!OPEN_DAY_GATE || !st) return false;
     return (st.open_day_done_on||"") !== dayKey();
   }
   function maybeGateOnOpen(){
