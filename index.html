@@ -291,7 +291,7 @@
   .ev .tag.m-distraction{color:var(--danger);border-color:var(--danger)}
 
   /* sheet */
-  #sheet,#gate{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
+  #sheet{position:fixed;inset:0;background:var(--scrim);display:flex;align-items:flex-end;
          justify-content:center;padding:0;z-index:40}
   .sheetbox{width:100%;max-width:440px;background:var(--panel);border:1px solid var(--line);
             border-bottom:none;border-radius:18px 18px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));
@@ -415,10 +415,6 @@
           border:1px solid var(--line2);border-radius:999px;padding:3px 8px;white-space:nowrap}
   .docket.queued{color:var(--muted);border-style:dashed}
   .hint{font-size:11.5px;color:var(--faint);margin-top:7px;line-height:1.45}
-  .gnote{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.5}
-  .gnote b{color:var(--ink)}
-  .skiplink{display:block;margin:14px auto 0;background:none;border:none;color:var(--faint);font-size:12px}
-  .skiplink:disabled{opacity:.4}
 
   /* drawer */
   #drawerWrap{position:fixed;inset:0;z-index:50}
@@ -843,20 +839,6 @@
     </div>
   </div>
 
-  <div id="gate" class="hidden">
-    <div class="sheetbox">
-      <h3>Start the day right</h3>
-      <p class="gnote">First session of the day. Before you dive in:<br>
-        <b>1.</b> Run <b>/open-day</b> with Claude on your Mac — it sets today's priorities.<br>
-        <b>2.</b> Knock out the morning routine (or schedule it on the timeline).</p>
-      <input type="text" id="gateFrog" class="hidden" placeholder="🐸 today's frog — the task you're avoiding" autocomplete="off">
-      <div class="sheetbtns">
-        <button class="primary" id="gateDone">Open-day is done — let's go</button>
-      </div>
-      <button class="skiplink" id="gateSkip" disabled>skip today (available in 6s)</button>
-    </div>
-  </div>
-
   <div id="drawerWrap" class="hidden">
     <div class="scrim" id="drawerScrim"></div>
     <aside class="drawer">
@@ -994,7 +976,6 @@
   var sheetNextMin = 0;            // duration chosen for the next block
   var sheetLenTouched = false;     // user explicitly picked a next-block length
   var _sheetGrace = 0;             // suppress auto-reopen of the capture sheet until this time
-  var gateShownThisLoad = false, pendingPlan = null;
 
   // ---------------- prefs ----------------
   var DEFAULT_PREFS = {theme:"dark", sound:true, compact:false, sarah:false,
@@ -1236,7 +1217,6 @@
     rebuildFromMirror(true);
     extFromMirror();
     applyPrefs(); obBadge();
-    maybeGateOnOpen();
     if(!tickTimer) tickTimer = setInterval(tick, 1000);
     if(!refreshTimer) refreshTimer = setInterval(function(){ refresh(); }, 5000);
     if(!extTimer) extTimer = setInterval(function(){ refreshExt(); }, 60000);
@@ -1259,7 +1239,6 @@
       try{ localStorage.setItem("sarah_welcomed","1"); }catch(e){}
       prefs.sarah=true; savePrefs(); applyPrefs(); playSarahIntro();
     }
-    maybeGateOnOpen();
     if(!tickTimer) tickTimer = setInterval(tick, 1000);
     if(!refreshTimer) refreshTimer = setInterval(function(){ refresh(); }, 5000);
     if(!extTimer) extTimer = setInterval(function(){ refreshExt(); }, 60000);
@@ -2074,35 +2053,7 @@
     return r.data ? r.data.id : null;
   }
 
-  var OPEN_DAY_GATE=false;   // retired 2026-11-02 with /open-day; true brings the gate back
-  function gateNeeded(){
-    if(!OPEN_DAY_GATE || !st) return false;
-    return (st.open_day_done_on||"") !== dayKey();
-  }
-  function maybeGateOnOpen(){
-    if(!gateShownThisLoad && gateNeeded() && "open_day_done_on" in (st||{})){
-      gateShownThisLoad=true; showGate(null);
-    }
-  }
-  var gateTimer=null;
-  function showGate(planAfter){
-    pendingPlan=planAfter;
-    // name the frog while you're setting up the day
-    $("gateFrog").classList.toggle("hidden", !FROG || !!frogToday());
-    $("gateFrog").value="";
-    $("gate").classList.remove("hidden");
-    var skip=$("gateSkip"); skip.disabled=true; var n=6;
-    skip.textContent="skip today (available in "+n+"s)";
-    clearInterval(gateTimer);
-    gateTimer=setInterval(function(){
-      n--; if(n<=0){ clearInterval(gateTimer); skip.disabled=false; skip.textContent="skip today — start anyway"; }
-      else skip.textContent="skip today (available in "+n+"s)";
-    },1000);
-  }
-  function closeGate(){ $("gate").classList.add("hidden"); clearInterval(gateTimer); }
-
   function startSession(plan, mins, area, meta){
-    if(gateNeeded() && "open_day_done_on" in (st||{})){ showGate({plan:plan, mins:mins, area:area, meta:meta}); return; }
     reallyStart(plan, mins, area, meta);
   }
   function reallyStart(plan, mins, area, meta){ run(async function(){
@@ -2328,7 +2279,7 @@
     return FROGS.filter(function(f){ return f.day===k; })[0]||null;
   }
   // plain async (not run()): frog writes don't touch session state, and must
-  // not steal the busy lock from a session starting in the same tap (gate)
+  // not steal the busy lock from a session starting in the same tap
   async function setFrog(title){
     title=(title||"").trim(); if(!title || !FROG) return;
     try{
@@ -3218,23 +3169,6 @@
       var p=parseNL(v);
       if(p.mins && p.mins>0 && !sheetLenTouched) setSheetLen(p.mins);
     }, 200);
-  });
-
-  // gate
-  $("gateDone").addEventListener("click", function(){
-    var fv=$("gateFrog").value.trim();
-    closeGate();
-    run(async function(){
-      try{ await dbUpd("state", { open_day_done_on: dayKey() }, {user_id:UID}); }catch(e){}
-    }).then(function(){
-      if(fv) setFrog(fv);
-      if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area, p.meta); }
-    });
-  });
-  $("gateSkip").addEventListener("click", function(){
-    if($("gateSkip").disabled) return;
-    closeGate();
-    if(pendingPlan){ var p=pendingPlan; pendingPlan=null; reallyStart(p.plan, p.mins, p.area, p.meta); }
   });
 
   // routine — multi-select chips; log as its own session (already done / starting now)
