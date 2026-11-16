@@ -936,7 +936,10 @@
   // localStorage is per-origin, so both versions read the same preference; the
   // sessionStorage guard permits at most ONE redirect per launch (no ping-pong).
   var VIEW = "full";
+  // inside Limitless the shell decides which view shows; never redirect there
+  var EMBEDDED = (function(){ try{ return window.top !== window; }catch(e){ return true; } })();
   var REDIRECTING = (function(){
+    if(EMBEDDED) return false;
     try{
       var want = localStorage.getItem("cadence_view");
       if(want && want !== VIEW && !sessionStorage.getItem("cad_switched")){

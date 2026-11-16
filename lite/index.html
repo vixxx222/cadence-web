@@ -67,38 +67,52 @@
   .iconbtn{background:none;border:none;color:var(--muted);padding:4px}
   .iconbtn:hover{color:var(--accent);border:none}
 
-  /* frog */
-  .frog{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0;padding:11px 13px;
-        border:1px solid var(--line2);border-radius:13px;background:var(--panel)}
-  .frog.hot{border-color:var(--amber);box-shadow:0 0 20px -8px var(--amber)}
-  .frog.eaten{opacity:.75;border-color:var(--ok)}
-  .frog .em{font-size:18px;line-height:1}
-  .frog .ft{flex:1;min-width:0;font-weight:650;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .frog.eaten .ft{text-decoration:line-through;color:var(--muted)}
-  .frog .sub{flex-basis:100%;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
-  .fpick{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-  .pick{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line2);
-        border-radius:999px;font-size:12.5px;color:var(--muted);cursor:pointer;background:var(--panel2);
-        max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .pick:hover{border-color:var(--accent);color:var(--accent)}
-  .pick.frogpick{border-color:var(--amber)}
-
-  /* the now bar - the whole point of the app */
-  .now{margin:12px 0 0;padding:14px 15px 13px;border:1px solid var(--line2);border-radius:14px;background:var(--panel);
+  /* the now card - the task at hand and its timer. The task leads; the clock
+     supplements it. */
+  .now{margin:12px 0 0;padding:16px 18px 16px;border:1px solid var(--line2);border-radius:16px;background:var(--panel);
        transition:border-color .2s, box-shadow .2s}
   .now.on{border-color:var(--accent);box-shadow:0 0 28px -10px var(--accent);background:linear-gradient(180deg,var(--onbg),transparent 70%),var(--panel)}
-  .now .lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .now.frogged:not(.on){border-color:var(--amber);box-shadow:0 0 22px -10px var(--amber)}
+  .now .nhead{display:flex;align-items:center;gap:8px;min-height:22px}
+  .now .lbl{flex:1;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:600}
   .now.on .lbl{color:var(--accent)}
-  .now .top{display:flex;align-items:baseline;gap:12px;margin-top:2px}
-  .now .title{flex:1;min-width:0;font-size:17px;font-weight:650;line-height:1.3;overflow-wrap:anywhere}
-  .now:not(.on) .title{color:var(--muted);font-weight:500}
-  .now .clk{font-size:32px;font-weight:250;letter-spacing:-.02em;font-variant-numeric:tabular-nums;flex:0 0 auto;line-height:1}
-  .now .sub{font-size:12px;color:var(--muted);margin-top:5px}
-  .now .btns{display:flex;gap:8px;margin-top:12px;align-items:center}
-  .now .btns button{flex:1}
+  .now .title{font-size:22px;font-weight:650;line-height:1.28;overflow-wrap:anywhere;margin-top:4px;
+              display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .now .title:empty{display:none}
+  .now .timerow{display:flex;align-items:baseline;gap:12px;margin-top:10px;flex-wrap:wrap}
+  .now .clk{font-size:44px;font-weight:250;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+  .now .clk:empty{display:none}
+  .now:not(.on) .clk{color:var(--muted)}
+  .now .sub{font-size:12.5px;color:var(--muted)}
+  .now .pbar{height:3px;border-radius:2px;background:var(--line2);margin-top:12px;overflow:hidden}
+  .now .pbar > i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .6s linear}
+  .now .btns{display:flex;gap:8px;margin-top:14px;align-items:center}
+  .now .btns:empty{display:none}
+  .now .btns button{flex:1;padding:11px 14px}
   .now .btns .linky{flex:0 0 auto;padding:0 4px}
-  .go{display:flex;gap:8px;margin:12px 0 0}
+  .listbtn{font-size:17px;line-height:1;padding:2px 4px}
+
+  /* what's next: one quiet line under the card */
+  .next{display:flex;align-items:center;gap:10px;margin-top:10px;padding:10px 12px 10px 15px;
+        border:1px solid var(--line);border-radius:13px;background:var(--panel)}
+  .next .lbl{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);font-weight:600;flex:0 0 auto}
+  .next .nt{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .next .nn{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .next button{flex:0 0 auto;padding:6px 11px;font-size:12.5px}
+
+  .go{display:flex;gap:8px;margin:0 0 10px}
   .go button{flex:0 0 auto;white-space:nowrap}
+  .sheethead{display:flex;align-items:center;gap:12px}
+  .sheethead h2{flex:1}
+  #listDone{display:none;flex:0 0 auto;font-size:12.5px;padding:5px 12px;border-radius:999px}
+  .task .fe{flex:0 0 auto;font-size:14px}
+  .task.frogrow{box-shadow:inset 3px 0 0 var(--amber)}
+
+  /* the record: what got done today, said plainly */
+  .wins{font-size:13px;color:var(--muted);margin:-2px 0 10px}
+  .wins b{color:var(--ink);font-weight:650}
+  .donelist .item .n{color:var(--muted)}
+  .donelist .ok{color:var(--ok);flex:0 0 auto;font-size:12px;width:16px}
 
   /* sections */
   h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
@@ -176,31 +190,60 @@
          opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #toast.show{opacity:1;transform:translateX(-50%)}
 
-  /* ---- hub: on a wide window everything sits on one screen ----
-     Left: what you're on + today. Right: the whole task list. The page never
-     scrolls; only the task list and today's entries scroll inside their own
-     boxes when they hold more than fits. Below 760px wide (or under 520px
-     tall) none of this applies and the phone layout is unchanged. */
+  /* ---- compact (narrow or short window, phone): nothing but the task at
+     hand, its timer and what's next, centred. The full list and today's
+     record open on demand from ☰ and close again. ---- */
+  @media (max-width:759px), (max-height:519px){
+    #lcTasks,#lcDay,header{display:none}
+    body{padding-bottom:0}
+    #app .wrap{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;
+               padding:12px 0 calc(24px + env(safe-area-inset-bottom))}
+    body.listing #lcNow{display:none}
+    body.listing #lcTasks,body.listing #lcDay{display:block}
+    html:not(.embedded) body.listing header{display:flex}
+    body.listing #app .wrap{justify-content:flex-start}
+    body.listing #listDone{display:inline-block}
+    body.listing #app .wrap{padding-top:40px}
+    body.listing #lcTasks h2{margin:0}
+    .task .n{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  }
+
+  /* ---- hub (wide window): tasks first. The task at hand sits on top of the
+     list, today's record runs down the right. The page never scrolls; the
+     list and the record scroll inside their own boxes. ---- */
   @media (min-width:760px) and (min-height:520px){
     html,body{height:100%;overflow:hidden}
     body{padding-left:20px;padding-right:20px;padding-bottom:env(safe-area-inset-bottom)}
     #app:not(.hidden){height:100%}
     #app .wrap{max-width:1180px;height:100%;display:grid;column-gap:24px;
-               grid-template-columns:minmax(320px,430px) minmax(0,1fr);
-               grid-template-rows:auto minmax(0,1fr);grid-template-areas:"now tasks" "day tasks"}
+               grid-template-columns:minmax(0,1fr) minmax(240px,320px);
+               grid-template-rows:auto minmax(0,1fr);grid-template-areas:"now day" "tasks day"}
     #lcNow{grid-area:now} #lcTasks{grid-area:tasks} #lcDay{grid-area:day}
     #lcTasks,#lcDay{min-height:0;display:flex;flex-direction:column}
-    #lcTasks{padding:14px 0 16px}
-    #lcTasks > h2{margin-top:8px}
+    #lcTasks{padding:0 0 16px}
+    #lcTasks h2{margin-top:18px}
     #lcTasks .card{flex:0 1 auto;min-height:0;display:flex;flex-direction:column}
     #taskList{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
     .task .n{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-    .frog .ft{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-    #lcDay{padding-bottom:14px}
-    #lcDay > h2{margin-top:20px}
+    #lcDay{padding-bottom:16px}
+    #lcDay > h2{margin-top:14px}
+    html:not(.embedded) #lcDay > h2{margin-top:68px}
     #todayCard{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
     #lcDay .foot{margin-top:12px}
+    .listbtn{display:none}
+    .now{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;align-items:center;
+         grid-template-areas:"head btns" "title btns" "time btns" "bar bar";padding:14px 18px}
+    .now .nhead{grid-area:head} .now .title{grid-area:title;font-size:20px;margin-top:2px;-webkit-line-clamp:2}
+    .now .timerow{grid-area:time;margin-top:6px}
+    .now .clk{font-size:30px}
+    .now .pbar{grid-area:bar}
+    .now .btns{grid-area:btns;margin-top:0}
+    .now .btns button{flex:0 0 auto;min-width:96px}
   }
+
+  /* inside Limitless the shell owns the brand bar and settings */
+  .embedded header{display:none!important}
+  .embedded #versionOpt,.embedded #acct{display:none}
 </style>
 </head>
 <body>
@@ -224,7 +267,6 @@
   <header>
     <div class="mark"><i></i>CADENCE LITE</div>
     <div class="hr">
-      <span class="pill hidden" id="syncPill"></span>
       <span class="pill" id="today"></span>
       <button class="iconbtn" id="gear" aria-label="Settings">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -232,42 +274,40 @@
     </div>
   </header>
 
-  <div class="frog hidden" id="frogBar"></div>
-
+  <!-- the task at hand, its timer, and what's next: the whole compact view -->
   <div class="now" id="nowBar">
-    <div class="lbl" id="nowLbl">Off</div>
-    <div class="top">
-      <div class="title" id="nowTitle">Not on anything</div>
-      <div class="clk" id="nowClk"></div>
+    <div class="nhead">
+      <span class="lbl" id="nowLbl">Off</span>
+      <span class="pill hidden" id="syncPill"></span>
+      <button class="iconbtn listbtn" id="listBtn" aria-label="All tasks">☰</button>
     </div>
-    <div class="sub" id="nowSub">Tap a task to be on it. Tap another to switch.</div>
-    <div class="btns hidden" id="nowBtns">
-      <button class="primary" id="doneBtn">✓ Done</button>
-      <button id="offBtn">■ Off</button>
-      <button class="linky" id="discardBtn">discard</button>
+    <div class="title" id="nowTitle"></div>
+    <div class="timerow">
+      <span class="clk" id="nowClk"></span>
+      <span class="sub" id="nowSub"></span>
     </div>
+    <div class="pbar hidden" id="nowProg"><i></i></div>
+    <div class="btns" id="nowBtns"></div>
   </div>
-
-  <div class="go">
-    <input type="text" id="plan" placeholder="On something else? type it" autocomplete="off">
-    <button class="primary" id="goBtn">On it</button>
-  </div>
+  <div class="next hidden" id="nextRow"></div>
   </div>
 
   <div class="lcol" id="lcTasks">
-  <h2>Tasks <span id="taskCount"></span></h2>
+  <div class="sheethead"><h2>Tasks <span id="taskCount"></span></h2><button id="listDone">Done</button></div>
+  <div class="go">
+    <input type="text" id="plan" placeholder="Add a task · Enter adds it, ▶ starts it now" autocomplete="off">
+    <button id="taskAddBtn">Add</button>
+    <button class="primary" id="goBtn" title="Start it now">▶</button>
+  </div>
   <div class="card">
     <div id="taskList"></div>
     <button class="more hidden" id="moreBtn"></button>
-    <div class="addrow">
-      <input type="text" id="taskAdd" placeholder="add a task (without starting it)" autocomplete="off">
-      <button id="taskAddBtn">Add</button>
-    </div>
   </div>
   </div>
 
   <div class="lcol" id="lcDay">
   <h2>Today <span id="todayTotal"></span></h2>
+  <div class="wins hidden" id="winLine"></div>
   <div class="card" id="todayCard"></div>
 
   <div class="foot">
@@ -299,7 +339,7 @@
       </div>
     </div>
     <div class="opt"><span>Sound</span><label class="sw"><input type="checkbox" id="swSound"><i></i></label></div>
-    <div class="opt"><span>Version</span>
+    <div class="opt" id="versionOpt"><span>Version</span>
       <div class="seg"><button id="vFull">Full</button><button id="vLite" class="on">Lite</button></div>
     </div>
     <div class="opt"><span>Account</span><button class="linky" id="signOut">Sign out</button></div>
@@ -321,7 +361,13 @@
   // which is shared per-origin, so either app can read it. The sessionStorage
   // guard allows at most ONE redirect per launch — no ping-pong loops.
   var VIEW = "lite";
+  // Inside Limitless the shell owns the brand bar, settings and which view is
+  // shown, so the version redirect must never fire there (it used to swap the
+  // pane to the full app whenever cadence_view said "full").
+  var EMBEDDED = (function(){ try{ return window.top !== window; }catch(e){ return true; } })();
+  if(EMBEDDED) document.documentElement.classList.add("embedded");
   var REDIRECTING = (function(){
+    if(EMBEDDED) return false;
     try{
       var want = localStorage.getItem("cadence_view");
       if(want && want !== VIEW && !sessionStorage.getItem("cad_switched")){
@@ -345,10 +391,13 @@
   //   state.mode = "stopwatch", state.due_at = START anchor, block_total = 0,
   //   blocks.mode = "stopwatch", interval_min = measured minutes once closed.
   var UID = null, EMAIL = "", st = null, TODAY = [], TASKS = [], FROGS = [], busy = false;
+  var PLANB = [], DONE_TODAY = [];     // today's scheduled blocks (close-day/open-day push them) + tasks finished today
   var FROG_OK = false;                 // frogs table present
+  var PLAN_OK = false;                 // plan_blocks table present
   var tickTimer = null, pollTimer = null, audioCtx = null;
   var OFFBOOT = false;
   var SHOW_N = 14;                     // task rows before "+N more"
+  var JUST_ADDED = {};                 // ids added this visit: always shown, so a new task never vanishes under "+N more"
   var TAG_ORDER = {focus:0, vix:1, adhoc:2, also:3, personal:4, unranked:8};
   var GROUP_LABEL = {ranked:"Ranked today", focus:"Focus", vix:"VIX", adhoc:"Added on the fly",
                      also:"Also", personal:"Personal", unranked:"Not ranked", untagged:"Other"};
@@ -415,7 +464,7 @@
   // OB: outbox of writes made offline, replayed in order on reconnect.
   // Offline inserts get temporary NEGATIVE ids; replay maps them to real ids
   // (OB.map) and substitutes them in later ops' foreign keys.
-  var MIRROR = { st:null, blocks:[], tasks:[], frogs:[], flags:null };
+  var MIRROR = { st:null, blocks:[], tasks:[], frogs:[], plan_blocks:[], done_today:[], flags:null };
   var OB = { ops:[], map:{}, seq:-2 };
   var DRAINING = false;
   var ID_KEYS = { id:1, session_id:1, block_id:1, task_id:1, active_session_id:1, active_block_id:1 };
@@ -424,7 +473,8 @@
   function obKey(){ return "cadlite_ob_" + (UID||"anon"); }
   function saveMirror(){ try{ localStorage.setItem(mirKey(), JSON.stringify(MIRROR)); }catch(e){} }
   function loadMirror(){ try{ var m=JSON.parse(localStorage.getItem(mirKey())||"null");
-    if(m){ MIRROR=m; MIRROR.blocks=MIRROR.blocks||[]; MIRROR.tasks=MIRROR.tasks||[]; MIRROR.frogs=MIRROR.frogs||[]; return true; } }catch(e){} return false; }
+    if(m){ MIRROR=m; MIRROR.blocks=MIRROR.blocks||[]; MIRROR.tasks=MIRROR.tasks||[]; MIRROR.frogs=MIRROR.frogs||[];
+      MIRROR.plan_blocks=MIRROR.plan_blocks||[]; MIRROR.done_today=MIRROR.done_today||[]; return true; } }catch(e){} return false; }
   function saveOB(){ try{ localStorage.setItem(obKey(), JSON.stringify(OB)); }catch(e){} }
   function loadOB(){ try{ var o=JSON.parse(localStorage.getItem(obKey())||"null");
     if(o && o.ops){ OB=o; OB.map=OB.map||{}; if(typeof OB.seq!=="number") OB.seq=-2; } }catch(e){} }
@@ -459,6 +509,10 @@
     // .slice(): these get mutated in place, so never alias the mirror's arrays
     TASKS=(MIRROR.tasks||[]).slice();
     FROGS=(MIRROR.frogs||[]).slice();
+    var k=dayKey();
+    PLANB=(MIRROR.plan_blocks||[]).filter(function(b){ return b.day===k; });
+    var iso=todayStartISO();
+    DONE_TODAY=(MIRROR.done_today||[]).filter(function(t){ return (t.completed_at||"")>=iso; });
   }
   function obBadge(){
     var e=$("syncPill"); if(!e) return;
@@ -564,6 +618,7 @@
     $("login").classList.add("hidden"); $("app").classList.remove("hidden");
     loadOB(); loadMirror();
     FROG_OK=!!(MIRROR.flags && MIRROR.flags.frog);
+    PLAN_OK=!!(MIRROR.flags && MIRROR.flags.plan);
     st=MIRROR.st||{interval_min:20, block_index:0};
     rebuildFromMirror(false); extFromMirror(); render(); obBadge();
     startTimers();
@@ -604,7 +659,10 @@
     try{ var r=await SB.from("frogs").select("id").limit(1);
       FROG_OK = r.error ? (netErr(r.error) ? !!mf.frog : false) : true; }
     catch(e){ FROG_OK = netErr(e) ? !!mf.frog : false; }
-    MIRROR.flags={frog:FROG_OK}; saveMirror();
+    try{ var r2=await SB.from("plan_blocks").select("id").limit(1);
+      PLAN_OK = r2.error ? (netErr(r2.error) ? !!mf.plan : false) : true; }
+    catch(e){ PLAN_OK = netErr(e) ? !!mf.plan : false; }
+    MIRROR.flags={frog:FROG_OK, plan:PLAN_OK}; saveMirror();
   }
 
   // ---------------- read ----------------
@@ -640,6 +698,17 @@
         if(!f.error){ FROGS=f.data||[]; MIRROR.frogs=FROGS.slice(); }
       }catch(e){}
     }
+    if(PLAN_OK){
+      try{
+        var pb=await SB.from("plan_blocks").select("*").eq("day",dayKey()).order("start_at");
+        if(!pb.error){ PLANB=pb.data||[]; MIRROR.plan_blocks=PLANB.slice(); }
+      }catch(e){}
+    }
+    try{
+      var dn=await SB.from("tasks").select("id,name,completed_at").eq("status","done")
+        .gte("completed_at", todayStartISO()).order("completed_at",{ascending:false});
+      if(!dn.error){ DONE_TODAY=dn.data||[]; MIRROR.done_today=DONE_TODAY.slice(); }
+    }catch(e){}
     saveMirror(); render();
   }
 
@@ -707,80 +776,122 @@
     return list.filter(function(x){ return (x.name||"").toLowerCase().indexOf(q)>=0; })[0]||null;
   }
 
+  // ---------------- the schedule ----------------
+  // close-day / open-day push the day's timed plan into plan_blocks; the card
+  // offers whatever is scheduled now, and "Next" is the next scheduled block.
+  function stripLead(t){ return (t||"").replace(/^[^A-Za-z0-9]*(?:B\d+(?:[–-]B\d+)?\s*[·:.-]\s*)?/, "").trim() || (t||""); }
+  function planNow(t){ for(var i=0;i<PLANB.length;i++){ var b=PLANB[i];
+    if(t>=Date.parse(b.start_at) && t<Date.parse(b.end_at)) return b; } return null; }
+  // Loose: the running block's name comes from the plan title, a task row or
+  // whatever was typed, so an exact match would call half the day "off plan".
+  function sameTitle(a,b){
+    var x=stripLead(a).toLowerCase(), y=stripLead(b).toLowerCase();
+    if(!x || !y) return false;
+    return x.indexOf(y)>=0 || y.indexOf(x)>=0 || x.slice(0,18)===y.slice(0,18);
+  }
+  function frogToday(){ var k=dayKey(); return FROGS.filter(function(f){ return f.day===k; })[0]||null; }
+  // What the card offers when you're not on anything: the scheduled block,
+  // else the frog, else the top of the list.
+  function isBreak(b){ return b.kind==="break" || /^(breakfast|lunch|dinner|meal)\b/i.test(stripLead(b.title)); }
+  function suggestion(now){
+    var b=PLAN_OK ? planNow(now) : null;
+    if(b) return {kind:isBreak(b)?"break":"plan", title:stripLead(b.title), block:b, frog:b.kind==="frog"};
+    var f=frogToday();
+    if(f && !f.done) return {kind:"frog", title:stripLead(f.title), frog:true};
+    var t=sortedTasks()[0];
+    return t ? {kind:"task", title:t.name, task:t} : null;
+  }
+  function nextUp(s, now){
+    var cur = s.on ? s.plan : ((suggestion(now)||{}).title||"");
+    if(PLAN_OK){
+      for(var i=0;i<PLANB.length;i++){
+        var b=PLANB[i];
+        if(Date.parse(b.start_at)<=now || (s.on && sameTitle(s.plan, b.title))) continue;
+        return {title:stripLead(b.title), at:b.start_at, block:b, frog:b.kind==="frog", brk:isBreak(b)};
+      }
+    }
+    var t=sortedTasks().filter(function(x){ return !sameTitle(cur, x.name); })[0];
+    return t ? {title:t.name, task:t} : null;
+  }
+
   // ---------------- render ----------------
   function render(){
     if(!st) return;
-    var s=status();
+    var s=status(), now=Date.now();
     $("today").textContent=new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
-    $("nowBar").classList.toggle("on", s.on);
-    $("nowBtns").classList.toggle("hidden", !s.on);
+    var card=$("nowBar"), btns=$("nowBtns"), prog=null;
+    var cur=PLAN_OK ? planNow(now) : null;
+    card.classList.toggle("on", s.on);
+    btns.innerHTML="";
     if(s.on){
-      $("nowLbl").textContent = s.timer ? "On · timer block" : "On";
-      $("nowTitle").textContent = s.plan || "(untitled)";
+      var onPlan = !!(cur && sameTitle(s.plan, cur.title));
+      card.classList.remove("frogged");
+      $("nowLbl").textContent = onPlan ? "On it · as planned" : "On it";
+      $("nowTitle").textContent = s.plan || "(untitled)"; $("nowTitle").title = s.plan || "";
       $("nowClk").textContent = clockUp(s.elapsedSec);
       var sub="since "+hm(s.startMs);
-      if(s.timer) sub += (s.endMs>Date.now() ? " · timer ends "+hm(s.endMs) : " · timer ended "+hm(s.endMs));
-      else if(prefs.chime>0 && prefs.sound){ var per=prefs.chime*60; sub += " · chime in "+Math.max(1,Math.ceil((per-(s.elapsedSec%per))/60))+"m"; }
+      if(s.timer) sub += (s.endMs>now ? " · timer ends "+hm(s.endMs) : " · timer ended "+hm(s.endMs));
+      else if(onPlan) sub += " · block ends "+hm(cur.end_at);
+      if(!s.timer && prefs.chime>0 && prefs.sound){ var per=prefs.chime*60; sub += " · chime in "+Math.max(1,Math.ceil((per-(s.elapsedSec%per))/60))+"m"; }
       $("nowSub").textContent=sub;
+      if(onPlan) prog=[Date.parse(cur.start_at), Date.parse(cur.end_at)];
+      else if(s.timer && s.endMs) prog=[s.startMs, s.endMs];
+      var d=el("button","primary","✓ Done"); d.addEventListener("click", doneNow); btns.appendChild(d);
+      var o=el("button","","■ Off"); o.addEventListener("click", goOff); btns.appendChild(o);
+      var x=el("button","linky","discard"); x.addEventListener("click", discardSession); btns.appendChild(x);
     } else {
-      $("nowLbl").textContent="Off";
-      $("nowTitle").textContent="Not on anything";
-      $("nowClk").textContent="";
-      $("nowSub").textContent = TASKS.length ? "Tap a task to be on it. Tap another to switch." : "Add a task below, then tap it.";
+      var sg=suggestion(now);
+      card.classList.toggle("frogged", !!(sg && sg.frog));
+      if(!sg){
+        $("nowLbl").textContent="Off";
+        $("nowTitle").textContent="Nothing lined up";
+        $("nowClk").textContent="";
+        $("nowSub").textContent="Add a task and it shows up here.";
+      } else {
+        $("nowLbl").textContent = sg.kind==="break" ? "Break" : sg.kind==="plan" ? (sg.frog ? "🐸 Up now · the frog" : "Up now")
+                                : sg.kind==="frog" ? "🐸 Today's frog" : "Top of the list";
+        $("nowTitle").textContent = sg.title; $("nowTitle").title = sg.title;
+        if(sg.block){
+          var left=Math.max(0, (Date.parse(sg.block.end_at)-now)/1000);
+          $("nowClk").textContent = clockUp(left);
+          $("nowSub").textContent = "left · "+hm(sg.block.start_at)+"–"+hm(sg.block.end_at);
+          prog=[Date.parse(sg.block.start_at), Date.parse(sg.block.end_at)];
+        } else { $("nowClk").textContent=""; $("nowSub").textContent=""; }
+        if(sg.kind!=="break"){
+          var go=el("button","primary","▶ Start"); go.addEventListener("click", function(){ startItem(sg); });
+          btns.appendChild(go);
+        }
+      }
     }
-    renderFrog(); renderTasks(); renderToday();
+    var pb=$("nowProg");
+    pb.classList.toggle("hidden", !prog);
+    if(prog) pb.firstChild.style.width=Math.min(100, Math.max(0, 100*(now-prog[0])/Math.max(1,prog[1]-prog[0]))).toFixed(1)+"%";
+    renderNext(nextUp(s, now));
+    renderTasks(); renderToday();
+  }
+  function renderNext(n){
+    var box=$("nextRow"); box.innerHTML="";
+    box.classList.toggle("hidden", !n);
+    if(!n) return;
+    box.appendChild(el("span","lbl","Next"));
+    if(n.at) box.appendChild(el("span","nt",hm(n.at)));
+    var nn=el("span","nn",(n.frog?"🐸 ":"")+n.title); nn.title=n.title;
+    box.appendChild(nn);
+    if(!n.brk){
+      var b=el("button","","▶"); b.title="Start it now";
+      b.addEventListener("click", function(){ startItem(n); });
+      box.appendChild(b);
+    }
   }
 
-  function frogToday(){ var k=dayKey(); return FROGS.filter(function(f){ return f.day===k; })[0]||null; }
-  function renderFrog(){
-    var bar=$("frogBar");
-    if(!FROG_OK){ bar.classList.add("hidden"); return; }
-    bar.classList.remove("hidden","hot","eaten"); bar.innerHTML="";
-    var t=frogToday();
-    bar.appendChild(el("span","em","🐸"));
-    if(!t){
-      bar.appendChild(el("div","ft","Pick today's frog"));
-      var pick=el("div","fpick");
-      var y=(function(){ var d=new Date(Date.now()-864e5);
-        var k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-        return FROGS.filter(function(f){ return f.day===k && !f.done; })[0]||null; })();
-      var seen={};
-      if(y){ var c0=el("span","pick frogpick","↻ "+trunc(y.title,26)); seen[y.title.toLowerCase()]=1;
-        c0.addEventListener("click", function(){ setFrog(y.title); }); pick.appendChild(c0); }
-      sortedTasks().slice(0,5).forEach(function(k){
-        var lo=(k.name||"").toLowerCase(); if(!lo||seen[lo]) return; seen[lo]=1;
-        var c=el("span","pick",trunc(k.name,28));
-        c.addEventListener("click", function(){ setFrog(k.name); });
-        pick.appendChild(c);
-      });
-      bar.appendChild(pick);
-      return;
-    }
-    bar.classList.add(t.done ? "eaten" : "hot");
-    bar.appendChild(el("div","ft",t.title));
-    if(!t.done){
-      var s=status();
-      var onIt = s.on && s.plan.toLowerCase()===t.title.trim().toLowerCase();
-      var go=el("button","", onIt ? "●" : "▶");
-      go.title= onIt ? "You're on it" : "Be on the frog";
-      go.addEventListener("click", function(){ if(!onIt) switchTo(t.title, findTask(t.title)); });
-      bar.appendChild(go);
-      var dn=el("button","","✓");
-      dn.title="Frog swallowed";
-      dn.addEventListener("click", eatFrog);
-      bar.appendChild(dn);
-    } else {
-      bar.appendChild(el("span","sub","swallowed ✓"));
-    }
-  }
-
-  function taskRow(t, on, mins){
-    var row=el("div","item task"+(on?" on":""));
+  function taskRow(t, on, mins, frog){
+    var row=el("div","item task"+(on?" on":"")+(frog?" frogrow":""));
     var c=el("button","chk","✓"); c.title="Finished";
     c.addEventListener("click", function(e){ e.stopPropagation(); finishTask(t); });
     row.appendChild(c);
-    if(t.priority!=null) row.appendChild(el("span","pr","#"+t.priority));
-    var nm=el("span","n",t.name); nm.title=t.name;   // full text when the hub clamps it
+    if(frog) row.appendChild(el("span","fe","🐸"));
+    else if(t.priority!=null) row.appendChild(el("span","pr","#"+t.priority));
+    var nm=el("span","n",frog ? stripLead(t.name) : t.name); nm.title=t.name;   // full text when the hub clamps it
     row.appendChild(nm);
     var m = mins.byId[t.id]!=null ? mins.byId[t.id] : (mins.byName[(t.name||"").trim().toLowerCase()]||0);
     if(m>=1) row.appendChild(el("span","m",hmin(m)+" today"));
@@ -788,15 +899,36 @@
     row.addEventListener("click", function(){ if(on) goOff(); else switchTo(t.name, t.id); });
     return row;
   }
+  // a frog with no matching task still gets a row: tap = on it, ✓ = swallowed
+  function frogRow(f, s){
+    var title=stripLead(f.title), on=s.on && sameTitle(s.plan, title);
+    var row=el("div","item task frogrow"+(on?" on":""));
+    var c=el("button","chk","✓"); c.title="Frog swallowed";
+    c.addEventListener("click", function(e){ e.stopPropagation(); eatFrog(); });
+    row.appendChild(c);
+    row.appendChild(el("span","fe","🐸"));
+    var nm=el("span","n",title); nm.title=title; row.appendChild(nm);
+    row.appendChild(el("span","go", on?"●":"▶"));
+    row.addEventListener("click", function(){ if(on) goOff(); else switchTo(title, findTask(title)); });
+    return row;
+  }
   function renderTasks(){
     var box=$("taskList"); box.innerHTML="";
-    var list=sortedTasks(), s=status(), mins=minutesByTask();
+    var list=sortedTasks(), s=status(), mins=minutesByTask(), f=frogToday();
     $("taskCount").textContent = list.length ? (list.length+" open") : "";
-    if(!list.length){ box.appendChild(el("div","empty","No open tasks. Add one below, or they sync in from your list.")); $("moreBtn").classList.add("hidden"); return; }
+    if(f && !f.done){
+      box.appendChild(el("div","grp","Today's frog"));
+      var ft=list.filter(function(t){ return sameTitle(t.name, f.title); })[0];
+      if(ft){ box.appendChild(taskRow(ft, isActiveTask(ft,s), mins, true)); list=list.filter(function(t){ return t!==ft; }); }
+      else box.appendChild(frogRow(f, s));
+    }
+    if(!list.length){
+      if(!box.childNodes.length) box.appendChild(el("div","empty","No open tasks. Add one above, or they sync in from your list."));
+      $("moreBtn").classList.add("hidden"); return;
+    }
     var shown = prefs.showAll ? list : list.slice(0,SHOW_N);
-    if(!prefs.showAll && s.on){            // the task you're on is always visible
-      var act=list.filter(function(t){ return isActiveTask(t,s); })[0];
-      if(act && shown.indexOf(act)<0) shown.push(act);
+    if(!prefs.showAll){                    // the task you're on, and ones just added, are always visible
+      list.forEach(function(t){ if(shown.indexOf(t)<0 && ((s.on && isActiveTask(t,s)) || JUST_ADDED[t.id])) shown.push(t); });
     }
     var last=null;
     shown.forEach(function(t){
@@ -808,12 +940,29 @@
     var mb=$("moreBtn"); mb.classList.toggle("hidden", hidden<=0);
     mb.textContent = prefs.showAll ? "show less" : ("+"+hidden+" more");
   }
+  // The record: time tracked and tasks finished today, said plainly. It only
+  // ever counts up; nothing here grades a slow day.
   function renderToday(){
     var box=$("todayCard"); box.innerHTML="";
     var s=status();
+    $("todayTotal").textContent=new Date().toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
     var items=TODAY.filter(function(it){ return !it.open; }).sort(function(a,b){ return a.sort<b.sort?1:-1; });
     var total=items.reduce(function(a,i){ return a+i.minutes; },0) + (s.on ? s.elapsedSec/60 : 0);
-    $("todayTotal").textContent = total>=1 ? hmin(total) : "";
+    var f=frogToday(), w=$("winLine");
+    w.innerHTML="";
+    if(total>=1 || DONE_TODAY.length || (f && f.done)){
+      w.appendChild(el("b",null,hmin(total))); w.appendChild(document.createTextNode(" tracked"));
+      if(DONE_TODAY.length){ w.appendChild(document.createTextNode(" · ")); w.appendChild(el("b",null,String(DONE_TODAY.length))); w.appendChild(document.createTextNode(" done")); }
+      if(f && f.done) w.appendChild(document.createTextNode(" · 🐸 swallowed"));
+      w.classList.remove("hidden");
+    } else w.classList.add("hidden");
+    DONE_TODAY.forEach(function(t){
+      var r=el("div","item donelist");
+      r.appendChild(el("span","ok","✓"));
+      var n=el("span","n",t.name); n.title=t.name; r.appendChild(n);
+      if(t.completed_at) r.appendChild(el("span","m",hm(t.completed_at)));
+      box.appendChild(r);
+    });
     if(s.on){
       var r0=el("div","item live");
       r0.appendChild(el("span","t",hm(s.startMs)+"–now"));
@@ -821,11 +970,11 @@
       r0.appendChild(el("span","m",hmin(s.elapsedSec/60)));
       box.appendChild(r0);
     }
-    if(!items.length && !s.on){ box.appendChild(el("div","empty","Nothing tracked yet today.")); return; }
+    if(!items.length && !s.on && !DONE_TODAY.length){ box.appendChild(el("div","empty","Nothing yet today. Start the task above and it lands here.")); return; }
     items.forEach(function(it){
       var r=el("div","item");
       r.appendChild(el("span","t",it.startHM+"–"+it.endHM));
-      r.appendChild(el("span","n",it.planned));
+      var n=el("span","n",it.planned); n.title=it.planned; r.appendChild(n);
       r.appendChild(el("span","m",hmin(it.minutes)));
       var x=el("button","x","✕"); x.title="Delete this entry";
       x.addEventListener("click", function(){ if(confirm("Delete this entry?")) delEntry(it); });
@@ -886,7 +1035,25 @@
       block_total:0, due_at:at.toISOString(), paused:false, pause_remaining:0, mode:"stopwatch"}, {user_id:UID});
     $("plan").value=""; _chimed="";
   }
-  function switchTo(plan, taskId){ run(function(){ return startOn(plan, taskId); }); }
+  function switchTo(plan, taskId){
+    document.body.classList.remove("listing");         // picked from the list: back to the card
+    run(function(){ return startOn(plan, taskId); });
+  }
+  // start what the card or the Next line offers; a scheduled block is marked
+  // started, the same record the full app keeps
+  function startItem(it){
+    var tid = it.task ? it.task.id : findTask(it.title);
+    run(async function(){
+      await startOn(it.title, tid);
+      if(it.block && PLAN_OK && it.block.id>0){
+        try{ await dbUpd("plan_blocks", {started_at:new Date().toISOString()}, {id:it.block.id}); }catch(e){}
+      }
+    });
+  }
+  function noteDone(t, at){
+    if(!DONE_TODAY.some(function(x){ return x.id===t.id; })) DONE_TODAY.unshift({id:t.id, name:t.name, completed_at:at});
+    MIRROR.done_today=DONE_TODAY.slice();
+  }
   function startTyped(){
     var v=$("plan").value.trim(); if(!v) return;
     var t=findTaskFuzzy(v);
@@ -922,9 +1089,10 @@
       await clearState();
       if(t){
         await dbUpd("tasks", {status:"done", completed_at:at.toISOString()}, {id:t.id});
-        TASKS=TASKS.filter(function(x){ return x.id!==t.id; }); MIRROR.tasks=TASKS.slice(); saveMirror();
+        TASKS=TASKS.filter(function(x){ return x.id!==t.id; }); MIRROR.tasks=TASKS.slice();
+        noteDone(t, at.toISOString()); saveMirror();
         var f=frogToday();
-        if(f && !f.done && f.title.trim().toLowerCase()===t.name.trim().toLowerCase()) await eatFrog();
+        if(f && !f.done && sameTitle(f.title, t.name)) await eatFrog();
       }
       toast(t ? "Done ✓ "+trunc(t.name,30) : "Done ✓");
     });
@@ -949,33 +1117,26 @@
     var s=status();
     if(s.on && isActiveTask(t,s)){ doneNow(); return; }
     run(async function(){
-      await dbUpd("tasks", {status:"done", completed_at:new Date().toISOString()}, {id:t.id});
+      var at=new Date().toISOString();
+      await dbUpd("tasks", {status:"done", completed_at:at}, {id:t.id});
       TASKS=TASKS.filter(function(x){ return x.id!==t.id; });
-      MIRROR.tasks=TASKS.slice(); saveMirror();
+      MIRROR.tasks=TASKS.slice(); noteDone(t, at); saveMirror();
+      var f=frogToday();
+      if(f && !f.done && sameTitle(f.title, t.name)) await eatFrog();
       render();
       toast("Done ✓ "+trunc(t.name,30));
     });
   }
   function addTask(){
-    var v=$("taskAdd").value.trim(); if(!v) return;
-    $("taskAdd").value="";
+    var v=$("plan").value.trim(); if(!v) return;
+    $("plan").value="";
     run(async function(){
       var r=await dbIns("tasks", {name:cap(v), status:"open", tag:"adhoc"});
       if(r.data && !TASKS.some(function(x){ return x.id===r.data.id; })) TASKS.unshift(r.data);
+      if(r.data) JUST_ADDED[r.data.id]=1;
       MIRROR.tasks=TASKS.slice(); saveMirror();
       render(); toast("Task added");
     });
-  }
-  async function setFrog(title){
-    title=(title||"").trim(); if(!title || !FROG_OK) return;
-    try{
-      var t=frogToday();
-      if(t){ await dbUpd("frogs", {title:title, done:false, done_at:null}, {id:t.id}); Object.assign(t,{title:title,done:false,done_at:null}); }
-      else { var r=await dbIns("frogs", {day:dayKey(), title:title, done:false});
-             if(r.data && !FROGS.some(function(f){ return f.id===r.data.id; })) FROGS.push(r.data); }
-      MIRROR.frogs=FROGS.slice(); saveMirror(); render();
-      toast("🐸 Frog set — eat it early.");
-    }catch(e){ console.log(e); }
   }
   async function eatFrog(){
     var t=frogToday(); if(!t) return;
@@ -1019,15 +1180,22 @@
     OFFBOOT=false; $("settings").classList.add("hidden"); SB.auth.signOut();
   });
 
+  // one input: Enter adds to the list, ▶ (or ⌘/⇧-Enter) starts it now
   $("goBtn").addEventListener("click", startTyped);
-  $("plan").addEventListener("keydown", function(e){ if(e.key==="Enter") startTyped(); });
-  $("doneBtn").addEventListener("click", doneNow);
-  $("offBtn").addEventListener("click", goOff);
-  $("discardBtn").addEventListener("click", discardSession);
+  $("plan").addEventListener("keydown", function(e){
+    if(e.key!=="Enter") return;
+    if(e.metaKey || e.ctrlKey || e.shiftKey) startTyped(); else addTask();
+  });
+  $("listBtn").addEventListener("click", function(){ document.body.classList.add("listing"); window.scrollTo(0,0); });
+  $("listDone").addEventListener("click", function(){ document.body.classList.remove("listing"); });
+  document.addEventListener("keydown", function(e){
+    if(e.key==="Escape"){ document.body.classList.remove("listing"); $("settings").classList.add("hidden"); }
+  });
+  // the Limitless shell's gear opens these settings (theme, chime, account)
+  window.cadenceOpenSettings = function(){ $("settings").classList.remove("hidden"); };
   $("moreBtn").addEventListener("click", function(){ prefs.showAll=!prefs.showAll; savePrefs(); render(); });
 
   $("taskAddBtn").addEventListener("click", addTask);
-  $("taskAdd").addEventListener("keydown", function(e){ if(e.key==="Enter") addTask(); });
 
   $("pastToggle").addEventListener("click", function(){ $("pastBox").classList.toggle("hidden"); });
   $("pCancel").addEventListener("click", function(){ $("pastBox").classList.add("hidden"); });
